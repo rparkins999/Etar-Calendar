@@ -25,6 +25,7 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -44,6 +45,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -130,6 +132,8 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     /*package*/ static final int CHIP_LIMIT = 2;
 
     private static final int MAX_CHIPS_PARSED = 50;
+    public static final String STATE_TEXT_VIEW = "savedTextView";
+    public static final String STATE_CURRENT_WARNING_TEXT = "savedCurrentWarningText";
 
     private int mUnselectedChipTextColor;
     private int mUnselectedChipBackgroundColor;
@@ -248,8 +252,10 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     // domain. We will show a warning for these addresses in the recipient chips.
     private Set<String> mUntrustedAddresses = new HashSet<>();
 
-    private String mWarningText = "";
+    private String mWarningTextTemplate = "";
     private String mWarningTitle = "";
+    // Text of the warning dialog currently being displayed. Empty if no dialog currently displayed.
+    private String mCurrentWarningText = "";
 
     /**
      * Sets this recipient edit text view to display warning icons in chips for the given addresses.
@@ -257,19 +263,19 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
      * @param untrustedAddresses The addresses to display warning icons for.
      * @param warningIcon The icon to show for each address.
      * @param warningIconHeight Height of the warning icon in
-     * @param warningText Text to display when warning icon is clicked.
+     * @param warningTextTemplate Text to display when warning icon is clicked.
      * @param warningTitle Title to display for text when warning icon is clicked.
      */
     public void setUntrustedAddressWarning(
             Set<String> untrustedAddresses,
             Bitmap warningIcon,
             int warningIconHeight,
-            String warningText,
+            String warningTextTemplate,
             String warningTitle) {
         mUntrustedAddresses = untrustedAddresses;
         mWarningIcon = warningIcon;
         mWarningIconHeight = warningIconHeight;
-        mWarningText = warningText;
+        mWarningTextTemplate = warningTextTemplate;
         mWarningTitle = warningTitle;
     }
 
@@ -541,10 +547,17 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
 
     @Override
     public void onRestoreInstanceState(Parcelable state) {
+        Bundle savedInstanceState = (Bundle) state;
         if (!TextUtils.isEmpty(getText())) {
             super.onRestoreInstanceState(null);
         } else {
-            super.onRestoreInstanceState(state);
+            super.onRestoreInstanceState(
+                    savedInstanceState.getParcelable(STATE_TEXT_VIEW));
+        }
+        String savedWarningText = savedInstanceState.getString(
+            STATE_CURRENT_WARNING_TEXT);
+        if (!savedWarningText.isEmpty()) {
+            showWarningDialog(savedWarningText);
         }
     }
 
@@ -552,7 +565,10 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     public Parcelable onSaveInstanceState() {
         // If the user changes orientation while they are editing, just roll back the selection.
         clearSelectedChip();
-        return super.onSaveInstanceState();
+        Bundle savedInstanceState = new Bundle();
+        savedInstanceState.putParcelable(STATE_TEXT_VIEW, super.onSaveInstanceState());
+        savedInstanceState.putString(STATE_CURRENT_WARNING_TEXT, mCurrentWarningText);
+        return savedInstanceState;
     }
 
     /**
@@ -1914,12 +1930,9 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
                             outOfDomainWarningBounds.right,
                             outOfDomainWarningBounds.bottom + getTotalPaddingTop());
                     if (touchOutOfDomainWarning.contains(event.getX(), event.getY())) {
-                        new AlertDialog.Builder(RecipientEditTextView.this.getContext())
-                                .setTitle(mWarningTitle)
-                                .setMessage(
-                                    String.format(mWarningText,
-                                        currentChip.getEntry().getDestination()))
-                                .show();
+                        String warningText = String.format(mWarningTextTemplate,
+                                currentChip.getEntry().getDestination());
+                        showWarningDialog(warningText);
                         touchedWarningIcon = true;
                     }
                 }
@@ -1964,6 +1977,20 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
             }
         }
         return handled;
+    }
+
+    private void showWarningDialog(String warningText) {
+        mCurrentWarningText = warningText;
+        new AlertDialog.Builder(RecipientEditTextView.this.getContext())
+                .setTitle(mWarningTitle)
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        mCurrentWarningText = "";
+                    }
+                })
+                .setMessage(mCurrentWarningText)
+                .show();
     }
 
     private void showAlternates(final DrawableRecipientChip currentChip,
