@@ -2702,6 +2702,7 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         int end = getChipEnd(chip);
         getSpannable().removeSpan(chip);
         Editable editable = getText();
+        entry.setInReplacedChip(true);
         CharSequence chipText = createChip(entry);
         if (chipText != null) {
             if (start == -1 || end == -1) {
