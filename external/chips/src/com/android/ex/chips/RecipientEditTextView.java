@@ -1828,7 +1828,24 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
                 break;
         }
 
-        return super.onKeyDown(keyCode, event);
+        final DrawableRecipientChip lastRecipientChip = getLastChip();
+        boolean isHandled = super.onKeyDown(keyCode, event);
+
+        /*
+         * Hacky way to report a deleted chip:
+         * In some devices/configurations, {@link KeyEvent#KEYCODE_DEL} character is causing
+         * onKeyDown() to be called, which in turns handles the chip deletion instead of
+         * {@link RecipientTextWatcher#onTextChanged}. We want to call
+         * {@link RecipientChipDeletedListener#onRecipientChipDeleted} callback for these cases.
+         */
+        if (keyCode == KeyEvent.KEYCODE_DEL && isHandled && lastRecipientChip != null) {
+            final RecipientEntry entry = lastRecipientChip.getEntry();
+            if (!mNoChipMode && mRecipientChipDeletedListener != null && entry != null) {
+                mRecipientChipDeletedListener.onRecipientChipDeleted(entry);
+            }
+        }
+
+        return isHandled;
     }
 
     // Visible for testing.
