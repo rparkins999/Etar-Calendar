@@ -1930,29 +1930,17 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     public boolean onTouchEvent(@NonNull MotionEvent event) {
         boolean handled;
         int action = event.getAction();
+        final float x = event.getX();
+        final float y = event.getY();
+        final int offset = putOffsetInRange(x, y);
+        final DrawableRecipientChip currentChip = findChip(offset);
         if (action == MotionEvent.ACTION_UP) {
-            final float x = event.getX();
-            final float y = event.getY();
-            final int offset = putOffsetInRange(x, y);
-            final DrawableRecipientChip currentChip = findChip(offset);
-
-            // Handle touching the warning icon
-            boolean touchedWarningIcon = false;
-            if (currentChip != null) {
-                Rect outOfDomainWarningBounds = currentChip.getWarningIconBounds();
-                if (outOfDomainWarningBounds != null) {
-                    final RectF touchOutOfDomainWarning = new RectF(
-                            outOfDomainWarningBounds.left,
-                            outOfDomainWarningBounds.top + getTotalPaddingTop(),
-                            outOfDomainWarningBounds.right,
-                            outOfDomainWarningBounds.bottom + getTotalPaddingTop());
-                    if (touchOutOfDomainWarning.contains(event.getX(), event.getY())) {
-                        String warningText = String.format(mWarningTextTemplate,
-                                currentChip.getEntry().getDestination());
-                        showWarningDialog(warningText);
-                        touchedWarningIcon = true;
-                    }
-                }
+            boolean touchedWarningIcon = touchedWarningIcon(x, y, currentChip);
+            if (touchedWarningIcon) {
+                String warningText = String.format(mWarningTextTemplate,
+                    currentChip.getEntry().getDestination());
+                showWarningDialog(warningText);
+                return true;
             }
             if (!isFocused()) {
                 // Ignore further chip taps until this view is focused.
@@ -1961,9 +1949,6 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
             handled = super.onTouchEvent(event);
             if (mSelectedChip == null) {
                 mGestureDetector.onTouchEvent(event);
-            }
-            if (touchedWarningIcon) {
-                return true;
             }
             boolean chipWasSelected = false;
             if (currentChip != null) {
@@ -1985,6 +1970,10 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
                 clearSelectedChip();
             }
         } else {
+            boolean touchedWarningIcon = touchedWarningIcon(x, y, currentChip);
+            if (touchedWarningIcon) {
+                return true;
+            }
             handled = super.onTouchEvent(event);
             if (!isFocused()) {
                 return handled;
@@ -1994,6 +1983,22 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
             }
         }
         return handled;
+    }
+
+    private boolean touchedWarningIcon(float x, float y, DrawableRecipientChip currentChip) {
+        boolean touchedWarningIcon = false;
+        if (currentChip != null) {
+            Rect outOfDomainWarningBounds = currentChip.getWarningIconBounds();
+            if (outOfDomainWarningBounds != null) {
+                final RectF touchOutOfDomainWarning = new RectF(
+                        outOfDomainWarningBounds.left,
+                        outOfDomainWarningBounds.top + getTotalPaddingTop(),
+                        outOfDomainWarningBounds.right,
+                        outOfDomainWarningBounds.bottom + getTotalPaddingTop());
+                touchedWarningIcon = touchOutOfDomainWarning.contains(x, y);
+            }
+        }
+        return touchedWarningIcon;
     }
 
     private void showWarningDialog(String warningText) {
