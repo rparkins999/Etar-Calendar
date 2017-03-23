@@ -1992,11 +1992,16 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
         if (currentChip != null) {
             Rect outOfDomainWarningBounds = currentChip.getWarningIconBounds();
             if (outOfDomainWarningBounds != null) {
+                int chipLeftOffset = shouldPositionAvatarOnRight()
+                        ? getChipEnd(currentChip) : getChipStart(currentChip);
+                float chipLeftPosition = this.getLayout().getPrimaryHorizontal(chipLeftOffset);
+                float chipTopPosition = this.getLayout().getLineTop(
+                        this.getLayout().getLineForOffset(chipLeftOffset)) + getTotalPaddingTop();
                 final RectF touchOutOfDomainWarning = new RectF(
-                        outOfDomainWarningBounds.left,
-                        outOfDomainWarningBounds.top + getTotalPaddingTop(),
-                        outOfDomainWarningBounds.right,
-                        outOfDomainWarningBounds.bottom + getTotalPaddingTop());
+                        chipLeftPosition + outOfDomainWarningBounds.left,
+                        chipTopPosition + outOfDomainWarningBounds.top,
+                        chipLeftPosition + outOfDomainWarningBounds.right,
+                        chipTopPosition + outOfDomainWarningBounds.bottom);
                 touchedWarningIcon = touchOutOfDomainWarning.contains(x, y);
             }
         }
