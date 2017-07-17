@@ -27,13 +27,16 @@ LOCAL_PACKAGE_NAME := libChipsSample
 
 LOCAL_STATIC_JAVA_LIBRARIES += libchips
 
+LOCAL_STATIC_ANDROID_LIBRARIES := \
+    android-support-v7-appcompat \
+    android-support-v4
+
 LOCAL_SDK_VERSION := current
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src) \
         $(call all-logtags-files-under, $(src_dirs))
-LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(local_res_dirs)) $(LOCAL_PATH)/../../../../$(SUPPORT_LIBRARY_ROOT)/compat/res
-LOCAL_AAPT_FLAGS := --auto-add-overlay
-LOCAL_AAPT_FLAGS += --extra-packages com.android.ex.chips:android.support.compat
+LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(local_res_dirs))
+LOCAL_USE_AAPT2 := true
 
 include $(BUILD_PACKAGE)
 
