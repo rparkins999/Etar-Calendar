@@ -21,14 +21,12 @@
     <string name="copy_number" msgid="530057841276106843">"ফ\'ন নম্বৰ প্ৰতিলিপি কৰক"</string>
     <string name="action_label" msgid="1318401633653605424">"উভতি যাওক"</string>
     <string name="accessbility_suggestion_dropdown_opened" msgid="3231589819168382515">"সম্পৰ্কসূচীৰ পৰামৰ্শবোৰ খোলা হ\'ল"</string>
-    <!-- no translation found for accessbility_suggestion_dropdown_closed (5545766162855459747) -->
-    <skip />
+    <string name="accessbility_suggestion_dropdown_closed" msgid="5545766162855459747">"কোনো পৰামর্শ নাই"</string>
     <!-- no translation found for dropdown_delete_button_desc (8506791557733906887) -->
     <skip />
     <!-- no translation found for chips_action_copy (1929144660075507103) -->
     <skip />
     <!-- no translation found for chips_action_cancel (6077877438943543501) -->
     <skip />
-    <!-- no translation found for chips_permission_text (1978301259208877495) -->
-    <skip />
+    <string name="chips_permission_text" msgid="1978301259208877495">"সম্পর্কসূচীৰ পৰামর্শসমূহৰ বাবে অনুমতি দিয়ক"</string>
 </resources>
