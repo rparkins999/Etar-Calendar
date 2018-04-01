@@ -22,11 +22,8 @@
     <string name="action_label" msgid="1318401633653605424">"উভতি যাওক"</string>
     <string name="accessbility_suggestion_dropdown_opened" msgid="3231589819168382515">"সম্পৰ্কসূচীৰ পৰামৰ্শবোৰ খোলা হ\'ল"</string>
     <string name="accessbility_suggestion_dropdown_closed" msgid="5545766162855459747">"কোনো পৰামর্শ নাই"</string>
-    <!-- no translation found for dropdown_delete_button_desc (8506791557733906887) -->
-    <skip />
-    <!-- no translation found for chips_action_copy (1929144660075507103) -->
-    <skip />
-    <!-- no translation found for chips_action_cancel (6077877438943543501) -->
-    <skip />
+    <string name="dropdown_delete_button_desc" msgid="8506791557733906887">"<xliff:g id="CONTACT">%s</xliff:g>ক প্ৰাপকসকলৰপৰা আঁতৰাওক"</string>
+    <string name="chips_action_copy" msgid="1929144660075507103">"প্ৰতিলিপি কৰক"</string>
+    <string name="chips_action_cancel" msgid="6077877438943543501">"বাতিল কৰক"</string>
     <string name="chips_permission_text" msgid="1978301259208877495">"সম্পর্কসূচীৰ পৰামর্শসমূহৰ বাবে অনুমতি দিয়ক"</string>
 </resources>
