@@ -22,11 +22,11 @@ src_dirs := src
 LOCAL_PACKAGE_NAME := libChipsSample
 
 LOCAL_STATIC_JAVA_LIBRARIES := \
-     android-support-annotations
+     androidx.annotation_annotation
 
 LOCAL_STATIC_ANDROID_LIBRARIES := \
      libchips \
-     android-support-compat
+     androidx.core_core
 
 LOCAL_SDK_VERSION := current
 
