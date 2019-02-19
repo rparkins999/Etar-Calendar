@@ -19,9 +19,9 @@ android_app {
     name: "libChipsSample",
 
     static_libs: [
-        "android-support-annotations",
+        "androidx.annotation_annotation",
         "libchips",
-        "android-support-compat",
+        "androidx.core_core",
     ],
 
     sdk_version: "current",
