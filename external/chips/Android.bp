@@ -15,8 +15,8 @@
 android_library {
     name: "libchips",
     static_libs: [
-        "android-support-annotations",
-        "android-support-compat",
+        "androidx.annotation_annotation",
+        "androidx.core_core",
     ],
     sdk_version: "current",
     srcs: [
