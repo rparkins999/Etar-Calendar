@@ -785,9 +785,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         return ACCESS_LEVEL_DELETE;
     }
 
-    @SuppressLint("MissingSuperCall")
     @Override
     protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
         if (mHandler == null) {
             mHandler = getHandler();
             mHandler.post(mUpdateCurrentTime);
