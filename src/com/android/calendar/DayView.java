@@ -2144,7 +2144,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         initAllDayHeights();
     }
 
-    @SuppressLint("WrongCall")
     @Override
     protected void onDraw(Canvas canvas) {
         if (mRemeasure) {
@@ -2153,13 +2152,13 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
         canvas.save();
 
-        float yTranslate = -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
+        float yTranslate1 = -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
         // offset canvas by the current drag and header position
-        canvas.translate(-mViewStartX, yTranslate);
+        canvas.translate(-mViewStartX, yTranslate1);
         // clip to everything below the allDay area
         Rect dest = mDestRect;
-        dest.top = (int) (mFirstCell - yTranslate);
-        dest.bottom = (int) (mViewHeight - yTranslate);
+        dest.top = (int) (mFirstCell - yTranslate1);
+        dest.bottom = (int) (mViewHeight - yTranslate1);
         dest.left = 0;
         dest.right = mViewWidth;
         canvas.save();
@@ -2181,20 +2180,41 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // Move the canvas around to prep it for the next view
             // specifically, shift it by a screen and undo the
             // yTranslation which will be redone in the nextView's onDraw().
-            canvas.translate(xTranslate, -yTranslate);
+            canvas.translate(xTranslate, -yTranslate1);
             DayView nextView = (DayView) mViewSwitcher.getNextView();
 
-            // Prevent infinite recursive calls to onDraw().
-            nextView.mTouchMode = TOUCH_MODE_INITIAL_STATE;
-
-            nextView.onDraw(canvas);
+            if (nextView.mRemeasure) {
+                nextView.remeasure(nextView.getWidth(), nextView.getHeight());
+                nextView.mRemeasure = false;
+            }
+            canvas.save();
+            float yTranslate2 = -nextView.mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
+            canvas.translate(-nextView.mViewStartX, yTranslate2);
+            dest.top = (int) (nextView.mFirstCell - yTranslate2);
+            dest.bottom = (int) (nextView.mViewHeight - yTranslate2);
+            dest.left = 0;
+            dest.right = nextView.mViewWidth;
+            canvas.save();
+            canvas.clipRect(dest);
+            nextView.doDraw(canvas);
+            canvas.restore();
+            canvas.save();
+            canvas.translate(nextView.mViewStartX, -yTranslate2);
+            if (nextView.mComputeSelectedEvents && nextView.mUpdateToast) {
+                nextView.updateEventDetails();
+                nextView.mUpdateToast = false;
+            }
+            nextView.mComputeSelectedEvents = false;
+            canvas.restore();
+            nextView.drawHours(nextView.mRect, canvas, nextView.mPaint);
+            canvas.restore();
             // Move it back for this view
             canvas.translate(-xTranslate, 0);
         } else {
             // If we drew another view we already translated it back
             // If we didn't draw another view we should be at the edge of the
             // screen
-            canvas.translate(mViewStartX, -yTranslate);
+            canvas.translate(mViewStartX, -yTranslate1);
         }
 
         // Draw the fixed areas (that don't scroll) directly to the canvas.
