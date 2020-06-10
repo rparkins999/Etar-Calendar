@@ -577,6 +577,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private boolean mIsAccessibilityEnabled = false;
     private boolean mTouchExplorationEnabled = false;
 
+    // This is used to send myself a bogus key event in order to stop
+    // the InputEventConsistencyVerifier causing trouble when I switch
+    // views while a key is down.
+    private boolean mIgnoreOneKeyEvent = false;
+
     public DayView(Context context, CalendarController controller,
             ViewSwitcher viewSwitcher, EventLoader eventLoader, int numDays) {
         super(context);
@@ -1451,42 +1456,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        mScrolling = false;
-        long duration = event.getEventTime() - event.getDownTime();
-
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_CENTER:
-                if (mSelectionMode == SELECTION_HIDDEN) {
-                    // Don't do anything unless the selection is visible.
-                    break;
-                }
-
-                if (mSelectionMode == SELECTION_PRESSED) {
-                    // This was the first press when there was nothing selected.
-                    // Change the selection from the "pressed" state to the
-                    // the "selected" state.  We treat short-press and
-                    // long-press the same here because nothing was selected.
-                    mSelectionMode = SELECTION_SELECTED;
-                    invalidate();
-                    break;
-                }
-
-                // Check the duration to determine if this was a short press
-                if (duration < ViewConfiguration.getLongPressTimeout()) {
-                    switchViews(true /* trackball */);
-                } else {
-                    mSelectionMode = SELECTION_LONGPRESS;
-                    invalidate();
-                    performLongClick();
-                }
-                break;
-        }
-        return super.onKeyUp(keyCode, event);
-    }
-
-    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (mIgnoreOneKeyEvent) {
+            mIgnoreOneKeyEvent = false;
+            return true; // handled it
+        }
         if (mSelectionMode == SELECTION_HIDDEN) {
             if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
                     || keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_UP
@@ -1603,6 +1577,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 view.mBaseDate.monthDay += mNumDays;
             }
             view.mBaseDate.normalize(true /* ignore isDst */);
+
+            // Stop the InputEventConsistencyVerifier bothering me.
+            view.mIgnoreOneKeyEvent = true;
+            view.dispatchKeyEvent(event);
+            mIgnoreOneKeyEvent = true;
+            KeyEvent up = KeyEvent.changeAction(event, KeyEvent.ACTION_UP);
+            dispatchKeyEvent(up);
+
             view.setSelectedDay(selectionDay);
 
             initView(view);
@@ -1630,6 +1612,41 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
 
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        mScrolling = false;
+        long duration = event.getEventTime() - event.getDownTime();
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                if (mSelectionMode == SELECTION_HIDDEN) {
+                    // Don't do anything unless the selection is visible.
+                    break;
+                }
+
+                if (mSelectionMode == SELECTION_PRESSED) {
+                    // This was the first press when there was nothing selected.
+                    // Change the selection from the "pressed" state to the
+                    // the "selected" state.  We treat short-press and
+                    // long-press the same here because nothing was selected.
+                    mSelectionMode = SELECTION_SELECTED;
+                    invalidate();
+                    break;
+                }
+
+                // Check the duration to determine if this was a short press
+                if (duration < ViewConfiguration.getLongPressTimeout()) {
+                    switchViews(true /* trackball */);
+                } else {
+                    mSelectionMode = SELECTION_LONGPRESS;
+                    invalidate();
+                    performLongClick();
+                }
+                break;
+        }
+        return super.onKeyUp(keyCode, event);
     }
 
     @Override
