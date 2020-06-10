@@ -21,7 +21,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ContentResolver;
@@ -991,6 +990,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mFirstHourOffset = 0;
     }
 
+    // Called from animation framework via reflection. Do not remove
+    public void setAnimateTodayAlpha(int todayAlpha) {
+        mAnimateTodayAlpha = todayAlpha;
+        invalidate();
+    }
+
     public void setSelected(Time time, boolean ignoreTime, boolean animateToday) {
         mBaseDate.set(time);
         setSelectedHour(mBaseDate.hour);
@@ -1087,11 +1092,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
 
         computeFirstHour();
-        invalidate();
-    }
-
-    public void setAnimateTodayAlpha(int todayAlpha) {
-        mAnimateTodayAlpha = todayAlpha;
         invalidate();
     }
 
@@ -1480,13 +1480,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     performLongClick();
                 }
                 break;
-//            case KeyEvent.KEYCODE_BACK:
-//                if (event.isTracking() && !event.isCanceled()) {
-//                    mPopup.dismiss();
-//                    mContext.finish();
-//                    return true;
-//                }
-//                break;
         }
         return super.onKeyUp(keyCode, event);
     }
@@ -1949,13 +1942,13 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mLastReloadMillis = 0;
     }
 
-    /* package */ void reloadEvents() {
-        // Protect against this being called before this view has been
-        // initialized.
-//        if (mContext == null) {
-//            return;
-//        }
+    // setter for the alpha used by the cross fade animator, do not remove
+    public void setEventsAlpha(int alpha) {
+        mEventsAlpha = alpha;
+        invalidate();
+    }
 
+    /* package */ void reloadEvents() {
         // Make sure our time zones are up to date
         mTZUpdater.run();
 
@@ -1977,7 +1970,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mLastReloadMillis = millis;
 
         // load events in the background
-//        mContext.startProgressSpinner();
         final ArrayList<Event> events = new ArrayList<Event>();
         mEventLoader.loadEventsInBackground(mNumDays, events, mFirstJulianDay, new Runnable() {
 
@@ -2032,16 +2024,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }, mCancelCallback);
     }
 
-            public int getEventsAlpha() {
-                return mEventsAlpha;
-            }
-
-            public void setEventsAlpha(int alpha) {
-        mEventsAlpha = alpha;
-        invalidate();
-    }
-
-    public void stopEventsAnimation() {
+     public void stopEventsAnimation() {
         if (mEventsCrossFadeAnimation != null) {
             mEventsCrossFadeAnimation.cancel();
         }
@@ -2323,19 +2306,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawDayHeaderLoop(Rect r, Canvas canvas, Paint p) {
-        // Draw the horizontal day background banner
-        // p.setColor(mCalendarDateBannerBackground);
-        // r.top = 0;
-        // r.bottom = DAY_HEADER_HEIGHT;
-        // r.left = 0;
-        // r.right = mHoursWidth + mNumDays * (mCellWidth + DAY_GAP);
-        // canvas.drawRect(r, p);
-        //
-        // Fill the extra space on the right side with the default background
-        // r.left = r.right;
-        // r.right = mViewWidth;
-        // p.setColor(mCalendarGridAreaBackground);
-        // canvas.drawRect(r, p);
         if (mNumDays == 1 && ONE_DAY_HEADER_HEIGHT == 0) {
             return;
         }
@@ -3214,17 +3184,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             if (bottom > box.bottom) {
                 bottom = box.bottom;
             }
-//            if (false) {
-//                int flags = DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_ALL
-//                        | DateUtils.FORMAT_CAP_NOON_MIDNIGHT;
-//                if (DateFormat.is24HourFormat(mContext)) {
-//                    flags |= DateUtils.FORMAT_24HOUR;
-//                }
-//                String timeRange = DateUtils.formatDateRange(mContext, ev.startMillis,
-//                        ev.endMillis, flags);
-//                Log.i("Cal", "left: " + left + " right: " + right + " top: " + top + " bottom: "
-//                        + bottom + " ev: " + timeRange + " " + ev.title);
-//            }
             int upDistanceMin = 10000; // any large number
             int downDistanceMin = 10000; // any large number
             int leftDistanceMin = 10000; // any large number
@@ -3479,22 +3438,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             p.setAntiAlias(true);
         }
 
-        // Draw cal color square border
-        // r.top = (int) event.top + CALENDAR_COLOR_SQUARE_V_OFFSET;
-        // r.left = (int) event.left + CALENDAR_COLOR_SQUARE_H_OFFSET;
-        // r.bottom = r.top + CALENDAR_COLOR_SQUARE_SIZE + 1;
-        // r.right = r.left + CALENDAR_COLOR_SQUARE_SIZE + 1;
-        // p.setColor(0xFFFFFFFF);
-        // canvas.drawRect(r, p);
-
-        // Draw cal color
-        // r.top++;
-        // r.left++;
-        // r.bottom--;
-        // r.right--;
-        // p.setColor(event.color);
-        // canvas.drawRect(r, p);
-
         // Setup rect for drawEventText which follows
         r.top = (int) event.top + EVENT_RECT_TOP_MARGIN;
         r.bottom = (int) event.bottom - EVENT_RECT_BOTTOM_MARGIN;
@@ -3503,32 +3446,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         return r;
     }
 
-    // This is to replace p.setStyle(Style.STROKE); canvas.drawRect() since it
-    // doesn't work well with hardware acceleration
-//    private void drawEmptyRect(Canvas canvas, Rect r, int color) {
-//        int linesIndex = 0;
-//        mLines[linesIndex++] = r.left;
-//        mLines[linesIndex++] = r.top;
-//        mLines[linesIndex++] = r.right;
-//        mLines[linesIndex++] = r.top;
-//
-//        mLines[linesIndex++] = r.left;
-//        mLines[linesIndex++] = r.bottom;
-//        mLines[linesIndex++] = r.right;
-//        mLines[linesIndex++] = r.bottom;
-//
-//        mLines[linesIndex++] = r.left;
-//        mLines[linesIndex++] = r.top;
-//        mLines[linesIndex++] = r.left;
-//        mLines[linesIndex++] = r.bottom;
-//
-//        mLines[linesIndex++] = r.right;
-//        mLines[linesIndex++] = r.top;
-//        mLines[linesIndex++] = r.right;
-//        mLines[linesIndex++] = r.bottom;
-//        mPaint.setColor(color);
-//        canvas.drawLines(mLines, 0, linesIndex, mPaint);
-//    }
 
             // Sanitize a string before passing it to drawText or else we get little
             // squares. For newlines and tabs before a comma, delete the character.
@@ -3801,20 +3718,20 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         return animator;
     }
 
-    // setter for the 'box +n' alpha text used by the animator
+    // setter for the 'box +n' alpha text used by the animator, do not remove
     public void setMoreAllDayEventsTextAlpha(int alpha) {
         mMoreAlldayEventsTextAlpha = alpha;
         invalidate();
     }
 
-    // setter for the height of the allday area used by the animator
+    // setter for the height of the allday area used by the animator, do not remove
     public void setAnimateDayHeight(int height) {
         mAnimateDayHeight = height;
         mRemeasure = true;
         invalidate();
     }
 
-    // setter for the height of allday events used by the animator
+    // setter for the height of allday events used by the animator, do not remove
     public void setAnimateDayEventHeight(int height) {
         mAnimateDayEventHeight = height;
         mRemeasure = true;
@@ -4060,7 +3977,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
-    private void doFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+    private void doFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY)
+    {
         cancelAnimation();
 
         eventClickCleanup();
@@ -4069,7 +3987,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         if ((mTouchMode & TOUCH_MODE_HSCROLL) != 0) {
             // Horizontal fling.
-            // initNextView(deltaX);
             mTouchMode = TOUCH_MODE_INITIAL_STATE;
             if (DEBUG) Log.d(TAG, "doFling: velocityX " + velocityX);
             int deltaX = (int) e2.getX() - (int) e1.getX();
@@ -4465,20 +4382,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         findSelectedEvent(x, y);
 
-//        Log.i("Cal", "setSelectionFromPosition( " + x + ", " + y + " ) day: " + day + " hour: "
-//                + mSelectionHour + " mFirstCell: " + mFirstCell + " mFirstHourOffset: "
-//                + mFirstHourOffset);
-//        if (mSelectedEvent != null) {
-//            Log.i("Cal", "  num events: " + mSelectedEvents.size() + " event: "
-//                    + mSelectedEvent.title);
-//            for (Event ev : mSelectedEvents) {
-//                int flags = DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_ALL
-//                        | DateUtils.FORMAT_CAP_NOON_MIDNIGHT;
-//                String timeRange = formatDateRange(mContext, ev.startMillis, ev.endMillis, flags);
-//
-//                Log.i("Cal", "  " + timeRange + " " + ev.title);
-//            }
-//        }
         sendAccessibilityEventAsNeeded(true);
 
         // Restore old values
