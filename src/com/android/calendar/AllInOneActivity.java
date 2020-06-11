@@ -488,22 +488,14 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             @Override
             public void onClick(View v) {
                 //Create new Event
-                Time t = new Time();
-                t.set(mController.getTime());
-                t.second = 0;
-                if (t.minute > 30) {
-                    t.hour++;
-                    t.minute = 0;
-                } else if (t.minute > 0 && t.minute < 30) {
-                    t.minute = 30;
-                }
-                mController.sendEventRelatedEvent(
-                        this, EventType.CREATE_EVENT, -1, t.toMillis(true), 0, 0, 0, -1);
+                mController.sendEventRelatedEventWithExtra(
+                    this, EventType.CREATE_EVENT, -1,
+                    DayView.mSelectionTime.toMillis(true),
+                    0, 0, 0,
+                    (DayView.mSelectionAllday ? 0x10L: 0L), -1);
             }
         });
     }
-
-
 
     private void hideActionBar() {
         if (mActionBar == null) return;
