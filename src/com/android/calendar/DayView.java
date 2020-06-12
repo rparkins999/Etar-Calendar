@@ -2275,8 +2275,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         if (   (mSelectionMode != SELECTION_HIDDEN)
             && (mTouchMode != TOUCH_MODE_DOWN)
-            && mSelectionAllday)
-        {
+            && mSelectionAllday) {
             // Draw the selection highlight on the selected all-day area
             mRect.top = DAY_HEADER_HEIGHT + 1;
             mRect.bottom = mRect.top + mAlldayHeight + ALLDAY_TOP_MARGIN - 2;
@@ -2285,6 +2284,31 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             mRect.right = computeDayLeftPosition(daynum + 1);
             p.setColor(mCalendarGridAreaSelected);
             canvas.drawRect(mRect, p);
+            p.setColor(mNewEventHintColor);
+            if (mNumDays > 1) {
+                p.setStrokeWidth(NEW_EVENT_WIDTH);
+                int width = mRect.right - mRect.left;
+                int midX = mRect.left + width / 2;
+                int height = mRect.bottom - mRect.top;
+                int midY = mRect.top + height / 2;
+                int length = Math.min(height, width) - NEW_EVENT_MARGIN * 2;
+                length = Math.min(length, NEW_EVENT_MAX_LENGTH);
+                int verticalPadding = (height - length) / 2;
+                int horizontalPadding = (width - length) / 2;
+                canvas.drawLine(mRect.left + horizontalPadding, midY,
+                    mRect.right - horizontalPadding, midY, p);
+                canvas.drawLine(midX, mRect.top + verticalPadding, midX,
+                    mRect.bottom - verticalPadding, p);
+            } else {
+                p.setStyle(Paint.Style.FILL);
+                p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
+                p.setTextAlign(Paint.Align.LEFT);
+                p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+                canvas.drawText(mNewEventHintString,
+                    mRect.left + EVENT_TEXT_LEFT_MARGIN,
+                    mRect.top + Math.abs(p.getFontMetrics().ascent)
+                        + EVENT_TEXT_TOP_MARGIN, p);
+            }
         }
     }
 
@@ -2420,9 +2444,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     length = Math.min(length, NEW_EVENT_MAX_LENGTH);
                     int verticalPadding = (mCellHeight - length) / 2;
                     int horizontalPadding = (width - length) / 2;
-                    canvas.drawLine(r.left + horizontalPadding, midY, r.right - horizontalPadding,
+                    canvas.drawLine(r.left + horizontalPadding, midY,
+                        r.right - horizontalPadding,
                         midY, p);
-                    canvas.drawLine(midX, r.top + verticalPadding, midX, r.bottom - verticalPadding, p);
+                    canvas.drawLine(midX, r.top + verticalPadding, midX,
+                        r.bottom - verticalPadding, p);
                 } else {
                     p.setStyle(Paint.Style.FILL);
                     p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
