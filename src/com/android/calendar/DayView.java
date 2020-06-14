@@ -2253,9 +2253,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
         }
 
-        if (   (mSelectionMode != SELECTION_HIDDEN)
-            && (mTouchMode != TOUCH_MODE_DOWN)
-            && mSelectionAllday) {
+        if (mSelectionAllday) {
             // Draw the selection highlight on the selected all-day area
             mRect.top = DAY_HEADER_HEIGHT + 1;
             mRect.bottom = mRect.top + mAlldayHeight + ALLDAY_TOP_MARGIN - 2;
@@ -2385,9 +2383,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private void drawSelectedRect(Canvas canvas, Paint p) {
         // Draw a highlight on the selected hour (if needed)
-        if (   (mSelectionMode != SELECTION_HIDDEN)
-            && (mTouchMode != TOUCH_MODE_DOWN)
-            && !mSelectionAllday)
+        if (!mSelectionAllday)
         {
             getCurrentSelectionPosition(mRect);
 
@@ -2397,11 +2393,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 || (mRect.right != mPrevBox.right)
                 || (mRect.bottom != mPrevBox.bottom))
             {
-                Llog.d("View " + hashCode
+                Llog.d("View " + hashCode()
                     + mSelectionTime.format("mSelectionTime is %b%d %H:%M"));
                 Llog.d( "left " + mRect.left + ", top " + mRect.top
                     + ", right " + mRect.right + ", bottom " + mRect.bottom);
-            } */
+            } //*/
             saveSelectionPosition(mRect.left, mRect.top, mRect.right, mRect.bottom);
             if (mRect.left >= mHoursWidth ) {
                 // Draw the highlight on the grid
@@ -2691,8 +2687,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void getCurrentSelectionPosition(Rect box) {
-        box.top = mSelectionTime.hour * (mCellHeight + HOUR_GAP);
-        box.bottom = box.top + mCellHeight + HOUR_GAP;
+        if (mSelectionAllday) {
+
+        } else {
+            box.top = mSelectionTime.hour * (mCellHeight + HOUR_GAP);
+            box.bottom = box.top + mCellHeight + HOUR_GAP;
+        }
         int daynum = mSelectionJulianDay - mFirstJulianDay;
         box.left = computeDayLeftPosition(daynum) + 1;
         box.right = computeDayLeftPosition(daynum + 1);
