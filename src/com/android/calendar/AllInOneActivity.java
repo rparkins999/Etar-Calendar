@@ -94,6 +94,8 @@ import static android.provider.CalendarContract.Attendees.ATTENDEE_STATUS;
 import static android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY;
 import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
+import static android.text.format.DateUtils.FORMAT_NO_MONTH_DAY;
+import static android.text.format.DateUtils.FORMAT_SHOW_YEAR;
 
 public class AllInOneActivity extends AbstractCalendarActivity implements EventHandler,
         OnSharedPreferenceChangeListener, SearchView.OnQueryTextListener, SearchView.OnSuggestionListener, NavigationView.OnNavigationItemSelectedListener {
@@ -1134,6 +1136,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
 
         final long start = event.startTime.toMillis(false /* use isDst */);
+        refreshActionbarTitle(start);
         final long end;
         if (event.endTime != null) {
             end = event.endTime.toMillis(false /* use isDst */);

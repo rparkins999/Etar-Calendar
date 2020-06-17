@@ -88,7 +88,7 @@ public class CalendarToolbarHandler {
                 } else {
                     mToolbar.setSubtitle("");
                 }
-                mToolbar.setTitle(buildMonthYearDate());
+                mToolbar.setTitle(buildWeekDate());
                 break;
             case CalendarController.ViewType.MONTH:
                 mToolbar.setSubtitle("");
@@ -213,8 +213,8 @@ public class CalendarToolbarHandler {
 
         // If week start and end is in 2 different months, use short months names
         Time t1 = new Time(mTimeZone);
-        t.set(weekEndTime);
-        int flags = DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_NO_YEAR;
+        t1.set(weekEndTime);
+        int flags = DateUtils.FORMAT_SHOW_YEAR | DateUtils.FORMAT_NO_MONTH_DAY;
         if (t.month != t1.month) {
             flags |= DateUtils.FORMAT_ABBREV_MONTH;
         }
