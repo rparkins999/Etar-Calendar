@@ -354,10 +354,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // Another one, private to compareToVisibleTimeRange
     private Time mCompareTime;
 
-    // These are static because they are the same for both views
+    // These are static because they are the same for every DayView
     public static boolean mSelectionAllday;
     public static Time mSelectionTime;
     private static int mSelectionJulianDay; // to save recomputing it all the time
+    private static Event mSelectedEvent;
+    private static Event mClickedEvent;
+
+    // These are set by findSelectedEvent()
+    private static boolean mClickedAllday;     // user clicked in the all day region
+    private static int mClickedDay;
+    private static int mClickedHour;
 
     ScaleGestureDetector mScaleGestureDetector;
     // Animates the height of the allday region
@@ -402,7 +409,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int[] mEarliestStartHour;    // indexed by the week day offset
     private String mEventCountTemplate;
     private String mLongPressTitle;
-    private Event mClickedEvent;           // The event the user clicked on
     private Event mSavedClickedEvent;
     // Sets the "clicked" color from the clicked event
     private final Runnable mSetClick = new Runnable() {
@@ -543,7 +549,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private boolean mIs24HourFormat;
     private boolean mComputeSelectedEvents;
     private boolean mUpdateToast;
-    private Event mSelectedEvent;
     private Event mPrevSelectedEvent;
     private int mTouchMode = TOUCH_MODE_INITIAL_STATE;
     private int mSelectionMode = SELECTION_SELECTED;
@@ -4349,7 +4354,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         if (y < mFirstCell) {
             mSelectionAllday = true;
+            mClickedAllday = true;
         } else {
+            mClickedAllday = false;
             // y is now offset from top of the scrollable region
             int adjustedY = y - mFirstCell;
 
@@ -4377,6 +4384,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void findSelectedEvent(int x, int y) {
+        mClickedEvent = null;
         int date = mSelectionDay;
         int cellWidth = mCellWidth;
         ArrayList<Event> events = mEvents;
@@ -4385,11 +4393,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int top = 0;
         setSelectedEvent(null);
 
+        mClickedDay = (x - mHoursWidth) / (mCellWidth + DAY_GAP);
+        if (mClickedDay >= mNumDays) {
+            mClickedDay = mNumDays - 1;
+        }
+        mClickedDay += mFirstJulianDay;
+
         mSelectedEvents.clear();
-        if (mSelectionAllday) {
+        if (mClickedAllday) {
+            mClickedHour = 0;
             float yDistance;
             float minYdistance = 10000.0f; // any large number
-            Event closestEvent = null;
             float drawHeight = mAlldayHeight;
             int yOffset = DAY_HEADER_HEIGHT + ALLDAY_TOP_MARGIN;
             int maxUnexpandedColumn = mMaxUnexpandedAlldayEventCount;
@@ -4420,7 +4434,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         // If the touch is inside the event rectangle, then
                         // add the event.
                         mSelectedEvents.add(event);
-                        closestEvent = event;
+                        mClickedEvent = event;
                         break;
                     } else {
                         // Find the closest event
@@ -4431,17 +4445,23 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         }
                         if (yDistance < minYdistance) {
                             minYdistance = yDistance;
-                            closestEvent = event;
+                            mClickedEvent = event;
                         }
                     }
                 }
             }
-            setSelectedEvent(closestEvent);
+            setSelectedEvent(mClickedEvent);
             return;
         }
 
         // Adjust y for the scrollable bitmap
         y += mViewStartY - mFirstCell;
+        if (y < mFirstHourOffset) {
+            mClickedHour = mFirstHour - 1; /* In the partially visible hour */
+        } else {
+            mClickedHour = mFirstHour +
+                (y - mFirstHourOffset) / (mCellHeight + HOUR_GAP);
+        }
 
         // Use a region around (x,y) for the selection region
         mRect.left = x - 10;
@@ -4469,17 +4489,16 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // closest one to mSelectedEvent.
         if (mSelectedEvents.size() > 0) {
             int len = mSelectedEvents.size();
-            Event closestEvent = null;
             float minDist = mViewWidth + mViewHeight; // some large distance
             for (int index = 0; index < len; index++) {
                 Event ev = mSelectedEvents.get(index);
                 float dist = geometry.pointToEvent(x, y, ev);
                 if (dist < minDist) {
                     minDist = dist;
-                    closestEvent = ev;
+                    mClickedEvent = ev;
                 }
             }
-            setSelectedEvent(closestEvent);
+            setSelectedEvent(mClickedEvent);
 
             // Keep the selected hour and day consistent with the selected
             // event. They could be different if we touched on an empty hour
