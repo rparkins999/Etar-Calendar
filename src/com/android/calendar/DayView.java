@@ -3099,8 +3099,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
 
         Event startEvent = mSelectedEvents.get(0);
-        int startEventDistance1 = 100000; // any large number
-        int startEventDistance2 = 100000; // any large number
+        int startEventDistance1 = Integer.MAX_VALUE;
+        int startEventDistance2 = Integer.MAX_VALUE;
         int prevLocation = FROM_NONE;
         int prevTop;
         int prevBottom;
@@ -3178,10 +3178,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             if (bottom > box.bottom) {
                 bottom = box.bottom;
             }
-            int upDistanceMin = 10000; // any large number
-            int downDistanceMin = 10000; // any large number
-            int leftDistanceMin = 10000; // any large number
-            int rightDistanceMin = 10000; // any large number
+            int upDistanceMin = Integer.MAX_VALUE;
+            int downDistanceMin = Integer.MAX_VALUE;
+            int leftDistanceMin = Integer.MAX_VALUE;
+            int rightDistanceMin = Integer.MAX_VALUE;
             Event upEvent = null;
             Event downEvent = null;
             Event leftEvent = null;
@@ -4403,7 +4403,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (mClickedAllday) {
             mClickedHour = 0;
             float yDistance;
-            float minYdistance = 10000.0f; // any large number
+            float minYdistance = Float.MAX_VALUE;
             float drawHeight = mAlldayHeight;
             int yOffset = DAY_HEADER_HEIGHT + ALLDAY_TOP_MARGIN;
             int maxUnexpandedColumn = mMaxUnexpandedAlldayEventCount;
