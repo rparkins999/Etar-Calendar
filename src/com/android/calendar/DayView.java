@@ -2120,6 +2120,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             canvas.restore();
             canvas.save();
             canvas.translate(nextView.mViewStartX, -yTranslate2);
+            nextView.drawAfterScroll(canvas);
             if (nextView.mComputeSelectedEvents && nextView.mUpdateToast) {
                 nextView.updateEventDetails();
                 nextView.mUpdateToast = false;
@@ -3558,6 +3559,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // The following routines are called from the parent activity when certain
     // touch events occur.
     private void doDown(MotionEvent ev) {
+        Llog.d("view " + hashCode());
         mTouchMode = TOUCH_MODE_DOWN;
         mViewStartX = 0;
         mOnFlingCalled = false;
@@ -3841,6 +3843,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void doScroll(MotionEvent e1, MotionEvent e2, float deltaX, float deltaY) {
+        Llog.d("view " + hashCode() +
+            ", mStartingScroll is " + (mStartingScroll ? "false" : "true"));
         cancelAnimation();
         if (mStartingScroll) {
             mInitialScrollX = 0;
@@ -3968,6 +3972,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private void doFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY)
     {
+        Llog.d("view " + hashCode());
         cancelAnimation();
 
         eventClickCleanup();
@@ -4134,6 +4139,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+                Llog.d("view " + hashCode(), "ACTION_DOWN");
                 mStartingScroll = true;
                 if (DEBUG) {
                     Log.e(TAG, "ACTION_DOWN ev.getDownTime = " + ev.getDownTime() + " Cnt="
@@ -4151,11 +4157,13 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 return true;
 
             case MotionEvent.ACTION_MOVE:
+                Llog.d("view " + hashCode(), "ACTION_MOVE");
                 if (DEBUG) Log.e(TAG, "ACTION_MOVE Cnt=" + ev.getPointerCount() + DayView.this);
                 mGestureDetector.onTouchEvent(ev);
                 return true;
 
             case MotionEvent.ACTION_UP:
+                Llog.d("view " + hashCode(), "ACTION_UP");
                 if (DEBUG) Log.e(TAG, "ACTION_UP Cnt=" + ev.getPointerCount() + mHandleActionUp);
                 mEdgeEffectTop.onRelease();
                 mEdgeEffectBottom.onRelease();
