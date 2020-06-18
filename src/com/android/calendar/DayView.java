@@ -2263,34 +2263,36 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             mRect.top = DAY_HEADER_HEIGHT + 1;
             mRect.bottom = mRect.top + mAlldayHeight + ALLDAY_TOP_MARGIN - 2;
             int daynum = mSelectionJulianDay - mFirstJulianDay;
-            mRect.left = computeDayLeftPosition(daynum) + 1;
-            mRect.right = computeDayLeftPosition(daynum + 1);
-            p.setColor(mCalendarGridAreaSelected);
-            canvas.drawRect(mRect, p);
-            p.setColor(mNewEventHintColor);
-            if (mNumDays > 1) {
-                p.setStrokeWidth(NEW_EVENT_WIDTH);
-                int width = mRect.right - mRect.left;
-                int midX = mRect.left + width / 2;
-                int height = mRect.bottom - mRect.top;
-                int midY = mRect.top + height / 2;
-                int length = Math.min(height, width) - NEW_EVENT_MARGIN * 2;
-                length = Math.min(length, NEW_EVENT_MAX_LENGTH);
-                int verticalPadding = (height - length) / 2;
-                int horizontalPadding = (width - length) / 2;
-                canvas.drawLine(mRect.left + horizontalPadding, midY,
-                    mRect.right - horizontalPadding, midY, p);
-                canvas.drawLine(midX, mRect.top + verticalPadding, midX,
-                    mRect.bottom - verticalPadding, p);
-            } else {
-                p.setStyle(Paint.Style.FILL);
-                p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
-                p.setTextAlign(Paint.Align.LEFT);
-                p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
-                canvas.drawText(mNewEventHintString,
-                    mRect.left + EVENT_TEXT_LEFT_MARGIN,
-                    mRect.top + Math.abs(p.getFontMetrics().ascent)
-                        + EVENT_TEXT_TOP_MARGIN, p);
+            if ((daynum >= 0) && (daynum < mNumDays)) {
+                mRect.left = computeDayLeftPosition(daynum) + 1;
+                mRect.right = computeDayLeftPosition(daynum + 1);
+                p.setColor(mCalendarGridAreaSelected);
+                canvas.drawRect(mRect, p);
+                p.setColor(mNewEventHintColor);
+                if (mNumDays > 1) {
+                    p.setStrokeWidth(NEW_EVENT_WIDTH);
+                    int width = mRect.right - mRect.left;
+                    int midX = mRect.left + width / 2;
+                    int height = mRect.bottom - mRect.top;
+                    int midY = mRect.top + height / 2;
+                    int length = Math.min(height, width) - NEW_EVENT_MARGIN * 2;
+                    length = Math.min(length, NEW_EVENT_MAX_LENGTH);
+                    int verticalPadding = (height - length) / 2;
+                    int horizontalPadding = (width - length) / 2;
+                    canvas.drawLine(mRect.left + horizontalPadding, midY,
+                        mRect.right - horizontalPadding, midY, p);
+                    canvas.drawLine(midX, mRect.top + verticalPadding, midX,
+                        mRect.bottom - verticalPadding, p);
+                } else {
+                    p.setStyle(Paint.Style.FILL);
+                    p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
+                    p.setTextAlign(Paint.Align.LEFT);
+                    p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+                    canvas.drawText(mNewEventHintString,
+                        mRect.left + EVENT_TEXT_LEFT_MARGIN,
+                        mRect.top + Math.abs(p.getFontMetrics().ascent)
+                            + EVENT_TEXT_TOP_MARGIN, p);
+                }
             }
         }
     }
