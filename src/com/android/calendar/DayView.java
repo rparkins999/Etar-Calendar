@@ -2268,6 +2268,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mRect.left = computeDayLeftPosition(daynum) + 1;
                 mRect.right = computeDayLeftPosition(daynum + 1);
                 p.setColor(mCalendarGridAreaSelected);
+                Llog.d(mRect.toString());
                 canvas.drawRect(mRect, p);
                 p.setColor(mNewEventHintColor);
                 if (mNumDays > 1) {
@@ -4332,52 +4333,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      */
     private boolean setSelectionFromPosition(int x, final int y, boolean keepOldSelection)
     {
-        Event savedEvent = null;
-        int savedDay = 0;
-        int savedHour = 0;
-        boolean savedAllDay = false;
-        if (keepOldSelection) {
-            // Store selection info and restore it at the end. This way, we can invoke the
-            // right accessibility message without affecting the selection.
-            savedEvent = mSelectedEvent;
-            savedDay = mSelectionDay;
-            savedHour = mSelectionHour;
-            savedAllDay = mSelectionAllday;
-        }
-        if (x < mHoursWidth) {
-            x = mHoursWidth;
-        }
-
-        int day = (x - mHoursWidth) / (mCellWidth + DAY_GAP);
-        if (day >= mNumDays) {
-            day = mNumDays - 1;
-        }
-        day += mFirstJulianDay;
-        setSelectedDay(day);
 
         if (y < DAY_HEADER_HEIGHT) {
             sendAccessibilityEventAsNeeded(false);
             return false;
         }
 
+        Event savedEvent = mSelectedEvent;
         setSelectedHour(mFirstHour); /* First fully visible hour */
-
-        if (y < mFirstCell) {
-            mSelectionAllday = true;
-            mClickedAllday = true;
-        } else {
-            mClickedAllday = false;
-            // y is now offset from top of the scrollable region
-            int adjustedY = y - mFirstCell;
-
-            if (adjustedY < mFirstHourOffset) {
-                setSelectedHour(mSelectionHour - 1); /* In the partially visible hour */
-            } else {
-                setSelectedHour(mSelectionHour +
-                        (adjustedY - mFirstHourOffset) / (mCellHeight + HOUR_GAP));
-            }
-            mSelectionAllday = false;
-        }
 
         findSelectedEvent(x, y);
 
@@ -4386,31 +4349,35 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // Restore old values
         if (keepOldSelection) {
             mSelectedEvent = savedEvent;
-            mSelectionDay = savedDay;
-            mSelectionHour = savedHour;
-            mSelectionAllday = savedAllDay;
+        } else {
+            mSelectionAllday = mClickedAllday;
+            mSelectionDay = mClickedDay;
+            mSelectionHour = mClickedHour;
+            setSelectedEvent(mClickedEvent);
         }
         return true;
     }
 
     private void findSelectedEvent(int x, int y) {
         mClickedEvent = null;
-        int date = mSelectionDay;
         int cellWidth = mCellWidth;
         ArrayList<Event> events = mEvents;
         int numEvents = events.size();
-        int left = computeDayLeftPosition(mSelectionDay - mFirstJulianDay);
         int top = 0;
-        setSelectedEvent(null);
+        if (x < mHoursWidth) {
+            x = mHoursWidth;
+        }
 
         mClickedDay = (x - mHoursWidth) / (mCellWidth + DAY_GAP);
         if (mClickedDay >= mNumDays) {
             mClickedDay = mNumDays - 1;
         }
+        int left = computeDayLeftPosition(mClickedDay);
         mClickedDay += mFirstJulianDay;
 
         mSelectedEvents.clear();
-        if (mClickedAllday) {
+        if (y < mFirstCell) {
+            mClickedAllday = true;
             mClickedHour = 0;
             float yDistance;
             float minYdistance = Float.MAX_VALUE;
@@ -4431,7 +4398,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     continue;
                 }
 
-                if (event.startDay <= mSelectionDay && event.endDay >= mSelectionDay) {
+                if (event.startDay <= mClickedDay && event.endDay >= mClickedDay) {
                     float numRectangles = mShowAllAllDayEvents ? mMaxAlldayEvents
                             : mMaxUnexpandedAlldayEventCount;
                     float height = drawHeight / numRectangles;
@@ -4460,81 +4427,82 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     }
                 }
             }
-            setSelectedEvent(mClickedEvent);
-            return;
-        }
-
-        // Adjust y for the scrollable bitmap
-        y += mViewStartY - mFirstCell;
-        if (y < mFirstHourOffset) {
-            mClickedHour = mFirstHour - 1; /* In the partially visible hour */
         } else {
-            mClickedHour = mFirstHour +
-                (y - mFirstHourOffset) / (mCellHeight + HOUR_GAP);
-        }
+            mClickedAllday = false;
 
-        // Use a region around (x,y) for the selection region
-        mRect.left = x - 10;
-        mRect.right = x + 10;
-        mRect.top = y - 10;
-        mRect.bottom = y + 10;
-
-        EventGeometry geometry = mEventGeometry;
-
-        for (int i = 0; i < numEvents; i++) {
-            Event event = events.get(i);
-            // Compute the event rectangle.
-            if (!geometry.computeEventRect(date, left, top, cellWidth, event)) {
-                continue;
+            // Adjust y for the scrollable bitmap
+            y -= mFirstCell;
+            if (y < mFirstHourOffset) {
+                mClickedHour = mFirstHour - 1; /* In the partially visible hour */
+            } else {
+                mClickedHour = mFirstHour +
+                    (y - mFirstHourOffset) / (mCellHeight + HOUR_GAP);
             }
 
-            // If the event intersects the selection region, then add it to
-            // mSelectedEvents.
-            if (geometry.eventIntersectsSelection(event, mRect)) {
-                mSelectedEvents.add(event);
-            }
-        }
+            // Use a region around (x,y) for the selection region
+            mRect.left = x - 10;
+            mRect.right = x + 10;
+            mRect.top = y - 10;
+            mRect.bottom = y + 10;
 
-        // If there are any events in the selected region, then assign the
-        // closest one to mSelectedEvent.
-        if (mSelectedEvents.size() > 0) {
-            int len = mSelectedEvents.size();
-            float minDist = mViewWidth + mViewHeight; // some large distance
-            for (int index = 0; index < len; index++) {
-                Event ev = mSelectedEvents.get(index);
-                float dist = geometry.pointToEvent(x, y, ev);
-                if (dist < minDist) {
-                    minDist = dist;
-                    mClickedEvent = ev;
+            EventGeometry geometry = mEventGeometry;
+
+            for (int i = 0; i < numEvents; i++) {
+                Event event = events.get(i);
+                // Compute the event rectangle.
+                if (!geometry.computeEventRect(mClickedDay, left, top, cellWidth, event)) {
+                    continue;
+                }
+
+                // If the event intersects the selection region, then add it to
+                // mSelectedEvents.
+                if (geometry.eventIntersectsSelection(event, mRect)) {
+                    mSelectedEvents.add(event);
                 }
             }
-            setSelectedEvent(mClickedEvent);
 
-            // Keep the selected hour and day consistent with the selected
-            // event. They could be different if we touched on an empty hour
-            // slot very close to an event in the previous hour slot. In
-            // that case we will select the nearby event.
-            int startDay = mSelectedEvent.startDay;
-            int endDay = mSelectedEvent.endDay;
-            if (mSelectionDay < startDay) {
-                setSelectedDay(startDay);
-            } else if (mSelectionDay > endDay) {
-                setSelectedDay(endDay);
-            }
+            // If there are any events in the selected region, then assign the
+            // closest one to mSelectedEvent.
+            if (mSelectedEvents.size() > 0) {
+                int len = mSelectedEvents.size();
+                float minDist = Float.MAX_VALUE;
+                for (int index = 0; index < len; index++) {
+                    Event ev = mSelectedEvents.get(index);
+                    float dist = geometry.pointToEvent(x, y, ev);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        mClickedEvent = ev;
+                    }
+                }
 
-            int startHour = mSelectedEvent.startTime / 60;
-            int endHour;
-            if (mSelectedEvent.startTime < mSelectedEvent.endTime) {
-                endHour = (mSelectedEvent.endTime - 1) / 60;
-            } else {
-                endHour = mSelectedEvent.endTime / 60;
-            }
+                // Keep the selected hour and day consistent with the selected
+                // event. They could be different if we touched on an empty hour
+                // slot very close to an event in the previous hour slot. In
+                // that case we will select the nearby event.
+                int startDay = mClickedEvent.startDay;
+                int endDay = mClickedEvent.endDay;
+                if (mClickedDay < startDay) {
+                    mClickedDay = startDay;
+                } else if (mClickedDay > endDay) {
+                    mClickedDay = endDay;
+                }
 
-            if (mSelectionHour < startHour && mSelectionDay == startDay) {
-                setSelectedHour(startHour);
-            } else if (mSelectionHour > endHour && mSelectionDay == endDay) {
-                setSelectedHour(endHour);
+                int startHour = mClickedEvent.startTime / 60;
+                int endHour;
+                if (mClickedEvent.startTime < mClickedEvent.endTime) {
+                    endHour = (mClickedEvent.endTime - 1) / 60;
+                } else {
+                    endHour = mClickedEvent.endTime / 60;
+                }
+
+                if (mClickedHour < startHour && mSelectionDay == mClickedDay) {
+                    mClickedHour = startHour;
+                } else if (mClickedHour > endHour && mSelectionDay == mClickedDay) {
+                    mClickedHour = endHour;
+                }
             }
+            mTempTime.setJulianDay(mClickedDay);
+            mTempTime.hour = mClickedHour;
         }
     }
 
