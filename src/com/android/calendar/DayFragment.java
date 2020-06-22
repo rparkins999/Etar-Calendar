@@ -224,7 +224,7 @@ public class DayFragment extends Fragment implements CalendarController.EventHan
         if (view == null) {
             return -1;
         }
-        return view.getSelectedTimeInMillis();
+        return DayView.mSelectionTime.toMillis(true);
     }
 
     public void eventsChanged() {
@@ -237,25 +237,6 @@ public class DayFragment extends Fragment implements CalendarController.EventHan
 
         view = (DayView) mViewSwitcher.getNextView();
         view.clearCachedEvents();
-    }
-
-    Event getSelectedEvent() {
-        DayView view = (DayView) mViewSwitcher.getCurrentView();
-        return view.getSelectedEvent();
-    }
-
-    boolean isEventSelected() {
-        DayView view = (DayView) mViewSwitcher.getCurrentView();
-        return view.isEventSelected();
-    }
-
-    Event getNewEvent() {
-        DayView view = (DayView) mViewSwitcher.getCurrentView();
-        return view.getNewEvent();
-    }
-
-    public DayView getNextView() {
-        return (DayView) mViewSwitcher.getNextView();
     }
 
     public long getSupportedEventTypes() {
