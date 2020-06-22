@@ -3801,12 +3801,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             setSelectionTime(mSelectionDay, mSelectionHour);
 
             mTempTime.set(mSelectionTime);
-            mTempTime.hour++;
-            mTempTime.normalize(true);
-
+            if (mSelectionAllday) {
+                mTempTime.hour = mFirstHour;
+            }
             mSelectionMode = SELECTION_SELECTED;
-            mController.sendEvent(this, EventType.GO_TO, mSelectionTime, mTempTime, -1, ViewType.CURRENT,
-                CalendarController.EXTRA_GOTO_TIME, null, null);
+            mController.sendEvent(this, EventType.GO_TO, mTempTime, mTempTime, -1, ViewType.CURRENT);
         }
         mTouchMode = TOUCH_MODE_INITIAL_STATE;
         invalidate();
