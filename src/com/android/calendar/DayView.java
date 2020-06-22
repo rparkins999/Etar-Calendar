@@ -1611,7 +1611,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
             view.mBaseDate.normalize(true /* ignore isDst */);
 
-
             // Stop the InputEventConsistencyVerifier bothering me.
             view.mIgnoreOneKeyEvent = true;
             view.dispatchKeyEvent(event);
@@ -1622,15 +1621,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             view.setSelectedDay(selectionDay);
 
             initView(view);
-
-            mTempTime.set(mSelectionTime);
-            mController.sendEvent(this, EventType.GO_TO, view.mBaseDate, mTempTime, -1, ViewType.CURRENT);
-            return true;
-        } else {
-            // Day changed, but not moved out of current week
-            mController.sendEvent(this, EventType.GO_TO, mSelectionTime, mSelectionTime, -1, ViewType.CURRENT);
         }
-        invalidate();
+        mTempTime.set(mSelectionTime);
+        if (mSelectionAllday) {
+            mTempTime.hour = mFirstHour;
+        }
+        mController.sendEvent(this, EventType.GO_TO, mTempTime, mTempTime, -1, ViewType.CURRENT);
         return true;
     }
 
@@ -2268,7 +2264,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mRect.left = computeDayLeftPosition(daynum) + 1;
                 mRect.right = computeDayLeftPosition(daynum + 1);
                 p.setColor(mCalendarGridAreaSelected);
-                Llog.d(mRect.toString());
                 canvas.drawRect(mRect, p);
                 p.setColor(mNewEventHintColor);
                 if (mNumDays > 1) {
@@ -3560,7 +3555,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // The following routines are called from the parent activity when certain
     // touch events occur.
     private void doDown(MotionEvent ev) {
-        Llog.d("view " + hashCode());
         mTouchMode = TOUCH_MODE_DOWN;
         mViewStartX = 0;
         mOnFlingCalled = false;
@@ -3584,7 +3578,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             if (!pressedSelected && mSelectedEvent != null) {
                 mSavedClickedEvent = mSelectedEvent;
                 mDownTouchTime = System.currentTimeMillis();
-                postDelayed (mSetClick,mOnDownDelay);
+                postDelayed (mSetClick, mOnDownDelay);
             } else {
                 eventClickCleanup();
             }
@@ -3780,29 +3774,30 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             mController.sendEventRelatedEventWithExtra(this, EventType.CREATE_EVENT, -1,
                     getSelectedTimeInMillis(), 0, (int) ev.getRawX(), (int) ev.getRawY(),
                     extraLong, -1);
-        } else if (mSelectedEvent != null) {
-            // If the tap is on an event, launch the "View event" view
-            if (mIsAccessibilityEnabled) {
-                mAccessibilityMgr.interrupt();
-            }
-
-            int yLocation =
-                (int)((mSelectedEvent.top + mSelectedEvent.bottom)/2);
-            // Y location is affected by the position of the event in the scrolling
-            // view (mViewStartY) and the presence of all day events (mFirstCell)
-            if (!mSelectedEvent.allDay) {
-                yLocation += (mFirstCell - mViewStartY);
-            }
-            mClickedYLocation = yLocation;
-            long clearDelay = (CLICK_DISPLAY_DURATION + mOnDownDelay) -
-                    (System.currentTimeMillis() - mDownTouchTime);
-            if (clearDelay > 0) {
-                this.postDelayed(mClearClick, clearDelay);
-            } else {
-                this.post(mClearClick);
-            }
         } else {
-            // Select time
+            if (mSelectedEvent != null) {
+                // If the tap is on an event, launch the "View event" view
+                if (mIsAccessibilityEnabled) {
+                    mAccessibilityMgr.interrupt();
+                }
+
+                int yLocation =
+                    (int)((mSelectedEvent.top + mSelectedEvent.bottom)/2);
+                // Y location is affected by the position of the event in the scrolling
+                // view (mViewStartY) and the presence of all day events (mFirstCell)
+                if (!mSelectedEvent.allDay) {
+                    yLocation += (mFirstCell - mViewStartY);
+                }
+                mClickedYLocation = yLocation;
+                long clearDelay = (CLICK_DISPLAY_DURATION + mOnDownDelay) -
+                    (System.currentTimeMillis() - mDownTouchTime);
+                if (clearDelay > 0) {
+                    this.postDelayed(mClearClick, clearDelay);
+                } else {
+                    this.post(mClearClick);
+                }
+            }
+            // Select time (as well)
             setSelectionTime(mSelectionDay, mSelectionHour);
 
             mTempTime.set(mSelectionTime);
@@ -3811,7 +3806,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
             mSelectionMode = SELECTION_SELECTED;
             mController.sendEvent(this, EventType.GO_TO, mSelectionTime, mTempTime, -1, ViewType.CURRENT,
-                    CalendarController.EXTRA_GOTO_TIME, null, null);
+                CalendarController.EXTRA_GOTO_TIME, null, null);
         }
         mTouchMode = TOUCH_MODE_INITIAL_STATE;
         invalidate();
@@ -3844,8 +3839,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void doScroll(MotionEvent e1, MotionEvent e2, float deltaX, float deltaY) {
-        Llog.d("view " + hashCode() +
-            ", mStartingScroll is " + (mStartingScroll ? "false" : "true"));
         cancelAnimation();
         if (mStartingScroll) {
             mInitialScrollX = 0;
@@ -3973,7 +3966,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private void doFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY)
     {
-        Llog.d("view " + hashCode());
         cancelAnimation();
 
         eventClickCleanup();
@@ -4140,7 +4132,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                Llog.d("view " + hashCode(), "ACTION_DOWN");
                 mStartingScroll = true;
                 if (DEBUG) {
                     Log.e(TAG, "ACTION_DOWN ev.getDownTime = " + ev.getDownTime() + " Cnt="
@@ -4158,13 +4149,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 return true;
 
             case MotionEvent.ACTION_MOVE:
-                Llog.d("view " + hashCode(), "ACTION_MOVE");
                 if (DEBUG) Log.e(TAG, "ACTION_MOVE Cnt=" + ev.getPointerCount() + DayView.this);
                 mGestureDetector.onTouchEvent(ev);
                 return true;
 
             case MotionEvent.ACTION_UP:
-                Llog.d("view " + hashCode(), "ACTION_UP");
                 if (DEBUG) Log.e(TAG, "ACTION_UP Cnt=" + ev.getPointerCount() + mHandleActionUp);
                 mEdgeEffectTop.onRelease();
                 mEdgeEffectBottom.onRelease();
