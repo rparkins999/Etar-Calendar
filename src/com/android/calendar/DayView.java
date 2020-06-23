@@ -1563,7 +1563,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                             setSelectedHour(--mSelectionTime.hour);
                         } else {
                             mSelectionAllday = true;
-                            computeEventRelations();
+                            computeAllDaySpace();
                         }
                     }
                 }
@@ -1578,7 +1578,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         mSelectionAllday = false;
                         mSelectionTime.hour = 0;
                         setSelectedHour(0);
-                        computeEventRelations();
+                        computeAllDaySpace();
                     } else if (mSelectionTime.hour < 23) {
                         setSelectedHour(++mSelectionTime.hour);
                     } else {
@@ -1923,7 +1923,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         // Avoid reloading events unnecessarily.
         if (millis == mLastReloadMillis) {
-            computeEventRelations();
+            computeAllDaySpace();
             return;
         }
         mLastReloadMillis = millis;
@@ -1964,7 +1964,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     Arrays.fill(mAllDayLayouts, null);
                 }
 
-                computeEventRelations();
+                computeAllDaySpace();
 
                 mRemeasure = true;
                 mComputeSelectedEvents = true;
@@ -1992,7 +1992,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mEventsAlpha = 255;
     }
 
-    private void computeEventRelations() {
+    private void computeAllDaySpace() {
         // Compute the layout relation between each event before measuring cell
         // width, as the cell width should be adjusted along with the relation.
         //
