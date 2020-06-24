@@ -156,6 +156,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"Cambiar este y todos los eventos posteriores"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Nuevo evento"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Nuevo evento"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Nuevo evento todo el día"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"¿Eliminar este evento?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"¿Quieres eliminar <xliff:g id="EVENTTITLE">%s</xliff:g>?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Cambiar respuesta"</string>

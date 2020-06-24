@@ -153,6 +153,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">Ubah acara saat ini dan mendatang</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Acara baru"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Acara baru"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Acara baru seharian"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Hapus acara ini?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">Hapus <xliff:g id="eventtitle">%s</xliff:g>\?</string>
     <string name="change_response_title" msgid="7704714776070974984">Ubah respons</string>

@@ -2,7 +2,8 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="rsvp_accepted">Ôdpowiedziano \"ja\".</string>
     <string name="event_color_set_to_default">Nasztaluj wychodno farba kalyndorza</string>
-    <string name="new_event_dialog_option">Nowe zdarzynie</string>
+    <string name="new_event_dialog_option_all_day">Nowe zdarzynie</string>
+    <string name="new_event_dialog_option">Nowe zdarzynie cołki dziyń</string>
     <string name="edit_label">Edytuj</string>
     <string name="no_title_label">(Bez tytułu)</string>
     <string name="accessibility_pick_start_date">Data zaczyńcio</string>

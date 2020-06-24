@@ -198,6 +198,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"שנה אירוע זה ואת כל האירועים העתידיים"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"אירוע חדש"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"אירוע חדש"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">" אירוע חדש כל היום"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"למחוק אירוע זה?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"האם למחוק את <xliff:g id="EVENTTITLE">%s</xliff:g>?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"שנה תגובה"</string>

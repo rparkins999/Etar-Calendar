@@ -155,6 +155,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"A jelen és az összes jövőbeli esemény módosítása"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Új esemény"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Új esemény"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Új esemény egész nap"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Törli az eseményt?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"Törli a következőt: <xliff:g id="EVENTTITLE">%s</xliff:g>?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Válasz módosítása"</string>

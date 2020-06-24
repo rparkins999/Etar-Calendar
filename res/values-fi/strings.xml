@@ -155,6 +155,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"Muuta tämä ja kaikki tulevat tapahtumat"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Uusi tapahtuma"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Uusi tapahtuma"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Uusi koko päivä tapahtuma"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Poistetaanko tämä tapahtuma?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"Poistetaanko <xliff:g id="EVENTTITLE">%s</xliff:g>?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Muuta vastausta"</string>

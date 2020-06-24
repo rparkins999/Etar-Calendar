@@ -158,6 +158,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"Bunu ve gelecekteki tüm etkinlikleri değiştir"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Yeni etkinlik"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Yeni etkinlik"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Yeni etkinlik tüm gün"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Bu etkinlik silinsin mi?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"<xliff:g id="EVENTTITLE">%s</xliff:g> silinsin mi?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Yanıtı değiştir"</string>

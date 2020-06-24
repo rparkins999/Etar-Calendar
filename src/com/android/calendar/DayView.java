@@ -320,6 +320,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private final UpdateCurrentTime mUpdateCurrentTime = new UpdateCurrentTime();
     private final Typeface mBold = Typeface.DEFAULT_BOLD;
     private final CharSequence[] mLongPressItems;
+    private final CharSequence[] mLongPressItemsAllDay;
     private final TodayAnimatorListener mTodayAnimatorListener = new TodayAnimatorListener();
     // Pre-allocate these objects and re-use them
     private final Rect mRect = new Rect();
@@ -414,7 +415,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int mFirstVisibleDayOfWeek;
     private int[] mEarliestStartHour;    // indexed by the week day offset
     private String mEventCountTemplate;
-    private String mLongPressTitle;
     private Event mSavedClickedEvent;
     // Sets the "clicked" color from the clicked event
     private final Runnable mSetClick = new Runnable() {
@@ -713,7 +713,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mLongPressItems = new CharSequence[] {
             mResources.getString(R.string.new_event_dialog_option)
         };
-        mLongPressTitle = mResources.getString(R.string.new_event_dialog_label);
+        mLongPressItemsAllDay = new CharSequence[] {
+            mResources.getString(R.string.new_event_dialog_option_all_day)
+        };
         mDeleteEventHelper = new DeleteEventHelper(context, null, false /* don't exit when done */);
         mLastPopupEventID = INVALID_EVENT_ID;
         mController = controller;
@@ -4557,28 +4559,31 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     public boolean onLongClick(View v) {
         int flags = DateUtils.FORMAT_SHOW_WEEKDAY;
         long time = getSelectedTimeInMillis();
-        if (!mSelectionAllday) {
+        final long extraLong;
+        final CharSequence[] items;
+        if (mSelectionAllday) {
+            extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
+            items = mLongPressItemsAllDay;
+        } else {
             flags |= DateUtils.FORMAT_SHOW_TIME;
+            extraLong = 0;
+            items = mLongPressItems;
         }
         if (DateFormat.is24HourFormat(mContext)) {
             flags |= DateUtils.FORMAT_24HOUR;
         }
-        mLongPressTitle = Utils.formatDateRange(mContext, time, time, flags);
-        new AlertDialog.Builder(mContext).setTitle(mLongPressTitle)
-                .setItems(mLongPressItems, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (which == 0) {
-                            long extraLong = 0;
-                            if (mSelectionAllday) {
-                                extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
-                            }
-                            mController.sendEventRelatedEventWithExtra(this,
-                                    EventType.CREATE_EVENT, -1, getSelectedTimeInMillis(), 0, -1,
-                                    -1, extraLong, -1);
-                        }
+        new AlertDialog.Builder(mContext)
+            .setTitle(Utils.formatDateRange(mContext, time, time, flags))
+            .setItems(items, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (which == 0) {
+                        mController.sendEventRelatedEventWithExtra(this,
+                                EventType.CREATE_EVENT, -1, getSelectedTimeInMillis(), 0, -1,
+                                -1, extraLong, -1);
                     }
-                }).show().setCanceledOnTouchOutside(true);
+                }
+            }).show().setCanceledOnTouchOutside(true);
         return true;
     }
 

@@ -119,6 +119,7 @@
     <string name="modify_all_following">Aldatu gertaera hau eta etorkizunekoak</string>
     <string name="new_event_dialog_label">Gertaera berria</string>
     <string name="new_event_dialog_option">Gertaera berria</string>
+    <string name="new_event_dialog_option_all_day">Gertaera egun osoa berria</string>
     <string name="delete_this_event_title">Ezabatu gertaera hau\?</string>
     <string name="delete_recurring_event_title">Ezabatu <xliff:g id="eventtitle">%s</xliff:g>\?</string>
     <string name="change_response_title">Aldatu erantzuna</string>

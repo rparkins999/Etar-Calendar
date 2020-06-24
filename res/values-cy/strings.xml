@@ -190,6 +190,7 @@
     <string name="modify_all_following">Newid hwn a phob digwyddiad yn y dyfodol</string>
     <string name="new_event_dialog_label">Digwyddiad newydd</string>
     <string name="new_event_dialog_option">Digwyddiad newydd</string>
+    <string name="new_event_dialog_option_all_day">Digwyddiad trwy\'r dydd newydd</string>
     <string name="delete_this_event_title">Dileu\'r digwyddiad hwn\?</string>
     <string name="delete_recurring_event_title">Dileu <xliff:g id="eventtitle">%s</xliff:g>\?</string>
     <string name="change_response_title">Newid yr ateb</string>

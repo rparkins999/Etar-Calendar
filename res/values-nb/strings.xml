@@ -159,6 +159,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"Endre denne og alle framtidige aktiviteter"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Ny aktivitet"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Ny aktivitet"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Ny aktivitet hele dagen"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Vil du slette denne aktiviteten?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"Vil du slette <xliff:g id="EVENTTITLE">%s</xliff:g>?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Endre svaret"</string>
