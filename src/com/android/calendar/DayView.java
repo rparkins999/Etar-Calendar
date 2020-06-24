@@ -1425,7 +1425,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     /**
      * Switch to another view based on what was selected (an event or a free
-     * slot) and how it was selected (by touch or by trackball).
+     * slot).
      *
      */
     private void switchViews() {
@@ -3715,21 +3715,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int x = (int) ev.getX();
         int y = (int) ev.getY();
 
-        if (mMaxAlldayEvents > mMaxUnexpandedAlldayEventCount) {
-            // check if the tap was in the allday expansion area
-            int bottom = mFirstCell;
-            if((x < mHoursWidth && y > DAY_HEADER_HEIGHT && y < DAY_HEADER_HEIGHT + mAlldayHeight)
-                    || (!mShowAllAllDayEvents && mAnimateDayHeight == 0 && y < bottom &&
-                            y >= bottom - MIN_UNEXPANDED_ALLDAY_EVENT_HEIGHT)) {
-                doExpandAllDayClick();
-                return;
-            }
-        }
-
-        boolean validPosition = setSelectionFromPosition(x, y, false);
-        if (!validPosition) {
+        if (y < DAY_HEADER_HEIGHT) {
+            // Tap on a day label, or top left corner which we ignore
             mTouchMode = TOUCH_MODE_INITIAL_STATE;
-            if (y < DAY_HEADER_HEIGHT) {
+            if (x >= mHoursWidth) {
+                // On a day label, go to day view
                 mController.sendEvent(this, EventType.GO_TO, null, null,
                     mSelectionTime, -1, ViewType.DAY,
                     CalendarController.EXTRA_GOTO_DATE, null, null);
@@ -3737,56 +3727,85 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             return;
         }
 
-        boolean hasSelection = mSelectionMode != SELECTION_HIDDEN;
-        boolean pressedSelected = (hasSelection || mTouchExplorationEnabled)
-                && mSelectionDay == mSelectionJulianDay
-                && mSelectionHour == mSelectionTime.hour;
+        if (   (mMaxAlldayEvents > mMaxUnexpandedAlldayEventCount)
+            && (   (   (x < mHoursWidth)
+                    && (y < DAY_HEADER_HEIGHT + mAlldayHeight))
+                || (   (!mShowAllAllDayEvents)
+                    && (mAnimateDayHeight == 0)
+                    && (y < mFirstCell)
+                    && (y >= mFirstCell - MIN_UNEXPANDED_ALLDAY_EVENT_HEIGHT))))
+        {
+            mTouchMode = TOUCH_MODE_INITIAL_STATE;
+            doExpandAllDayClick();
+            return;
+        }
 
-        if (pressedSelected && mSavedClickedEvent == null) {
-            // If the tap is on an already selected hour slot, then create a new
-            // event
-            long extraLong = 0;
+        if (!setSelectionFromPosition(x, y, false)) {
+            // Tap was not in grid and not dealt with above
+            return;
+        }
+        // setSelectionFromPosition() has set
+        // mClickedHour, mClickedDay, mClickedEvent, and mSelectionAllday
+
+        mTouchMode = TOUCH_MODE_INITIAL_STATE;
+        if (mClickedEvent != null) {
+            // Tap on event, view it
+
+            // Select the time in case not already selected
+            setSelectionTime(mClickedDay, mClickedHour);
+
+            // Select the event
+            setSelectedEvent(mClickedEvent);
+
+            if (mIsAccessibilityEnabled) {
+                mAccessibilityMgr.interrupt();
+            }
+
+            int yLocation =
+                (int) ((mSelectedEvent.top + mSelectedEvent.bottom) / 2);
+            // Y location is affected by the position of the event in the scrolling
+            // view (mViewStartY) and the presence of all day events (mFirstCell)
+            if (!mSelectedEvent.allDay) {
+                yLocation += (mFirstCell - mViewStartY);
+            }
+            mClickedYLocation = yLocation;
+            long clearDelay = (CLICK_DISPLAY_DURATION + mOnDownDelay) -
+                (System.currentTimeMillis() - mDownTouchTime);
+            if (clearDelay > 0) {
+                this.postDelayed(mClearClick, clearDelay);
+            } else {
+                this.post(mClearClick);
+            }
+            mTempTime.set(mSelectionTime);
+            mController.sendEventRelatedEvent(this, EventType.VIEW_EVENT,
+                mSelectedEvent.id,
+                mSelectedEvent.startMillis, mSelectedEvent.endMillis,
+                getWidth() / 2, yLocation,
+                mSelectionTime.toMillis(true));
+        } else if (   (mClickedDay == mSelectionJulianDay)
+                   && (mClickedHour == mSelectionTime.hour))
+        {
+            // The tap is on an already selected hour or all day slot
+            // with no event underneath, create one
+            long startMillis = mSelectionTime.toMillis(true);
+            long endMillis;
+            long extraLong;
             if (mSelectionAllday) {
                 extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
+                endMillis = 0;
+            } else {
+                endMillis = startMillis + DateUtils.HOUR_IN_MILLIS;
+                extraLong = 0;
             }
-            mController.sendEventRelatedEventWithExtra(this, EventType.CREATE_EVENT, -1,
-                    getSelectedTimeInMillis(), 0, (int) ev.getRawX(), (int) ev.getRawY(),
-                    extraLong, -1);
+            mController.sendEventRelatedEventWithExtra(this,
+                EventType.CREATE_EVENT, -1, startMillis, endMillis,
+                (int) ev.getRawX(), (int) ev.getRawY(), extraLong, -1);
         } else {
-            if (mSelectedEvent != null) {
-                // If the tap is on an event, launch the "View event" view
-                if (mIsAccessibilityEnabled) {
-                    mAccessibilityMgr.interrupt();
-                }
-
-                int yLocation =
-                    (int)((mSelectedEvent.top + mSelectedEvent.bottom)/2);
-                // Y location is affected by the position of the event in the scrolling
-                // view (mViewStartY) and the presence of all day events (mFirstCell)
-                if (!mSelectedEvent.allDay) {
-                    yLocation += (mFirstCell - mViewStartY);
-                }
-                mClickedYLocation = yLocation;
-                long clearDelay = (CLICK_DISPLAY_DURATION + mOnDownDelay) -
-                    (System.currentTimeMillis() - mDownTouchTime);
-                if (clearDelay > 0) {
-                    this.postDelayed(mClearClick, clearDelay);
-                } else {
-                    this.post(mClearClick);
-                }
-            }
-            // Select time (as well)
-            setSelectionTime(mSelectionDay, mSelectionHour);
-
-            mTempTime.set(mSelectionTime);
-            if (mSelectionAllday) {
-                mTempTime.hour = mFirstHour;
-            }
-            mSelectionMode = SELECTION_SELECTED;
-            mController.sendEvent(this, EventType.GO_TO, mTempTime, mTempTime, -1, ViewType.CURRENT);
+            // tap on empty hour or all day slot, select it
+            setSelectionTime(mClickedDay, mClickedHour);
+            setSelectedEvent(null);
+            invalidate();
         }
-        mTouchMode = TOUCH_MODE_INITIAL_STATE;
-        invalidate();
     }
 
     private void doLongPress(MotionEvent ev) {
