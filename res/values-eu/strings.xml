@@ -181,6 +181,7 @@
     <string name="accessibility_reminder_showmeas">Erakutsi honela</string>
     <string name="accessibility_reminder_privacy">Pribatutasuna</string>
     <string name="day_view_new_event_hint">+ Gertaera berria</string>
+    <string name="day_view_new_all_day_event_hint">+ Gertaera egun osoa berria</string>
     <string name="acessibility_selected_marker_description">Aukeratutako gertaera</string>
     <string name="recurrence_month_pattern_by_day">egun berean hilabetero</string>
     <string name="recurrence_end_continously">Beti</string>

@@ -165,6 +165,7 @@
         <item quantity="other">Co <xliff:g id="number">%d</xliff:g> dni</item>
     </plurals>
     <string name="day_view_new_event_hint">+ Nowe zdarzynie</string>
+    <string name="day_view_new_all_day_event_hint">+ Nowe zdarzynie cołki dziyń</string>
     <string name="preferences_reminder_title">Powiadōmiynia i spōmniynia</string>
     <string name="event_delete">Skasuj zdarzynie</string>
     <string name="show_time_start">Ino czas zaczyńcio</string>

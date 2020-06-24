@@ -347,6 +347,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private final ScrollInterpolator mHScrollInterpolator;
     private final String mCreateNewEventString;
     private final String mNewEventHintString;
+    private final String mNewAllDayEventHintString;
     private final Pattern drawTextSanitizerFilter = Pattern.compile("[\t\n],");
     protected boolean mPaused = true;
     protected Context mContext;
@@ -604,6 +605,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mResources = context.getResources();
         mCreateNewEventString = mResources.getString(R.string.event_create);
         mNewEventHintString = mResources.getString(R.string.day_view_new_event_hint);
+        mNewAllDayEventHintString = mResources.getString(R.string.day_view_new_all_day_event_hint);
         mNumDays = numDays;
 
         DATE_HEADER_FONT_SIZE = (int) mResources.getDimension(R.dimen.date_header_text_size);
@@ -2412,7 +2414,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
                 p.setTextAlign(Paint.Align.LEFT);
                 p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
-                canvas.drawText(mNewEventHintString, mRect.left + EVENT_TEXT_LEFT_MARGIN,
+                canvas.drawText(
+                    mSelectionAllday ? mNewAllDayEventHintString : mNewEventHintString,
+                    mRect.left + EVENT_TEXT_LEFT_MARGIN,
                     mRect.top + Math.abs(p.getFontMetrics().ascent) + EVENT_TEXT_TOP_MARGIN, p);
             }
         }
