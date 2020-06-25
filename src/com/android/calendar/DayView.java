@@ -366,7 +366,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     public static Time mSelectionTime;
     private static int mSelectionJulianDay; // to save recomputing it all the time
     private static Event mSelectedEvent;
+    private static Event mPrevSelectedEvent;
     private static Event mClickedEvent;
+    private static int mFirstDayOfWeek; // First day of the week
 
     // These are set by findSelectedEvent()
     private static boolean mClickedAllday;     // user clicked in the all day region
@@ -475,7 +477,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      */
     private int mCellWidth;
     private float[] mLines;
-    private int mFirstDayOfWeek; // First day of the week
     private PopupWindow mPopup;
     private View mPopupView;
     private boolean mRemeasure = true;
@@ -555,7 +556,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private boolean mIs24HourFormat;
     private boolean mComputeSelectedEvents;
     private boolean mUpdateToast;
-    private Event mPrevSelectedEvent;
     private int mTouchMode = TOUCH_MODE_INITIAL_STATE;
     private int mSelectionMode = SELECTION_SELECTED;
     private boolean mScrolling = false;
@@ -1417,10 +1417,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         view.remeasure(getWidth(), getHeight());
         view.initAllDayHeights();
 
-        view.setSelectedEvent(null);
-        view.mPrevSelectedEvent = null;
-        view.mFirstDayOfWeek = mFirstDayOfWeek;
-
         // Redraw the screen so that the selection box will be redrawn.  We may
         // have scrolled to a different part of the day in some other view
         // so the selection box in this view may no longer be visible.
@@ -1444,7 +1440,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // If we selected a specific event, switch to EventInfo view.
             if (selectedEvent == null) {
                 // Switch to the EditEvent view
-                long startMillis = getSelectedTimeInMillis();
+                long startMillis = mSelectionTime.toMillis(true);
                 long endMillis = startMillis + DateUtils.HOUR_IN_MILLIS;
                 long extraLong = 0;
                 if (mSelectionAllday) {
@@ -2388,7 +2384,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             p.setColor(mCalendarGridAreaSelected);
             int alpha = p.getAlpha();
             if ((mSelectedEvent != null) || (mClickedEvent != null)) {
-                Llog.d("Setting alpha to " + ALPHA_SELECTION_OVER_EVENT);
                 p.setAlpha(ALPHA_SELECTION_OVER_EVENT);
             }
             canvas.drawRect(mRect, p);
@@ -2421,6 +2416,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     mRect.left + EVENT_TEXT_LEFT_MARGIN,
                     mRect.top + Math.abs(p.getFontMetrics().ascent) + EVENT_TEXT_TOP_MARGIN, p);
             }
+            p.setAlpha(alpha); // cheaper to just do it even if we don't need to
         }
     }
 
@@ -3348,10 +3344,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         int color;
         if (event == mClickedEvent) {
-            color = mClickedColor;
+            color = mPressedColor;
+            Llog.d("Clicked event color is " + Integer.toHexString((color)));
+        } else if (event == mSelectedEvent) {
+            color =  mPressedColor;
+            Llog.d("Selected event color is " + Integer.toHexString((color)));
+            mPrevSelectedEvent = event;
         } else {
             color = event.color;
+            Llog.d("Event own color is " + Integer.toHexString((color)));
         }
+        Llog.d("color is " + Integer.toHexString((color)));
 
         switch (event.selfAttendeeStatus) {
             case Attendees.ATTENDEE_STATUS_INVITED:
@@ -3382,34 +3385,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mRect.right = (int) event.right - ceilHalfStroke;
         p.setStrokeWidth(EVENT_RECT_STROKE_WIDTH);
         p.setColor(color);
+        Llog.d("color is " + Integer.toHexString((color)));
         int alpha = p.getAlpha();
         p.setAlpha(mEventsAlpha);
         canvas.drawRect(mRect, p);
         p.setAlpha(alpha);
         p.setStyle(Style.FILL);
-
-        // If this event is selected, then use the selection color
-        if (mSelectedEvent == event && mClickedEvent != null) {
-            boolean paintIt = false;
-            color = 0;
-            if (mSelectionMode == SELECTION_PRESSED) {
-                // Also, remember the last selected event that we drew
-                mPrevSelectedEvent = event;
-                color = mPressedColor;
-                paintIt = true;
-            } else if (mSelectionMode == SELECTION_SELECTED) {
-                // Also, remember the last selected event that we drew
-                mPrevSelectedEvent = event;
-                color = mPressedColor;
-                paintIt = true;
-            }
-
-            if (paintIt) {
-                p.setColor(color);
-                canvas.drawRect(mRect, p);
-            }
-            p.setAntiAlias(true);
-        }
 
         // Setup rect for drawEventText which follows
         mRect.top = (int) event.top + EVENT_RECT_TOP_MARGIN;
