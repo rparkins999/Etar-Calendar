@@ -2070,22 +2070,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
         canvas.save();
 
-        float yTranslate1 = -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
-        // offset canvas by the current drag and header position
-        canvas.translate(-mViewStartX, yTranslate1);
-        // clip to everything below the allDay area
-        mDestRect.top = (int) (mFirstCell - yTranslate1);
-        mDestRect.bottom = (int) (mViewHeight - yTranslate1);
-        mDestRect.left = 0;
-        mDestRect.right = mViewWidth;
-        canvas.save();
-        canvas.clipRect(mDestRect);
+        // offset canvas by the current drag
+        canvas.translate(-mViewStartX, 0);
+        float yOffset = -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
         // Draw the movable part of the view
         doDraw(canvas);
-        // restore to having no clip
-        canvas.restore();
-        // save again for doing drawHours() later
-        canvas.save();
 
         if ((mTouchMode & TOUCH_MODE_HSCROLL) != 0) {
             float xTranslate;
@@ -2095,57 +2084,32 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 xTranslate = -mViewWidth;
             }
             // Move the canvas around to prep it for the next view
-            // specifically, shift it by a screen and undo the
-            // yTranslation which will be redone in the nextView's onDraw().
-            canvas.translate(xTranslate, -yTranslate1);
+            // specifically, shift it by a screen
             DayView nextView = (DayView) mViewSwitcher.getNextView();
 
             if (nextView.mRemeasure) {
                 nextView.remeasure(nextView.getWidth(), nextView.getHeight());
                 nextView.mRemeasure = false;
             }
-            canvas.save();
-            float yTranslate2 = -nextView.mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
 
-            // mDestRect is read by drawBgColors
-            // Currently this happens before anyone else clobbers mRect,
-            // so we could use mRect here, but it's a bit dangerous.
-            canvas.translate(-nextView.mViewStartX, yTranslate2);
-            nextView.mDestRect.top = (int) (nextView.mFirstCell - yTranslate2);
-            nextView.mDestRect.bottom = (int) (nextView.mViewHeight - yTranslate2);
-            nextView.mDestRect.left = 0;
-            nextView.mDestRect.right = nextView.mViewWidth;
-            canvas.save();
-            canvas.clipRect(nextView.mDestRect);
+            // Move the canvas to prep it for the next view
+            // specifically, shift it by a screen
+            canvas.translate(xTranslate - nextView.mViewStartX, 0);
             nextView.doDraw(canvas);
-            nextView.drawSelectedRect(canvas, mPaint);
-            canvas.restore();
-            canvas.save();
-            canvas.translate(nextView.mViewStartX, -yTranslate2);
             if (nextView.mComputeSelectedEvents && nextView.mUpdateToast) {
                 nextView.updateEventDetails();
                 nextView.mUpdateToast = false;
             }
             nextView.mComputeSelectedEvents = false;
-            canvas.restore();
-            nextView.drawHours(canvas, nextView.mPaint);
-            canvas.restore();
-            // Move it back for this view
-            canvas.translate(-xTranslate, 0);
-        } else {
-            // If we drew another view we already translated it back
-            // If we didn't draw another view we should be at the edge of the
-            // screen
-            canvas.translate(mViewStartX, -yTranslate1);
         }
 
-        // Draw the fixed areas (that don't scroll) directly to the canvas.
-        drawAfterScroll(canvas);
         if (mComputeSelectedEvents && mUpdateToast) {
             updateEventDetails();
             mUpdateToast = false;
         }
         mComputeSelectedEvents = false;
+
+        canvas.restore();
 
         // Draw overscroll glow
         if (!mEdgeEffectTop.isFinished()) {
@@ -2165,27 +2129,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 invalidate();
             }
         }
-        canvas.restore();
-        drawHours(canvas, mPaint);
-        canvas.restore();
-    }
-
-    private void drawAfterScroll(Canvas canvas) {
-        Paint p = mPaint;
-
-        drawAllDayHighlights(canvas, p);
-        if (mMaxAlldayEvents != 0) {
-            drawAllDayEvents(canvas, p);
-            drawUpperLeftCorner(canvas, p);
-            if (mSelectionAllday) {
-                // Draw the selection highlight on the selected all-day area
-                drawSelectedRect(canvas, p);
-            }
-        }
-
-        drawScrollLine(canvas, p);
-        drawDayHeaderLoop(canvas, p);
-
     }
 
     // This isn't really the upper-left corner. It's the square area just
@@ -2225,63 +2168,66 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void drawAllDayHighlights(Canvas canvas, Paint p) {
-        if (mFutureBgColor != 0) {
-            // First, color the labels area light gray
-            mRect.top = 0;
-            mRect.bottom = DAY_HEADER_HEIGHT;
-            mRect.left = 0;
-            mRect.right = mViewWidth;
-            p.setColor(mBgColor);
-            p.setStyle(Style.FILL);
-            canvas.drawRect(mRect, p);
-            // and the area that says All day
+        // First, color the area that says All day
+        p.setColor(mBgColor);
+        mRect.top = DAY_HEADER_HEIGHT;
+        mRect.bottom = mFirstCell - 1;
+        mRect.left = 0;
+        mRect.right = mHoursWidth;
+        canvas.drawRect(mRect, p);
+
+        int startIndex = -1;
+
+        int todayIndex = mTodayJulianDay - mFirstJulianDay;
+        if (todayIndex < 0) {
+            // Future
+            startIndex = 0;
+        } else if (todayIndex >= 1 && todayIndex + 1 < mNumDays) {
+            // Multiday - tomorrow is visible.
+            startIndex = todayIndex + 1;
+        }
+
+        if (startIndex >= 0) {
+            // Draw the future highlight
             mRect.top = DAY_HEADER_HEIGHT;
             mRect.bottom = mFirstCell - 1;
-            mRect.left = 0;
-            mRect.right = mHoursWidth;
+            mRect.left = computeDayLeftPosition(startIndex) + 1;
+            mRect.right = computeDayLeftPosition(mNumDays);
+            p.setColor(mFutureBgColor);
+            p.setStyle(Style.FILL);
             canvas.drawRect(mRect, p);
-
-            int startIndex = -1;
-
-            int todayIndex = mTodayJulianDay - mFirstJulianDay;
-            if (todayIndex < 0) {
-                // Future
-                startIndex = 0;
-            } else if (todayIndex >= 1 && todayIndex + 1 < mNumDays) {
-                // Multiday - tomorrow is visible.
-                startIndex = todayIndex + 1;
-            }
-
-            if (startIndex >= 0) {
-                // Draw the future highlight
-                mRect.top = 0;
-                mRect.bottom = mFirstCell - 1;
-                mRect.left = computeDayLeftPosition(startIndex) + 1;
-                mRect.right = computeDayLeftPosition(mNumDays);
-                p.setColor(mFutureBgColor);
-                p.setStyle(Style.FILL);
-                canvas.drawRect(mRect, p);
-            }
         }
     }
 
-    private void drawDayHeaderLoop( Canvas canvas, Paint p) {
+    private void drawDayHeaderLoop( Canvas canvas) {
         if (mNumDays == 1 && ONE_DAY_HEADER_HEIGHT == 0) {
             return;
         }
 
+        Paint p = mPaint;
         p.setTypeface(mBold);
         p.setTextAlign(Paint.Align.RIGHT);
-        int cell = mFirstJulianDay;
 
         String[] dayNames = mDayStrs;
 
         p.setAntiAlias(true);
-        for (int day = 0; day < mNumDays; day++, cell++) {
+        for (int day = 0; day < mNumDays; day++) {
             int dayOfWeek = day + mFirstVisibleDayOfWeek;
             if (dayOfWeek >= 14) {
                 dayOfWeek -= 14;
             }
+
+            mRect.left = computeDayLeftPosition(day) + 1;
+            mRect.right = (mNumDays == 1)
+                ? mViewWidth : computeDayLeftPosition(day + 1);
+            mRect.top = 0;
+            mRect.bottom = DAY_HEADER_HEIGHT;
+            if (mTodayJulianDay < day + mFirstJulianDay) {
+                p.setColor(mFutureBgColor);
+            } else {
+                p.setColor(mBgColor);
+            }
+            canvas.drawRect(mRect, p);
 
             int color = mCalendarDateBannerTextColor;
             if (mNumDays == 1) {
@@ -2300,7 +2246,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
 
             p.setColor(color);
-            drawDayHeader(dayNames[dayOfWeek], day, cell, canvas, p);
+            drawDayHeader(dayNames[dayOfWeek], day, canvas, p);
         }
         p.setTypeface(null);
     }
@@ -2324,10 +2270,31 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     private void doDraw(Canvas canvas) {
         Paint p = mPaint;
+        canvas.save();
 
-        if (mFutureBgColor != 0) {
-            drawBgColors(canvas, p);
+        drawDayHeaderLoop(canvas);
+        drawAllDayHighlights(canvas, p);
+        if (mMaxAlldayEvents != 0) {
+            drawAllDayEvents(canvas, p);
+            drawUpperLeftCorner(canvas, p);
+            if (mSelectionAllday) {
+                // Draw the selection highlight on the selected all-day area
+                drawSelectedRect(canvas, p);
+            }
         }
+
+        drawScrollLine(canvas, p);
+        // clip to everything below the allDay area
+        float yOffset = -mViewStartY + DAY_HEADER_HEIGHT + mAlldayHeight;
+        mDestRect.top = (int) (mFirstCell - yOffset);
+        mDestRect.bottom = (int) (mViewHeight - yOffset);
+        mDestRect.left = 0;
+        mDestRect.right = mViewWidth;
+        // offset canvas by the current header position
+        canvas.translate(-0, yOffset);
+        drawBgColors(canvas, p);
+        drawHours(canvas, p);
+        canvas.clipRect(mDestRect);
         drawGridBackground(canvas, p);
 
         // Draw each day
@@ -2356,6 +2323,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (!mSelectionAllday) {
             drawSelectedRect(canvas, p);
         }
+        // restore to having no clip and no vertical offset
+        canvas.restore();
     }
 
     private void drawSelectedRect(Canvas canvas, Paint p) {
@@ -2448,7 +2417,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         p.setAntiAlias(true);
     }
 
-    private void drawDayHeader(String dayStr, int day, int cell, Canvas canvas, Paint p) {
+    private void drawDayHeader(String dayStr, int day, Canvas canvas, Paint p) {
         int dateNum = mFirstVisibleDate + day;
         int x;
         int color = p.getColor();
@@ -3345,16 +3314,16 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         int color;
         if (event == mClickedEvent) {
             color = mPressedColor;
-            Llog.d("Clicked event color is " + Integer.toHexString((color)));
+            //Llog.d("Clicked event color is " + Integer.toHexString((color)));
         } else if (event == mSelectedEvent) {
             color =  mPressedColor;
-            Llog.d("Selected event color is " + Integer.toHexString((color)));
+            //Llog.d("Selected event color is " + Integer.toHexString((color)));
             mPrevSelectedEvent = event;
         } else {
             color = event.color;
-            Llog.d("Event own color is " + Integer.toHexString((color)));
+            //Llog.d("Event own color is " + Integer.toHexString((color)));
         }
-        Llog.d("color is " + Integer.toHexString((color)));
+        //Llog.d("color is " + Integer.toHexString((color)));
 
         switch (event.selfAttendeeStatus) {
             case Attendees.ATTENDEE_STATUS_INVITED:
@@ -3385,7 +3354,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mRect.right = (int) event.right - ceilHalfStroke;
         p.setStrokeWidth(EVENT_RECT_STROKE_WIDTH);
         p.setColor(color);
-        Llog.d("color is " + Integer.toHexString((color)));
         int alpha = p.getAlpha();
         p.setAlpha(mEventsAlpha);
         canvas.drawRect(mRect, p);
