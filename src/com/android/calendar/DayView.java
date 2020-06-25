@@ -171,7 +171,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     /**
      * The selection modes are HIDDEN, PRESSED, SELECTED, and LONGPRESS.
      */
-    private static final int SELECTION_HIDDEN = 0;
     private static final int SELECTION_PRESSED = 1; // D-pad down but not up yet
     private static final int SELECTION_SELECTED = 2;
     private static final int SELECTION_LONGPRESS = 3;
@@ -1456,9 +1455,13 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     if (mIsAccessibilityEnabled) {
                         mAccessibilityMgr.interrupt();
                     }
-                    mController.sendEventRelatedEvent(this, EventType.VIEW_EVENT, selectedEvent.id,
-                            selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
-                            getSelectedTimeInMillis());
+                    // force an event reload when we get back
+                    // because the selected event may get deleted
+                    clearCachedEvents();
+                    mController.sendEventRelatedEvent(
+                        this, EventType.VIEW_EVENT, selectedEvent.id,
+                        selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
+                            -1);
                 }
             }
         } else {
@@ -1473,15 +1476,20 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (mSelectionAllday) {
                     extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
                 }
-                mController.sendEventRelatedEventWithExtra(this, EventType.CREATE_EVENT, -1,
-                        startMillis, endMillis, -1, -1, extraLong, -1);
+                mController.sendEventRelatedEventWithExtra(
+                    this, EventType.CREATE_EVENT, -1,
+                    startMillis, endMillis, -1, -1, extraLong, -1);
             } else {
                 if (mIsAccessibilityEnabled) {
                     mAccessibilityMgr.interrupt();
                 }
-                mController.sendEventRelatedEvent(this, EventType.VIEW_EVENT, selectedEvent.id,
-                        selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
-                        getSelectedTimeInMillis());
+                // force an event reload when we get back
+                // because the selected event may get deleted
+                clearCachedEvents();
+                mController.sendEventRelatedEvent(
+                    this, EventType.VIEW_EVENT, selectedEvent.id,
+                    selectedEvent.startMillis, selectedEvent.endMillis,
+                    0, 0, -1);
             }
         }
     }
@@ -1491,23 +1499,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (mIgnoreOneKeyEvent) {
             mIgnoreOneKeyEvent = false;
             return true; // handled it
-        }
-        if (mSelectionMode == SELECTION_HIDDEN) {
-            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
-                    || keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_UP
-                    || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                // Display the selection box but don't move or select it
-                // on this key press.
-                mSelectionMode = SELECTION_SELECTED;
-                invalidate();
-                return true;
-            } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
-                // Display the selection box but don't select it
-                // on this key press.
-                mSelectionMode = SELECTION_PRESSED;
-                invalidate();
-                return true;
-            }
         }
 
         mSelectionMode = SELECTION_SELECTED;
@@ -1642,10 +1633,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_CENTER:
-                if (mSelectionMode == SELECTION_HIDDEN) {
-                    // Don't do anything unless the selection is visible.
-                    break;
-                }
 
                 if (mSelectionMode == SELECTION_PRESSED) {
                     // This was the first press when there was nothing selected.
@@ -3024,8 +3011,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
         eventTextPaint.setAlpha(alpha);
 
-        if (date == mSelectionJulianDay && !mSelectionAllday && isFocused()
-                && mSelectionMode != SELECTION_HIDDEN) {
+        if (date == mSelectionJulianDay && !mSelectionAllday && isFocused()) {
             computeNeighbors();
         }
     }
@@ -3435,8 +3421,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     private void updateEventDetails() {
-        if (mSelectedEvent == null || mSelectionMode == SELECTION_HIDDEN
-                || mSelectionMode == SELECTION_LONGPRESS) {
+        if (mSelectedEvent == null || mSelectionMode == SELECTION_LONGPRESS) {
             mPopup.dismiss();
             return;
         }
@@ -3506,8 +3491,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // If a time was selected (a blue selection box is visible) and the click location
             // is in the selected time, do not show a click on an event to prevent a situation
             // of both a selection and an event are clicked when they overlap.
-            boolean pressedSelected = (mSelectionMode != SELECTION_HIDDEN)
-                    && oldSelectionDay == mSelectionDay && oldSelectionHour == mSelectionHour;
+            boolean pressedSelected =
+                (oldSelectionDay == mSelectionDay) && (oldSelectionHour == mSelectionHour);
             if (!pressedSelected && mSelectedEvent != null) {
                 mSavedClickedEvent = mSelectedEvent;
                 mDownTouchTime = System.currentTimeMillis();
