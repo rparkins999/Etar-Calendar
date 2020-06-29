@@ -157,6 +157,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"यह और सभी आगामी ईवेंट बदलें"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"नया ईवेंट"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"नया ईवेंट"</string>
+    <string name="new_event_dialog_option_all_day">"पूरे दिन की नई घटना"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"यह ईवेंट हटाएं?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"<xliff:g id="EVENTTITLE">%s</xliff:g> हटाएं?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"प्रतिसाद बदलें"</string>
@@ -208,6 +209,7 @@
     <string name="accessibility_reminder_showmeas" msgid="6669129015980006570">"मुझे इस रूप में दिखाएं"</string>
     <string name="accessibility_reminder_privacy" msgid="8669288484484022771">"गोपनीयता"</string>
     <string name="day_view_new_event_hint" msgid="2131483437911536229">"+ नया ईवेंट"</string>
+    <string name="day_view_new_all_day_event_hint">+ पूरे दिन की नई घटना</string>
     <string name="template_announce_item_index" msgid="4067877800670753110">"<xliff:g id="ITEM_COUNT">%2$s</xliff:g> में से <xliff:g id="ITEM_INDEX">%1$s</xliff:g> ईवेंट."</string>
     <plurals name="Nevents">
         <item quantity="one" msgid="5230907142214104485">"1 ईवेंट"</item>

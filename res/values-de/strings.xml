@@ -156,7 +156,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"Diesen und alle zukünftigen Termine ändern"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Neuer Termin"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Neuer Termin"</string>
-    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"neuer ganztägig Termin"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Neuer ganztägiger Termin"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Diesen Termin löschen?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"<xliff:g id="EVENTTITLE">%s</xliff:g> löschen?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Antwort ändern"</string>
@@ -207,7 +207,7 @@
     <string name="accessibility_reminder_showmeas" msgid="6669129015980006570">"Mein Status"</string>
     <string name="accessibility_reminder_privacy" msgid="8669288484484022771">"Datenschutz"</string>
     <string name="day_view_new_event_hint" msgid="2131483437911536229">"+ neuer Termin"</string>
-    <string name="day_view_new_all_day_event_hint" msgid="2131483437911536229">"+ neuer ganztägig Termin"</string>
+    <string name="day_view_new_all_day_event_hint" msgid="2131483437911536229">"+ neuer ganztägiger Termin"</string>
     <string name="template_announce_item_index" msgid="4067877800670753110">Termin <xliff:g id="ITEM_INDEX">%1$s</xliff:g> von <xliff:g id="ITEM_COUNT">%2$s</xliff:g>.</string>
     <plurals name="Nevents">
         <item quantity="one">1 Ereignis</item>

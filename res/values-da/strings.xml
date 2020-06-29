@@ -155,7 +155,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">Ændre denne og alle fremtidige begivenheder</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"Ny begivenhed"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Ny begivenhed"</string>
-    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Ny hele dage begivenhed"</string>
+    <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Nyt heldagsbegivenhed"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Vil du slette denne begivenhed?"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"Vil du slette <xliff:g id="EVENTTITLE">%s</xliff:g>?"</string>
     <string name="change_response_title" msgid="7704714776070974984">"Skift svar"</string>
@@ -206,7 +206,7 @@
     <string name="accessibility_reminder_showmeas" msgid="6669129015980006570">"Vis mig som"</string>
     <string name="accessibility_reminder_privacy" msgid="8669288484484022771">"Fortrolighed"</string>
     <string name="day_view_new_event_hint" msgid="2131483437911536229">"+ Ny begivenhed"</string>
-    <string name="day_view_new_all_day_event_hint" msgid="2131483437911536229">"+ Ny hele dage begivenhed"</string>
+    <string name="day_view_new_all_day_event_hint" msgid="2131483437911536229">"+ Nyt heldagsbegivenhed"</string>
     <string name="template_announce_item_index" msgid="4067877800670753110">"Begivenhed <xliff:g id="ITEM_INDEX">%1$s</xliff:g> ud af <xliff:g id="ITEM_COUNT">%2$s</xliff:g>."</string>
     <plurals name="Nevents">
         <item quantity="one">1 begivenhed</item>

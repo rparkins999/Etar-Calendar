@@ -156,6 +156,7 @@
     <string name="modify_all_following" msgid="3017428541066390380">"更改此活动和所有将来的活动"</string>
     <string name="new_event_dialog_label" msgid="7553105224561147916">"新建活动"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"新建活动"</string>
+    <string name="new_event_dialog_option_all_day">"新的全天活动"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"要删除此活动吗？"</string>
     <string name="delete_recurring_event_title" msgid="5609046778422180206">"要删除<xliff:g id="EVENTTITLE">%s</xliff:g>吗？"</string>
     <string name="change_response_title" msgid="7704714776070974984">"更改答复"</string>
