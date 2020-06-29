@@ -1421,21 +1421,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mController.sendEventRelatedEventWithExtra(this, EventType.CREATE_EVENT, -1,
                         startMillis, endMillis, -1, -1, extraLong, -1);
             } else {
-                // This was a touch selection.  If the touch selected a single
-                // unambiguous event, then view that event.  Otherwise go to
-                // Day/Agenda view.
-                if (mSelectedEvents.size() == 1) {
-                    if (mIsAccessibilityEnabled) {
-                        mAccessibilityMgr.interrupt();
-                    }
-                    // force an event reload when we get back
-                    // because the selected event may get deleted
-                    clearCachedEvents();
-                    mController.sendEventRelatedEvent(
-                        this, EventType.VIEW_EVENT, selectedEvent.id,
-                        selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
-                            -1);
+                // This was a touch selection. View the selected event
+                if (mIsAccessibilityEnabled) {
+                    mAccessibilityMgr.interrupt();
                 }
+                // force an event reload when we get back
+                // because the selected event may get deleted
+                clearCachedEvents();
+                mController.sendEventRelatedEvent(
+                    this, EventType.VIEW_EVENT, selectedEvent.id,
+                    selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
+                        -1);
             }
         } else {
             // This is the Day view.
