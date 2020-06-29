@@ -222,6 +222,8 @@
     <string name="show_time_start_end">Hasiera eta bukaera ordua</string>
     <string name="today_at_time_fmt">Gaur <xliff:g id="time_interval">%s</xliff:g>(e)tan</string>
     <string name="tomorrow_at_time_fmt">Bihar <xliff:g id="time_interval">%s</xliff:g>(e)tan</string>
+    <string name="alldaylabel1">egun</string>
+    <string name="alldaylabel2">osoan</string>
     <plurals name="Nminutes">
         <item quantity="one">Minutu 1</item>
         <item quantity="other"><xliff:g id="count">%d</xliff:g> minutu</item>

@@ -27,6 +27,8 @@
 \n<xliff:g id="time_interval">%2$s</xliff:g></string>
     <string name="repeats_label" msgid="7414023871434593196">"Fréquence"</string>
     <string name="no_title_label" msgid="302177118061368042">"(Sans titre)"</string>
+    <string name="alldaylabel1">toute</string>
+    <string name="alldaylabel2">journée</string>
     <plurals name="Nminutes">
         <item quantity="one">1 minute</item>
         <item quantity="other"><xliff:g id="count">%d</xliff:g> minutes</item>

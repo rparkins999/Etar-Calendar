@@ -28,6 +28,8 @@
     </string>
     <string name="repeats_label" msgid="7414023871434593196">"التكرار"</string>
     <string name="no_title_label" msgid="302177118061368042">"(بلا عنوان)"</string>
+    <string name="alldaylabel1">طوال</string>
+    <string name="alldaylabel2">اليوم</string>
     <plurals name="Nminutes">
         <item msgid="4871052965772159239" quantity="one">"دقيقة واحدة"</item>
         <item msgid="5644461630927544936" quantity="other">"<xliff:g id="COUNT">%d</xliff:g> دقيقة"</item>

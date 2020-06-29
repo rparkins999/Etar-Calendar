@@ -28,6 +28,8 @@
     </string>
     <string name="repeats_label" msgid="7414023871434593196">"Atkārtošana"</string>
     <string name="no_title_label" msgid="302177118061368042">"(Nav nosaukuma)"</string>
+    <string name="alldaylabel1">visu</string>
+    <string name="alldaylabel2">dienu</string>
     <plurals name="Nminutes">
         <item quantity="one" msgid="4871052965772159239">"1 minūte"</item>
         <item quantity="other" msgid="5644461630927544936">"<xliff:g id="COUNT">%d</xliff:g> minūte(-es)"</item>

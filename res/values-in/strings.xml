@@ -26,6 +26,8 @@
     <string name="date_time_fmt" msgid="1642972650061946484"><xliff:g id="date">%1$s</xliff:g>, <xliff:g id="time_interval">%2$s</xliff:g></string>
     <string name="repeats_label" msgid="7414023871434593196">Pengulangan</string>
     <string name="no_title_label" msgid="302177118061368042">"(Tanpa judul)"</string>
+    <string name="alldaylabel1">sepanjang</string>
+    <string name="alldaylabel2">hari</string>
     <plurals name="Nminutes">
         <item quantity="other"><xliff:g id="count">%d</xliff:g> menit</item>
     </plurals>

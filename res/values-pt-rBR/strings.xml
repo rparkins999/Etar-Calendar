@@ -207,6 +207,8 @@
     <string name="error_generating_ics">Ocorreram erros ao compartilhar evento</string>
     <string name="cal_share_intent_title">Enviar evento para:</string>
     <string name="show_time_no">Não</string>
+    <string name="alldaylabel1">dia</string>
+    <string name="alldaylabel2">todo</string>
     <plurals name="Nminutes">
         <item quantity="one">1 minuto</item>
         <item quantity="other">

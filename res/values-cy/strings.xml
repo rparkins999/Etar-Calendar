@@ -17,6 +17,8 @@
     </string>
     <string name="repeats_label">Ailadrodd</string>
     <string name="no_title_label">(Dim teitl)</string>
+    <string name="alldaylabel1">trwy\'r</string>
+    <string name="alldaylabel2">dydd</string>
     <plurals name="Nminutes">
         <item quantity="zero">Dim munudau</item>
         <item quantity="one">1 munud</item>

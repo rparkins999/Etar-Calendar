@@ -28,6 +28,8 @@
     </string>
     <string name="repeats_label" msgid="7414023871434593196">"Ponovitev"</string>
     <string name="no_title_label" msgid="302177118061368042">"(Brez naslova)"</string>
+    <string name="alldaylabel1">cel</string>
+    <string name="alldaylabel2">dan</string>
     <plurals name="Nminutes">
         <item quantity="one" msgid="4871052965772159239">"1 minuta"</item>
         <item quantity="other" msgid="5644461630927544936">"<xliff:g id="COUNT">%d</xliff:g> min"</item>

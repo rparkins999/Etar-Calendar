@@ -26,6 +26,8 @@
     <string name="date_time_fmt" msgid="1642972650061946484"><xliff:g id="date">%1$s</xliff:g>, <xliff:g id="time_interval">%2$s</xliff:g></string>
     <string name="repeats_label" msgid="7414023871434593196">Повторення</string>
     <string name="no_title_label" msgid="302177118061368042">"(Без назви)"</string>
+    <string name="alldaylabel1">весь</string>
+    <string name="alldaylabel2">день</string>
     <plurals name="Nminutes">
         <item quantity="one">1 хвилина</item>
         <item quantity="few"><xliff:g id="COUNT">%d</xliff:g> хвилини</item>

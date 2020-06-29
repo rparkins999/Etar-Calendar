@@ -4,6 +4,8 @@
         <item quantity="one">১ মি.</item>
         <item quantity="other">&lt;xliff:g xmlns:xliff=\"urn:oasis:names:tc:xliff:document:1.2\" id=\"count\"&gt; %d &lt;/xliff:g&gt; মি.</item>
     </plurals>
+    <string name="alldaylabel1">সারাদিন</string>
+    <string name="alldaylabel2"></string>
     <plurals name="Nminutes">
         <item quantity="one">১ মিনিট</item>
         <item quantity="other">&lt;xliff:g xmlns:xliff=\"urn:oasis:names:tc:xliff:document:1.2\" id=\"count\"&gt; %d &lt;/xliff:g&gt; মিনিট</item>

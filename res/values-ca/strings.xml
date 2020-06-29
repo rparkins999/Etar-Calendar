@@ -26,6 +26,8 @@
     <string name="date_time_fmt" msgid="1642972650061946484"><xliff:g id="date">%1$s</xliff:g>, <xliff:g id="time_interval">%2$s</xliff:g></string>
     <string name="repeats_label" msgid="7414023871434593196">"Repetició"</string>
     <string name="no_title_label" msgid="302177118061368042">"(Sense títol)"</string>
+    <string name="alldaylabel1">tot el</string>
+    <string name="alldaylabel2">dia</string>
     <plurals name="Nminutes">
         <item quantity="one">1 minut</item>
         <item quantity="other"><xliff:g id="count">%d</xliff:g> minuts</item>

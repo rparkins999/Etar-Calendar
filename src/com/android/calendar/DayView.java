@@ -415,6 +415,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int mFirstVisibleDayOfWeek;
     private int[] mEarliestStartHour;    // indexed by the week day offset
     private String mEventCountTemplate;
+    private String[] mAllDayLabels;
     // Sets the "clicked" color from the clicked event
     private long mDownTouchTime;
     private int mEventsAlpha = 255;
@@ -888,16 +889,15 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             dayStrs2Letter[index + 7] = dayStrs2Letter[index];
         }
 
-        // Figure out how much space we need for the 3-letter abbrev names
-        // in the worst case.
-        p.setTextSize(DATE_HEADER_FONT_SIZE);
-        p.setTypeface(mBold);
-        p.setTextSize(DAY_HEADER_FONT_SIZE);
-
+        mAllDayLabels =  new String[2];
+        mAllDayLabels[0] = mResources.getString(R.string.alldaylabel1);
+        mAllDayLabels[1] = mResources.getString(R.string.alldaylabel2);
         p.setTextSize(HOURS_TEXT_SIZE);
         p.setTypeface(null);
         handleOnResume();
 
+        p.setTextSize(DAY_HEADER_FONT_SIZE);
+        mHoursWidth = computeMaxStringWidth(0, mAllDayLabels, p);
         String[] timeStrs = {"12 AM", "12 PM", "22:00"};
         p.setTextSize(HOURS_TEXT_SIZE);
         mHoursWidth = HOURS_MARGIN + computeMaxStringWidth(mHoursWidth, timeStrs, p);
@@ -2110,6 +2110,19 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mCollapseAlldayDrawable.setBounds(mExpandAllDayRect);
                 mCollapseAlldayDrawable.draw(canvas);
             }
+        }
+
+        // Show a label at the left of the all day region
+        p.setTextSize(DAY_HEADER_FONT_SIZE);
+        int y = (DAY_HEADER_HEIGHT + mFirstCell) / 2;
+        int x = mHoursWidth - HOURS_RIGHT_MARGIN ;
+        p.setTextAlign(Align.RIGHT);
+        if (mAllDayLabels[0].isEmpty()) {
+            canvas.drawText(mAllDayLabels[0], x, y, p);
+        } else {
+            int dy = (int)(p.getFontSpacing() / 2);
+            canvas.drawText(mAllDayLabels[0], x, y - dy, p);
+            canvas.drawText(mAllDayLabels[1], x, y + dy, p);
         }
     }
 
