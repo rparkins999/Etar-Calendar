@@ -4317,7 +4317,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             mClickedAllday = false;
 
             // Adjust y for the scrollable bitmap
-            int yy = y - mFirstCell + mFirstHourOffset;
+            int yy = y - mFirstCell - mFirstHourOffset;
             if (yy < 0) {
                 mClickedHour = mFirstHour - 1; /* In the partially visible hour */
             } else {
