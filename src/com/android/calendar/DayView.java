@@ -1886,11 +1886,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         mSelectedEvents.clear();
 
-        // load events in the background
+        // Load events in the background.
+        // We load from one day before to one day after the visible view
+        // so that DPAD_LEFT from the first day and DPAD_RIGHT from the last day
+        // will work correctly.
         final ArrayList<Event> events = new ArrayList<Event>();
-        mEventLoader.loadEventsInBackground(mNumDays, events, mFirstJulianDay, new Runnable() {
-
-            public void run() {
+        mEventLoader.loadEventsInBackground(
+            mNumDays + 2, events, mFirstJulianDay - 1, new Runnable() {
+                public void run() {
                 boolean fadeinEvents = mFirstJulianDay != mLoadedFirstJulianDay;
                 mEvents = events;
                 mLoadedFirstJulianDay = mFirstJulianDay;
@@ -1907,7 +1910,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         mAllDayEvents.add(e);
                     }
 
-                    // Check if the selected event still exists
+                    // Check if the selected event still exists:
+                    // it will be a different object because the array was recreated.
                     if (   (mSelectedEvent != null)
                         && (e.id == mSelectedEvent.id)
                         && (e.startMillis == mSelectedEvent.startMillis)
@@ -4808,6 +4812,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             sb.append(mTempTime.format(" start %b%d %H:%M"));
             mTempTime.set(e.endMillis);
             sb.append(mTempTime.format(", end %b%d %H:%M"));
+            sb.append(", column ").append(e.getColumn());
             if (e.drawAsAllday()) { sb.append(", draw as all day"); }
             if (e == mSelectedEvent) { sb.append(", currently selected"); }
             Llog.d(sb.toString());
