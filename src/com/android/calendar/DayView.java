@@ -4794,4 +4794,25 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             return t;
         }
     }
+
+    /* uncomment if required for debugging
+    private void dumpEvents() {
+        int n = mEvents.size();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; ++i) {
+            Event e = mEvents.get(i);
+            sb.append("Event ");
+            if (e.title == null) { sb.append("with null title"); }
+            else { sb.append('"').append(e.title).append('"'); }
+            mTempTime.set(e.startMillis);
+            sb.append(mTempTime.format(" start %b%d %H:%M"));
+            mTempTime.set(e.endMillis);
+            sb.append(mTempTime.format(", end %b%d %H:%M"));
+            if (e.drawAsAllday()) { sb.append(", draw as all day"); }
+            if (e == mSelectedEvent) { sb.append(", currently selected"); }
+            Llog.d(sb.toString());
+            sb.setLength(0);
+        }
+    }
+    //*/
 }
