@@ -1463,6 +1463,140 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
+    // This gets called on a DPAD_RIGHT key down, which may be a repeat.
+    // It selects the nearest event to the right of the currently selected event
+    // if there is one, or the currently selected hour if no event is selected.
+    // If there is no event within one hour to the right, it selects the next hour
+    // to the right.
+    // mClickedAllday, mClickedDay, mClickedHour, and mClickedEvent are set to reflect
+    // what was found
+    private void nextRight() {
+        int leftDay = Time.getJulianDay(
+                mSelectionTime.toMillis(true), mSelectionTime.gmtoff);
+        int rightDay;
+        int bestStartDay = Integer.MAX_VALUE;
+        int bestEndDay = Integer.MAX_VALUE;
+        int bestColumn = Integer.MAX_VALUE;
+        int bestOverlap = 0;
+        mClickedAllday = mSelectionAllday;
+        mClickedHour = mSelectionTime.hour;
+        mClickedEvent = null;
+        if ((mSelectedEvent == null) || mSelectionAllday) {
+            leftDay = rightDay = leftDay + 1;
+        } else {
+            rightDay = leftDay + 1;
+        }
+        int numEvents = mEvents.size();
+        for (int i = 0; i < numEvents; i++) {
+            Event e = mEvents.get(i);
+            if (e.drawAsAllday() != mSelectionAllday) { continue; } // not in same area
+            if (e.startDay > rightDay) { continue; } // too late
+            if (e.startDay > bestStartDay) { continue; } // also too late
+            if (e.endDay < leftDay) { continue; } // too early
+            int column = e.getColumn();
+            if (   (mSelectedEvent != null)
+                && (column <= mSelectedEvent.getColumn())
+                && (e.startDay == mSelectedEvent.startDay))
+            {
+                continue; // not to right of current selected event
+            }
+            if (e.startDay == bestStartDay) {
+                // same day as best
+                if (column > bestColumn) { continue; } // later column
+                if (e.endDay > bestEndDay) { continue; } //later end day
+            } else {
+                // found earlier day, reset bestOverlap
+                bestOverlap = 0;
+            }
+            if (!mSelectionAllday) {
+                int start = mClickedHour * MINUTES_PER_HOUR;
+                if (start < e.startTime) { start = e.startTime; }
+                int end = (mClickedHour + 1) * MINUTES_PER_HOUR;
+                if (end > e.endTime) { end = e.endTime; }
+                int overlap = end - start;
+                if (overlap <= 0) { continue; } // doesn't overlap selected hour
+                if ((column == bestColumn) && (overlap <= bestOverlap)) {
+                    continue;  // less overlap with hour than best so far
+                }
+                bestOverlap = overlap;
+            }
+            // We have a better event
+            bestStartDay = e.startDay;
+            bestEndDay = e.endDay;
+            bestColumn = column;
+            mClickedEvent = e;
+        }
+        mClickedDay = (mClickedEvent == null) ? mSelectionJulianDay + 1
+                                              : mClickedEvent.startDay;
+    }
+
+    // This gets called on a DPAD_LEFT key down, which may be a repeat.
+    // It selects the nearest event to the left of the currently selected event
+    // if there is one, or the currently selected hour if no event is selected.
+    // If there is no event within one hour to the left, it selects the next hour
+    // to the left.
+    // mClickedAllday, mClickedDay, mClickedHour, and mClickedEvent are set to reflect
+    // what was found
+    private void nextLeft() {
+        int rightDay = Time.getJulianDay(
+            mSelectionTime.toMillis(true), mSelectionTime.gmtoff);
+        int leftDay;
+        int bestStartDay = -1;
+        int bestEndDay = -1;
+        int bestColumn = -1;
+        int bestOverlap = 0;
+        mClickedAllday = mSelectionAllday;
+        mClickedHour = mSelectionTime.hour;
+        mClickedEvent = null;
+        if ((mSelectedEvent == null) || mSelectionAllday) {
+            leftDay = rightDay = rightDay - 1;
+        } else {
+            leftDay = rightDay - 1;
+        }
+        int numEvents = mEvents.size();
+        for (int i = 0; i < numEvents; i++) {
+            Event e = mEvents.get(i);
+            if (e.drawAsAllday() != mSelectionAllday) { continue; } // not in same area
+            if (e.endDay < leftDay) { continue; } // too early
+            if (e.endDay < bestEndDay) { continue; } // also too early
+            if (e.startDay > rightDay) { continue; } // too late
+            int column = e.getColumn();
+            if (   (mSelectedEvent != null)
+                && (column >= mSelectedEvent.getColumn())
+                && (e.endDay == mSelectedEvent.endDay))
+            {
+                continue; // not to left of current selected event
+            }
+            if (e.endDay == bestEndDay) {
+                // same day as best
+                if (column < bestColumn) { continue; } // earlier column
+                if (e.startDay < bestStartDay) { continue; } // earlier start day
+            } else {
+                // found later day, reset bestOverlap
+                bestOverlap = -1;
+            }
+            if (!mSelectionAllday) {
+                int start = mClickedHour * MINUTES_PER_HOUR;
+                if (start < e.startTime) { start = e.startTime; }
+                int end = (mClickedHour + 1) * MINUTES_PER_HOUR;
+                if (end > e.endTime) { end = e.endTime; }
+                int overlap = end - start;
+                if (overlap <= 0) { continue; } // doesn't overlap selected hour
+                if ((column == bestColumn) && (overlap <= bestOverlap)) {
+                    continue;  // less overlap with hour than best so far
+                }
+                bestOverlap = overlap;
+            }
+            // We have a better event
+            bestStartDay = e.startDay;
+            bestEndDay = mClickedDay = e.endDay;
+            bestColumn = column;
+            mClickedEvent = e;
+        }
+        mClickedDay = (mClickedEvent == null) ? mSelectionJulianDay - 1
+                                              : mClickedEvent.startDay;
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (mIgnoreOneKeyEvent) {
@@ -1472,8 +1606,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         mSelectionMode = SELECTION_SELECTED;
         mScrolling = false;
-        int selectionDay = mSelectionJulianDay;
-        int dayIncrement = 0;
 
         switch (keyCode) {
             case KeyEvent.KEYCODE_DEL:
@@ -1503,32 +1635,21 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 }
                 return super.onKeyDown(keyCode, event);
             case KeyEvent.KEYCODE_DPAD_LEFT:
-                if (mSelectedEvent != null) {
-                    setSelectedEvent(mSelectedEvent.nextLeft);
-                }
-                if (mSelectedEvent == null) {
-                    mLastPopupEventID = INVALID_EVENT_ID;
-                    dayIncrement = -1;
-                }
+                nextLeft();
+                setSelectedEvent(mClickedEvent);
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                if (mSelectedEvent != null) {
-                    setSelectedEvent(mSelectedEvent.nextRight);
-                }
-                if (mSelectedEvent == null) {
-                    mLastPopupEventID = INVALID_EVENT_ID;
-                    dayIncrement = 1;
-                }
+                nextRight();
+                setSelectedEvent(mClickedEvent);
                 break;
             case KeyEvent.KEYCODE_DPAD_UP:
                 if (mSelectedEvent != null) {
                     setSelectedEvent(mSelectedEvent.nextUp);
                 }
                 if (mSelectedEvent == null) {
-                    mLastPopupEventID = INVALID_EVENT_ID;
                     if (!mSelectionAllday) {
                         if (mSelectionTime.hour > 0) {
-                            setSelectedHour(--mSelectionTime.hour);
+                            mClickedHour = mSelectionTime.hour - 1;
                         } else {
                             mSelectionAllday = true;
                             computeAllDaySpace();
@@ -1541,14 +1662,12 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     setSelectedEvent(mSelectedEvent.nextDown);
                 }
                 if (mSelectedEvent == null) {
-                    mLastPopupEventID = INVALID_EVENT_ID;
                     if (mSelectionAllday) {
                         mSelectionAllday = false;
                         mSelectionTime.hour = 0;
-                        setSelectedHour(0);
                         computeAllDaySpace();
                     } else if (mSelectionTime.hour < 23) {
-                        setSelectedHour(++mSelectionTime.hour);
+                        mClickedHour = mSelectionTime.hour + 1;
                     } else {
                         return true;
                     }
@@ -1559,21 +1678,19 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 return super.onKeyDown(keyCode, event);
         }
 
-        //FIXME if we move on to an event, we need to select it
+        mLastPopupEventID = INVALID_EVENT_ID;
         mSelectedEvents.clear();
         mComputeSelectedEvents = true;
         mUpdateToast = true;
-        selectionDay += dayIncrement;
-        setSelectedDay(selectionDay);
-        setSelectionTime(selectionDay, mSelectionTime.hour);
+        setSelectionTime(mClickedDay, mClickedHour);
 
-        if (   ((dayIncrement == 1) && (selectionDay == mLastJulianDay + 1))
-            || ((dayIncrement == -1 && (selectionDay == mFirstJulianDay - 1))))
+        if (   (mClickedDay > mLastJulianDay)
+            || (mClickedDay < mFirstJulianDay))
         {
             // moved out of current day or week,need to switch views
             DayView view = (DayView) mViewSwitcher.getNextView();
             view.mBaseDate.set(mBaseDate);
-            if (selectionDay < mFirstJulianDay) {
+            if (mClickedDay < mFirstJulianDay) {
                 view.mBaseDate.monthDay -= mNumDays;
             } else {
                 view.mBaseDate.monthDay += mNumDays;
@@ -1587,7 +1704,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             KeyEvent up = KeyEvent.changeAction(event, KeyEvent.ACTION_UP);
             dispatchKeyEvent(up);
 
-            view.setSelectedDay(selectionDay);
+            view.setSelectedDay(mClickedDay);
 
             initView(view);
         }
@@ -1904,24 +2021,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 }
 
                 // Create a shorter array for all day events
-                boolean notFound = true;
                 for (Event e : events) {
-                    if (e.drawAsAllday()) {
-                        mAllDayEvents.add(e);
-                    }
-
-                    // Check if the selected event still exists:
-                    // it will be a different object because the array was recreated.
-                    if (   (mSelectedEvent != null)
-                        && (e.id == mSelectedEvent.id)
-                        && (e.startMillis == mSelectedEvent.startMillis)
-                        && (e.endMillis == mSelectedEvent.endMillis))
-                    {
-                        setSelectedEvent(e);
-                        notFound = false;
-                    }
+                    if (e.drawAsAllday()) { mAllDayEvents.add(e); }
                 }
-                if (notFound) {  setSelectedEvent(null); }
 
                 // New events, new layouts
                 if (mLayouts == null || mLayouts.length < events.size()) {
@@ -3305,23 +3407,23 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // If we clicked on an event, we highlight it
         // If there is no clicked event and there is a selected event, we highlight that
         int color;
-        if (event == mClickedEvent) {
+        if (event.equals(mClickedEvent)) {
             color = mPressedColor;
-        } else if ((event == mSelectedEvent) && (mClickedEvent == null)) {
+        } else if ((event.equals(mSelectedEvent)) && (mClickedEvent == null)) {
             color =  mPressedColor;
-            mPrevSelectedEvent = event;
+            mPrevSelectedEvent = mSelectedEvent;
         } else {
             color = event.color;
         }
 
         switch (event.selfAttendeeStatus) {
             case Attendees.ATTENDEE_STATUS_INVITED:
-                if (event != mClickedEvent) {
+                if (!event.equals(mClickedEvent)) {
                     p.setStyle(Style.STROKE);
                 }
                 break;
             case Attendees.ATTENDEE_STATUS_DECLINED:
-                if (event != mClickedEvent) {
+                if (!event.equals(mClickedEvent)) {
                     color = Utils.getDeclinedColorFromColor(color);
                 }
             case Attendees.ATTENDEE_STATUS_NONE: // Your own events
@@ -3749,7 +3851,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // A long click will always go to the event creation view, but we may not
         // actually create an event. If (and only if) we did a long click on
         // the currently selected event, we leave it selected.
-        if (mClickedEvent != mSelectedEvent) {
+        if (!mClickedEvent.equals(mSelectedEvent)) {
             setSelectedEvent(null);
         }
         mClickedEvent = null;
@@ -4324,7 +4426,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mClickedHour = mFirstHour +
                     yy / (mCellHeight + HOUR_GAP);
             }
-            //.d("mClickedHour = " + mClickedHour);
 
             // Use a region around (x,y) for the selection region
             mRect.left = x - 10;
@@ -4800,22 +4901,26 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     }
 
     /* uncomment if required for debugging
+    private void dumpOneEvent(StringBuilder sb, Event e) {
+        if (e == null) { Llog.d("Null event"); return; }
+        if (sb == null) { sb = new StringBuilder(); }
+        sb.append("Event ");
+        if (e.title == null) { sb.append("with null title"); }
+        else { sb.append('"').append(e.title).append('"'); }
+        mTempTime.set(e.startMillis);
+        sb.append(mTempTime.format(" start %b%d %H:%M"));
+        mTempTime.set(e.endMillis);
+        sb.append(mTempTime.format(", end %b%d %H:%M"));
+        sb.append(", column ").append(e.getColumn());
+        if (e.drawAsAllday()) { sb.append(", draw as all day"); }
+        if (e.equals(mSelectedEvent)) { sb.append(", currently selected"); }
+        Llog.d(sb.toString());
+    }
     private void dumpEvents() {
         int n = mEvents.size();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < n; ++i) {
-            Event e = mEvents.get(i);
-            sb.append("Event ");
-            if (e.title == null) { sb.append("with null title"); }
-            else { sb.append('"').append(e.title).append('"'); }
-            mTempTime.set(e.startMillis);
-            sb.append(mTempTime.format(" start %b%d %H:%M"));
-            mTempTime.set(e.endMillis);
-            sb.append(mTempTime.format(", end %b%d %H:%M"));
-            sb.append(", column ").append(e.getColumn());
-            if (e.drawAsAllday()) { sb.append(", draw as all day"); }
-            if (e == mSelectedEvent) { sb.append(", currently selected"); }
-            Llog.d(sb.toString());
+            dumpOneEvent(sb, mEvents.get(i));
             sb.setLength(0);
         }
     }

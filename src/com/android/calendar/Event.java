@@ -31,6 +31,8 @@ import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Instances;
+
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -40,6 +42,7 @@ import com.android.calendar.settings.GeneralPreferences;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -254,9 +257,9 @@ public class Event implements Cloneable {
      *
      * @param cr The ContentResolver to use for the query
      * @param projection The columns to return
-     * @param begin The start of the time range to query in UTC millis since
+     * @param startDay The start of the time range to query in UTC millis since
      *            epoch
-     * @param end The end of the time range to query in UTC millis since
+     * @param endDay The end of the time range to query in UTC millis since
      *            epoch
      * @param selection Filter on the query as an SQL WHERE statement
      * @param selectionArgs Args to replace any '?'s in the selection
@@ -493,6 +496,87 @@ public class Event implements Cloneable {
                 return ii;
         }
         return 64;
+    }
+
+    /**
+     * Indicates whether some other object is "equal to" this one.
+     * <p>
+     * The {@code equals} method implements an equivalence relation
+     * on non-null object references:
+     * <ul>
+     * <li>It is <i>reflexive</i>: for any non-null reference value
+     *     {@code x}, {@code x.equals(x)} should return
+     *     {@code true}.
+     * <li>It is <i>symmetric</i>: for any non-null reference values
+     *     {@code x} and {@code y}, {@code x.equals(y)}
+     *     should return {@code true} if and only if
+     *     {@code y.equals(x)} returns {@code true}.
+     * <li>It is <i>transitive</i>: for any non-null reference values
+     *     {@code x}, {@code y}, and {@code z}, if
+     *     {@code x.equals(y)} returns {@code true} and
+     *     {@code y.equals(z)} returns {@code true}, then
+     *     {@code x.equals(z)} should return {@code true}.
+     * <li>It is <i>consistent</i>: for any non-null reference values
+     *     {@code x} and {@code y}, multiple invocations of
+     *     {@code x.equals(y)} consistently return {@code true}
+     *     or consistently return {@code false}, provided no
+     *     information used in {@code equals} comparisons on the
+     *     objects is modified.
+     * <li>For any non-null reference value {@code x},
+     *     {@code x.equals(null)} should return {@code false}.
+     * </ul>
+     * <p>
+     * The {@code equals} method for class {@code Object} implements
+     * the most discriminating possible equivalence relation on objects;
+     * that is, for any non-null reference values {@code x} and
+     * {@code y}, this method returns {@code true} if and only
+     * if {@code x} and {@code y} refer to the same object
+     * ({@code x == y} has the value {@code true}).
+     * <p>
+     * Note that it is generally necessary to override the {@code hashCode}
+     * method whenever this method is overridden, so as to maintain the
+     * general contract for the {@code hashCode} method, which states
+     * that equal objects must have equal hash codes.
+     *
+     * @param obj the reference object with which to compare.
+     * @return {@code true} if this object is the same as the obj
+     * argument; {@code false} otherwise.
+     * @see #hashCode()
+     * @see HashMap
+     *
+     * In this case events get regularly recreated when the events are re-read
+     * from the calendar, and some properties of the event may differ according
+     * to the view which holds it. To make event selection persist, we need to
+     * reimplement this function so that references to the same underlying
+     * event are "equal". We don't fix up hashCode() since we don't use it for
+     * events.
+     */
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (   (obj == null)
+            || (obj.getClass() != getClass()))
+        {
+            return false;
+        } else {
+            Event e = (Event)obj;
+            if (title == null) {
+                if (e.title != null) { return false; }
+            } else if (e.title == null) {
+                return false;
+            } else if (title.toString().compareTo(e.title.toString()) != 0) {
+                return false;
+            }
+            if (location == null) {
+                if (e.location != null) { return false; }
+            } else if (e.location == null) {
+                return false;
+            } else if (location.toString().compareTo(e.location.toString()) != 0) {
+                return false;
+            }
+            return (   (e.id == id)
+                    && (e.startMillis == startMillis)
+                    && (e.endMillis == endMillis));
+        }
     }
 
     @Override
