@@ -138,6 +138,7 @@ public class Event implements Cloneable {
     public boolean isRepeating;
     public int selfAttendeeStatus;
     // The coordinates of the event rectangle drawn on the screen.
+    // Note these are not constant: if the event overlaps two days they get overwritten
     public float left;
     public float right;
     public float top;
