@@ -3868,7 +3868,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         // A long click will always go to the event creation view, but we may not
         // actually create an event. If (and only if) we did a long click on
         // the currently selected event, we leave it selected.
-        if (!mClickedEvent.equals(mSelectedEvent)) {
+        if ((mClickedEvent == null) || (!mClickedEvent.equals(mSelectedEvent))) {
             setSelectedEvent(null);
         }
         mClickedEvent = null;
