@@ -299,6 +299,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      */
     private static int ONE_DAY_HEADER_HEIGHT = DAY_HEADER_HEIGHT;
     /**
+     * Minimum time between repeated key down events in milliseconds.
+     * This is used to choke the rate of key repeat actions by throwing away any
+     * key down event which is less than this time after the last accepted one.
+     */
+    private static final long MIN_KEY_REPEAT_MILLIS = 300;
+    private long lastKeyTime = 0;
+
+    /**
      * The alpha (opacity) to use when highlighting hour or all-day selection
      * on top of a selected event
      */
@@ -1602,6 +1610,15 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (mIgnoreOneKeyEvent) {
             mIgnoreOneKeyEvent = false;
             return true; // handled it
+        }
+
+        // This is a horrible hack, but the only thing that works because some
+        // keyboards give us a repeated sequence of key down and key up events.
+        long millis = event.getEventTime();
+        if (millis < lastKeyTime + MIN_KEY_REPEAT_MILLIS) {
+            return true; // ignore too frequent repeats
+        } else {
+            lastKeyTime = millis; // process it and update the last time
         }
 
         mSelectionMode = SELECTION_SELECTED;
