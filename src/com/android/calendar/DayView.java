@@ -4917,18 +4917,22 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
-    /* uncomment if required for debugging
+    /* uncomment if required for debugging */
     private void dumpOneEvent(StringBuilder sb, Event e) {
         if (e == null) { Llog.d("Null event"); return; }
         if (sb == null) { sb = new StringBuilder(); }
-        sb.append("Event ");
-        if (e.title == null) { sb.append("with null title"); }
-        else { sb.append('"').append(e.title).append('"'); }
+        sb.append("Event hashCode ").append(e.hashCode());
+        if (e.title == null) { sb.append(" with null title"); }
+        else { sb.append(' ').append('"').append(e.title).append('"'); }
         mTempTime.set(e.startMillis);
-        sb.append(mTempTime.format(" start %b%d %H:%M"));
+        sb.append(mTempTime.format(" start %b%d %H:%M " + e.startMillis));
         mTempTime.set(e.endMillis);
-        sb.append(mTempTime.format(", end %b%d %H:%M"));
+        sb.append(mTempTime.format(", end %b%d %H:%M " + e.endMillis));
         sb.append(", column ").append(e.getColumn());
+        sb.append(", top ").append(e.top);
+        sb.append(", bottom ").append(e.bottom);
+        sb.append(", left ").append(e.left);
+        sb.append(", right ").append(e.right);
         if (e.drawAsAllday()) { sb.append(", draw as all day"); }
         if (e.equals(mSelectedEvent)) { sb.append(", currently selected"); }
         Llog.d(sb.toString());
