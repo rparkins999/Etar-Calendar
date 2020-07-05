@@ -306,7 +306,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      */
     private static final long MIN_KEY_REPEAT_MILLIS = 300;
     private long lastKeyTime = 0;
-
+    /**
+     * Width of touch region around event rectangle
+     */
+    private static final int SELECTIONSLOP = 10;
     /**
      * The alpha (opacity) to use when highlighting hour or all-day selection
      * on top of a selected event
@@ -423,6 +426,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private int mFirstVisibleDate;
     private int mFirstVisibleDayOfWeek;
     private int[] mEarliestStartHour;    // indexed by the week day offset
+    private int[] mNumAllDayEvents;
     private String mEventCountTemplate;
     private String[] mAllDayLabels;
     // Sets the "clicked" color from the clicked event
@@ -951,6 +955,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         mTempTime = new Time(Time.getCurrentTimezone());
         mCompareTime = new Time(Time.getCurrentTimezone());
         mEarliestStartHour = new int[mNumDays];
+        mNumAllDayEvents = new int[mNumDays];
 
         // mLines is the array of points used with Canvas.drawLines() in
         // drawGridBackground() and drawAllDayEvents().  Its size depends
@@ -1908,15 +1913,15 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         + " ends before best so far, not wanted");
                     continue;
                 }
-                long eStartMillis = e.endMillis;
+                long eStartMillis = e.startMillis;
                 int column = e.getColumn();
-                if (   (eEndMillis == eEndMillis)
+                if (   (eEndMillis == endMillis)
                     // ends with best so far, see if starts same or earlier
                     && (   (eStartMillis < startMillis)
                         || (   (eStartMillis == startMillis)
-                    // mClickedEvent can't be null here
-                    // because endMillis would still be Long.MAX_VALUE
-                    && (column > mClickedEvent.getColumn()))))
+                            // mClickedEvent can't be null here
+                            // because endMillis would still be Long.MAX_VALUE
+                            && (column > mClickedEvent.getColumn()))))
                 {
                     Llog.d(eventName
                         + " ends at same time as best so far but starts earlier, not wanted");
@@ -2105,7 +2110,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (   (!mShowAllAllDayEvents)
             && (mSelectedEvent != null)
             && (mSelectedEvent.drawAsAllday())
-            && (mSelectedEvent.getColumn() > mMaxUnexpandedAlldayEventCount - 1))
+            && (mSelectedEvent.getColumn() >= mMaxUnexpandedAlldayEventCount - 1))
         {
             doExpandAllDayClick();
         }
@@ -2519,7 +2524,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         final int len = events.size();
         // Num of all-day-events on each day.
         final int[] eventsCount = new int[mLastJulianDay - mFirstJulianDay + 1];
-        Arrays.fill(eventsCount, 0);
+        Arrays.fill(mNumAllDayEvents, 0);
         for (int ii = 0; ii < len; ii++) {
             Event event = events.get(ii);
             if (event.startDay > mLastJulianDay || event.endDay < mFirstJulianDay) {
@@ -2530,7 +2535,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 final int firstDay = Math.max(event.startDay, mFirstJulianDay);
                 final int lastDay = Math.min(event.endDay, mLastJulianDay);
                 for (int day = firstDay; day <= lastDay; day++) {
-                    final int count = ++eventsCount[day - mFirstJulianDay];
+                    final int count = ++mNumAllDayEvents[day - mFirstJulianDay];
                     if (maxAllDayEvents < count) {
                         maxAllDayEvents = count;
                     }
@@ -4168,6 +4173,21 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         invalidate();
     }
 
+    private boolean isAllDayClick(int x, int y) {
+        if (mMaxAlldayEvents <= mMaxUnexpandedAlldayEventCount) { return false; }
+        if (   (x < mHoursWidth)
+            && (y < DAY_HEADER_HEIGHT + ALLDAY_TOP_MARGIN + mAlldayHeight))
+        {
+            return true;
+        }
+        int dayNum = (x - mHoursWidth) / (mCellWidth + DAY_GAP);
+        return (   (!mShowAllAllDayEvents)
+                && (mAnimateDayHeight == 0)
+                && (y < mFirstCell)
+                && (mNumAllDayEvents[dayNum] >= mMaxUnexpandedAlldayEventCount)
+                && (y >= DAY_HEADER_HEIGHT + ALLDAY_TOP_MARGIN));
+    }
+
     // This is called from the CalendarGestureListener when the user releases a plain
     // touch (not a scroll or a fling or a scale) without holding it long enough
     // for it to be considered a long click
@@ -4191,15 +4211,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             return;
         }
 
-        if (   (mMaxAlldayEvents > mMaxUnexpandedAlldayEventCount)
-            && (   (   (x < mHoursWidth)
-                    && (y < DAY_HEADER_HEIGHT + mAlldayHeight))
-                || (   (!mShowAllAllDayEvents)
-                    && (mAnimateDayHeight == 0)
-                    && (y < mFirstCell)
-                    && (y >= mFirstCell - MIN_UNEXPANDED_ALLDAY_EVENT_HEIGHT))))
+        if (isAllDayClick(x, y))
         {
             mTouchMode = TOUCH_MODE_INITIAL_STATE;
+            mClickedEvent = null;
             doExpandAllDayClick();
             return;
         }
@@ -4844,7 +4859,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         }
                         if (yDistance < minYdistance) {
                             minYdistance = yDistance;
-                            mClickedEvent = event;
+                            if (minYdistance < SELECTIONSLOP) {
+                                mClickedEvent = event;
+                            }
                         }
                     }
                 }
@@ -4862,10 +4879,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
 
             // Use a region around (x,y) for the selection region
-            mRect.left = x - 10;
-            mRect.right = x + 10;
-            mRect.top = y - 10;
-            mRect.bottom = y + 10;
+            mRect.left = x - SELECTIONSLOP;
+            mRect.right = x + SELECTIONSLOP;
+            mRect.top = y - SELECTIONSLOP;
+            mRect.bottom = y + SELECTIONSLOP;
 
             EventGeometry geometry = mEventGeometry;
 
