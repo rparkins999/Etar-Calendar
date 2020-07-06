@@ -366,7 +366,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     Time mBaseDate;
     // Used as temporary to avoid allocating one
     private Time mTempTime;
-    // Another one, private to compareToVisibleTimeRange
+    // Another one, private to compareToVisibleTimeRange and find{Right,Left}Event
     private Time mCompareTime;
 
     // These are static because they are the same for every DayView
@@ -1472,117 +1472,206 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         }
     }
 
-    // This does the work for nextRight() when mSelectionAllday is false.
+    // This does the work for nextRight().
     // In the case where there is a selected event, but it cannot find an event
-    // to the right of it in the selected day/hour, it gets called a second time.
+    // to the right of it in the selected day, it gets called a second time.
     // Returns true if it found an event
     @SuppressLint("DefaultLocale")
-    private boolean findRightEvent(long startMillis, long endMillis) {
-        int bestoverlap = 0;
+    private boolean findRightEvent(boolean allowSelected) {
+        Llog.d("***********************************************");
         int numEvents = mEvents.size();
-        String selectedName = (mSelectedEvent == null ? null :
-            ((mSelectedEvent.title == null) ? "Untitled event"
-                                            : mSelectedEvent.title).toString());
-        for (int i = 0; i < numEvents; i++) {
-            Event e = mEvents.get(i);
-            dumpOneEvent(null, e);
-            String eventName =
-                ((e.title == null) ? "Untitled event" : e.title).toString();
-            if (e.drawAsAllday()) {
-                Llog.d("All day event " + eventName + " not wanted");
-                continue;
-            }
-            if (e.equals(mSelectedEvent)) {
-                Llog.d(eventName + " is already selected, not wanted");
-                continue;
-            }
-            long eStartMillis = e.startMillis;
-            long eEndMillis = e.endMillis;
-            if (eEndMillis <= startMillis) {
-                mTempTime.set(startMillis);
-                Llog.d(eventName
-                    + mTempTime.format(" is before %b%d %H%M, not wanted"));
-                continue;
-            }
-            if (eStartMillis >= endMillis) {
-                mTempTime.set(endMillis);
-                Llog.d (eventName
-                    + mTempTime.format(" is after %b%d %H%M, not wanted"));
-                continue;
-            }
-            int column = e.getColumn();
-            if (mSelectedEvent != null) {
-                if (eEndMillis <= mSelectedEvent.startMillis) {
-                    Llog.d(eventName + " is before " +  selectedName + ", not wanted");
+        if (mSelectionAllday) {
+            Llog.d(mTempTime.format("Looking for next event from %b%d" ));
+            for (int i = 0; i < numEvents; i++) {
+                Event e = mEvents.get(i);
+                dumpOneEvent(null, e);
+                String eventName =
+                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (!e.drawAsAllday()) {
+                    Llog.d("Not all day event " + eventName + " not wanted");
                     continue;
                 }
-                if (   (column <= mSelectedEvent.getColumn())
-                    && (   (e.startDay == mSelectedEvent.startDay)
-                        || (e.endDay == mSelectedEvent.endDay)))
-                {
-                    Llog.d(eventName + " is in column " + column +
-                        " not after " +  selectedName + " in column " +
-                        mSelectedEvent.getColumn() + ", not wanted");
+                if (e.startDay > mClickedDay) {
+                    Llog.d(eventName
+                        + mTempTime.format(" starts after %b%d, not wanted"));
                     continue;
                 }
-            }
-            String clickedName = null;
-            boolean compareColumns = false;
-            if (mClickedEvent != null) {
-                clickedName = ((mClickedEvent.title == null)
-                    ? "Untitled event"
-                    : mClickedEvent.title).toString();
-                compareColumns =    (e.endDay == mClickedEvent.endDay)
-                                 || (e.startDay == mClickedEvent.startDay);
-                if (    compareColumns
-                    && (column > mClickedEvent.getColumn()))
-                {
-                    Llog.d(eventName + " is in column " + column +
-                        " after " +  clickedName + " in column " +
-                        mClickedEvent.getColumn() + ", not wanted");
+                if (e.endDay < mClickedDay) {
+                    Llog.d(eventName
+                        + mTempTime.format(" ends before %b%d, not wanted"));
                     continue;
                 }
+                long eStartMillis = e.startMillis;
+                long eEndMillis = e.endMillis;
+                if (mSelectedEvent != null) {
+                    String selectedName = ((mSelectedEvent.title == null)
+                        ? "Untitled event"
+                        : mSelectedEvent.title).toString();
+                    if (e.equals(mSelectedEvent)) {
+                        if (!allowSelected) {
+                            Llog.d(eventName + " is already selected, not wanted");
+                            continue;
+                        }
+                    } else {
+                        if (   (e.startDay < mClickedDay)
+                            && (e.endDay == mClickedDay)
+                            && (mSelectedEvent.startDay < mClickedDay)
+                            && (mSelectedEvent.endDay == mClickedDay))
+                        {
+                            if (   (eEndMillis <= mSelectedEvent.endMillis)
+                                || allowSelected)
+                            {
+                                Llog.d(eventName + " ends before selected event "
+                                    + selectedName + ", not wanted");
+                                continue;
+                            }
+                        } else if (   (eStartMillis < mSelectedEvent.startMillis)
+                                   || (   (eStartMillis == mSelectedEvent.startMillis)
+                                       && (   (eEndMillis < mSelectedEvent.endMillis)))
+                                           || (   (eEndMillis == mSelectedEvent.endMillis)
+                                               && (e.getColumn() <= mSelectedEvent.getColumn())))
+                        {
+                            Llog.d(eventName + " is before selected event "
+                                + selectedName + ", not wanted");
+                            continue;
+                        }
+                    }
+                }
+                if (mClickedEvent != null) {
+                    String clickedName = ((mClickedEvent.title == null)
+                                        ? "Untitled event"
+                                        : mClickedEvent.title).toString();
+                    if (   ((mClickedEvent.startDay < mClickedDay) == (e.startDay < mClickedDay))
+                        && (   (eStartMillis > mClickedEvent.startMillis)
+                            || (   (eStartMillis == mClickedEvent.startMillis)
+                                && (eEndMillis >= mClickedEvent.endMillis))))
+                    {
+                        Llog.d(eventName
+                            + " is after best so far " + clickedName + ", not wanted");
+                        continue;
+                    }
+                    if (   (mClickedEvent.startDay == mClickedDay)
+                        && (e.startDay != mClickedDay))
+                    {
+                        mCompareTime.setJulianDay(e.startDay);
+                        Llog.d("best so far " + clickedName
+                            + mTempTime.format(" starts on %b%d and ")
+                            + eventName + mCompareTime.format(" starts on %b%d, not wanted"));
+                        continue;
+                    }
+                }
+                // We have a better event
+                Llog.d(eventName + " is now best so far");
+                mClickedEvent = e;
             }
-            int startMinutes = mClickedHour * MINUTES_PER_HOUR;
-            int endMinutes = (mClickedHour + 1) * MINUTES_PER_HOUR;
-            Llog.d(String.format("Potential overlap is %02d:%02d-%02d:%02d",
-                startMinutes / 60, startMinutes % 60,
-                endMinutes / 60, endMinutes % 60));
-            if (e.startDay < mClickedDay) {
-                Llog.d (eventName +
-                    " starts previous day, not adjusting start overlap");
-            } else if (e.startTime > startMinutes) {
-                startMinutes = e.startTime;
-                Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
+        } else {
+            mTempTime.hour = mClickedHour;
+            long startMillis = mTempTime.toMillis(false);
+            Llog.d(mTempTime.format("Looking for next event from %H:00 on %b%d" ));
+            mTempTime.hour += 1;
+            long endMillis = mTempTime.toMillis(true);
+            int bestoverlap = 0;
+            String selectedName = (mSelectedEvent == null ? null :
+                ((mSelectedEvent.title == null) ? "Untitled event"
+                    : mSelectedEvent.title).toString());
+            for (int i = 0; i < numEvents; i++) {
+                Event e = mEvents.get(i);
+                dumpOneEvent(null, e);
+                String eventName =
+                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (e.drawAsAllday()) {
+                    Llog.d("All day event " + eventName + " not wanted");
+                    continue;
+                }
+                if (e.equals(mSelectedEvent)) {
+                    Llog.d(eventName + " is already selected, not wanted");
+                    continue;
+                }
+                long eStartMillis = e.startMillis;
+                long eEndMillis = e.endMillis;
+                if (eEndMillis <= startMillis) {
+                    mTempTime.set(startMillis);
+                    Llog.d(eventName
+                        + mTempTime.format(" is before %b%d %H%M, not wanted"));
+                    continue;
+                }
+                if (eStartMillis >= endMillis) {
+                    mTempTime.set(endMillis);
+                    Llog.d(eventName
+                        + mTempTime.format(" is after %b%d %H%M, not wanted"));
+                    continue;
+                }
+                int column = e.getColumn();
+                if (mSelectedEvent != null) {
+                    if (eEndMillis <= mSelectedEvent.startMillis) {
+                        Llog.d(eventName + " is before " + selectedName + ", not wanted");
+                        continue;
+                    }
+                    if ((column <= mSelectedEvent.getColumn())
+                        && ((e.startDay == mSelectedEvent.startDay)
+                        || (e.endDay == mSelectedEvent.endDay))) {
+                        Llog.d(eventName + " is in column " + column +
+                            " not after " + selectedName + " in column " +
+                            mSelectedEvent.getColumn() + ", not wanted");
+                        continue;
+                    }
+                }
+                String clickedName = null;
+                boolean compareColumns = false;
+                if (mClickedEvent != null) {
+                    clickedName = ((mClickedEvent.title == null)
+                        ? "Untitled event"
+                        : mClickedEvent.title).toString();
+                    compareColumns = (e.endDay == mClickedEvent.endDay)
+                        || (e.startDay == mClickedEvent.startDay);
+                    if (compareColumns
+                        && (column > mClickedEvent.getColumn())) {
+                        Llog.d(eventName + " is in column " + column +
+                            " after " + clickedName + " in column " +
+                            mClickedEvent.getColumn() + ", not wanted");
+                        continue;
+                    }
+                }
+                int startMinutes = mClickedHour * MINUTES_PER_HOUR;
+                int endMinutes = (mClickedHour + 1) * MINUTES_PER_HOUR;
+                Llog.d(String.format("Potential overlap is %02d:%02d-%02d:%02d",
                     startMinutes / 60, startMinutes % 60,
                     endMinutes / 60, endMinutes % 60));
+                if (e.startDay < mClickedDay) {
+                    Llog.d(eventName +
+                        " starts previous day, not adjusting start overlap");
+                } else if (e.startTime > startMinutes) {
+                    startMinutes = e.startTime;
+                    Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
+                        startMinutes / 60, startMinutes % 60,
+                        endMinutes / 60, endMinutes % 60));
+                }
+                if (e.endDay > mClickedDay) {
+                    Llog.d(eventName + " ends next day, not adjusting end overlap");
+                } else if (e.endTime < endMinutes) {
+                    endMinutes = e.endTime;
+                    Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
+                        startMinutes / 60, startMinutes % 60,
+                        endMinutes / 60, endMinutes % 60));
+                }
+                int overlap = endMinutes - startMinutes;
+                if (compareColumns
+                    && (mClickedEvent != null)
+                    && (overlap > 0)
+                    && (column < mClickedEvent.getColumn())) {
+                    Llog.d("Overlap " + overlap + " > 0 and " + eventName
+                        + " in column " + column + " less than " + clickedName
+                        + " in column " + column + ", not comparing overlap");
+                } else if (overlap <= bestoverlap) {
+                    Llog.d("Overlap " + overlap + " minutes less or equal best "
+                        + bestoverlap + " minutes, " + eventName + " not wanted");
+                    continue;
+                }
+                Llog.d("Overlap " + overlap + " minutes more than best "
+                    + bestoverlap + " minutes, " + eventName + " now best so far");
+                bestoverlap = overlap;
+                mClickedEvent = e;
             }
-            if (e.endDay > mClickedDay) {
-                Llog.d (eventName + " ends next day, not adjusting end overlap");
-            } else if (e.endTime < endMinutes) {
-                endMinutes = e.endTime;
-                Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
-                    startMinutes / 60, startMinutes % 60,
-                    endMinutes / 60, endMinutes % 60));
-            }
-            int overlap = endMinutes - startMinutes;
-            if (   compareColumns
-                && (mClickedEvent != null)
-                && (overlap > 0)
-                && (column < mClickedEvent.getColumn()))
-            {
-                Llog.d("Overlap " + overlap + " > 0 and " + eventName
-                    + " in column " + column + " less than " + clickedName
-                    + " in column " + column + ", not comparing overlap");
-            } else if (overlap <= bestoverlap) {
-                Llog.d ("Overlap " + overlap + " minutes less or equal best "
-                    + bestoverlap + " minutes, " + eventName + " not wanted");
-                continue;
-            }
-            Llog.d ("Overlap " + overlap + " minutes more than best "
-                + bestoverlap + " minutes, " + eventName + " now best so far");
-            bestoverlap = overlap;
-            mClickedEvent = e;
         }
         return mClickedEvent != null;
     }
@@ -1596,146 +1685,38 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // what was found
     private void nextRight() {
         mClickedAllday = mSelectionAllday;
+        mClickedDay = mSelectionJulianDay;
         mClickedHour = mSelectionTime.hour;
         mClickedEvent = null;
-        if (mSelectionAllday) {
-            Llog.d("***********************************************");
-            int leftDay = mSelectionJulianDay;
-            int rightDay = leftDay + 1;
-            if (mSelectedEvent == null) {
-                leftDay = rightDay;
-            }
-            long startMillis = Long.MAX_VALUE;
-            long endMillis =  Long.MAX_VALUE;
-            int numEvents = mEvents.size();
-            for (int i = 0; i < numEvents; i++) {
-                Event e = mEvents.get(i);
-                dumpOneEvent(null, e);
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
-                if (!e.drawAsAllday()) {
-                    Llog.d("Not all day event " + eventName + " not wanted");
-                    continue;
-                }
-                if (e.equals(mSelectedEvent)) {
-                    Llog.d(eventName + " is already selected, not wanted");
-                    continue;
-                }
-                if (e.startDay > rightDay) {
-                    mTempTime.setJulianDay(rightDay);
-                    Llog.d(eventName
-                        + mTempTime.format(" starts after %b%d, not wanted"));
-                    continue;
-                }
-                if (e.endDay < leftDay) {
-                    mTempTime.setJulianDay(leftDay);
-                    Llog.d(eventName
-                        + mTempTime.format(" ends before %b%d, not wanted"));
-                    continue;
-                }
-                long eStartMillis = e.startMillis;
-                if (eStartMillis > startMillis) {
-                    Llog.d(eventName
-                        + " starts after best so far, not wanted");
-                    continue;
-                }
-                long eEndMillis = e.endMillis;
-                int column = e.getColumn();
-                if (   (eStartMillis == startMillis)
-                    // starts with best so far, see if ends same or later
-                    && (   (eEndMillis > endMillis)
-                        || (   (eEndMillis == endMillis)
-                               // mClickedEvent can't be null here
-                               // because endMillis would still be Long.MAX_VALUE
-                            && (column < mClickedEvent.getColumn()))))
-                {
-                    Llog.d(eventName
-                        + " starts at same time as best so far but ends later, not wanted");
-                    continue;
-                }
-                if (mSelectedEvent != null) {
-                    if (eStartMillis < mSelectedEvent.startMillis) {
-                        Llog.d(eventName
-                            + " starts before currently selected event, not wanted");
-                        continue;
-                    }
-                    if (   (eStartMillis == mSelectedEvent.startMillis)
-                        && (eEndMillis <= mSelectedEvent.endMillis))
-                    {
-                        Llog.d(eventName
-                            + " starts at same time as currently selected event "
-                            + "but does not end after it, not wanted");
-                        continue;
-                    }
-                }
-                // We have a better event
-                Llog.d(eventName + " is now best so far");
-                startMillis = eStartMillis;
-                endMillis = eEndMillis;
-                mClickedEvent = e;
-            }
-            if (mClickedEvent == null) {
-                mClickedDay = rightDay;
-                if (   mSelectionAllday
-                    && (mSelectedEvent != null)
-                    && (mSelectedEvent.endDay >= mClickedDay))
-                {
-                    Llog.d("Moved to right and no event found, but previous one"
-                            + " still overlaps this day, re-selecting it");
-                    mClickedEvent = mSelectedEvent;
-                }
-            } else {
-                String clickedName = ((mClickedEvent.title == null)
-                    ? "Untitled event"
-                    : mClickedEvent.title).toString();
-                if (mClickedEvent.startDay >= mSelectionJulianDay) {
-                    Llog.d("Moved to right and selected event " + clickedName);
-                    mClickedDay = mClickedEvent.startDay;
-                } else {
-                    Llog.d("Selected event " + clickedName + " on same day");
-                    mClickedDay = mSelectionJulianDay;
-                }
-            }
-        } else {
-            if (mSelectedEvent != null) {
-                mClickedDay = mSelectionJulianDay;
-                mTempTime.setJulianDay(mClickedDay);
-                mTempTime.hour = mClickedHour;
-                long startMillis = mTempTime.toMillis(false);
-                Llog.d("***********************************************");
-                Llog.d(mTempTime.format(
-                    "Previously selected event, looking for next from %H:00  on %b%d" ));
-                mTempTime.hour += 1;
-                long endMillis = mTempTime.toMillis(true);
-                if (findRightEvent(startMillis, endMillis)) {
-                    String eventName = ((mClickedEvent.title == null)
-                        ? "Untitled event" : mClickedEvent.title).toString();
-                    Llog.d("Returning with clicked event " + eventName);
-                    return;
-                }
-            }
-            mClickedDay = mSelectionJulianDay + 1;
-            mTempTime.setJulianDay(mClickedDay);
-            mTempTime.hour = mClickedHour;
-            long startMillis = mTempTime.toMillis(false);
-            Llog.d("***********************************************");
-            if (mSelectedEvent != null) {
-                Llog.d(mTempTime.format(
-                    "No event found, looking for next from %H:00  on %b%d"));
-            } else {
-                Llog.d(mTempTime.format(
-                    "No previously selected event, looking for next from %H:00  on %b%d"));
-            }
-            mTempTime.hour += 1;
-            long endMillis = mTempTime.toMillis(false);
-            if (findRightEvent(startMillis, endMillis)) {
+        mTempTime.setJulianDay(mClickedDay);
+        if (mSelectedEvent != null) {
+            if (findRightEvent(false)) {
                 String eventName = ((mClickedEvent.title == null)
                     ? "Untitled event" : mClickedEvent.title).toString();
                 Llog.d("Returning with clicked event " + eventName);
+                return;
+            }
+        }
+        mClickedDay = mSelectionJulianDay + 1;
+        mTempTime.setJulianDay(mClickedDay);
+        if (mSelectedEvent != null) {
+            Llog.d(mTempTime.format(
+                "No event found, looking for next from %H:00  on %b%d"));
+        } else {
+            Llog.d(mTempTime.format(
+                "No previously selected event, looking for next from %H:00  on %b%d"));
+        }
+        if (findRightEvent(true)) {
+            String eventName = ((mClickedEvent.title == null)
+                ? "Untitled event" : mClickedEvent.title).toString();
+            Llog.d("Returning with clicked event " + eventName);
+        } else {
+            mTempTime.setJulianDay(mClickedDay);
+            if (mSelectionAllday) {
+                Llog.d(mTempTime.format("No event found, just selecting %b%d"));
             } else {
-                mTempTime.setJulianDay(mClickedDay);
                 mTempTime.hour = mClickedHour;
-                Llog.d(mTempTime.format("No event found, just selecting %H:00  on %b%d" ));
+                Llog.d(mTempTime.format("No event found, just selecting %H:00 on %b%d"));
             }
         }
     }
@@ -1745,113 +1726,204 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // to the left of it in the selected day/hour, it gets called a second time.
     // Returns true if it found an event
     @SuppressLint("DefaultLocale")
-    private boolean findLeftEvent(long startMillis, long endMillis) {
-        int bestoverlap = 0;
+    private boolean findLeftEvent(boolean allowSelected) {
+        Llog.d("***********************************************");
         int numEvents = mEvents.size();
-        String selectedName = (mSelectedEvent == null ? null :
-            ((mSelectedEvent.title == null) ? "Untitled event"
-                : mSelectedEvent.title).toString());
-        for (int i = 0; i < numEvents; i++) {
-            Event e = mEvents.get(i);
-            dumpOneEvent(null, e);
-            String eventName =
-                ((e.title == null) ? "Untitled event" : e.title).toString();
-            if (e.drawAsAllday()) {
-                Llog.d("All day event " + eventName + " not wanted");
-                continue;
-            }
-            if (e.equals(mSelectedEvent)) {
-                Llog.d(eventName + " is already selected, not wanted");
-                continue;
-            }
-            long eStartMillis = e.startMillis;
-            long eEndMillis = e.endMillis;
-            if (eStartMillis >= endMillis) {
-                mTempTime.set(endMillis);
-                Llog.d (eventName
-                    + mTempTime.format(" is after %b%d %H%M, not wanted"));
-                continue;
-            }
-            if (eEndMillis <= startMillis) {
-                mTempTime.set(startMillis);
-                Llog.d(eventName
-                    + mTempTime.format(" is before %b%d %H%M, not wanted"));
-                continue;
-            }
-            int column = e.getColumn();
-            if (mSelectedEvent != null) {
-                if (eStartMillis >= mSelectedEvent.endMillis) {
-                    Llog.d(eventName + " is after " +  selectedName + ", not wanted");
+        if (mSelectionAllday) {
+            Llog.d(mTempTime.format("Looking for next event from %b%d" ));
+            for (int i = 0; i < numEvents; i++) {
+                Event e = mEvents.get(i);
+                dumpOneEvent(null, e);
+                String eventName =
+                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (!e.drawAsAllday()) {
+                    Llog.d("Not all day event " + eventName + " not wanted");
                     continue;
                 }
-                if (   (column >= mSelectedEvent.getColumn())
-                    && (   (e.startDay == mSelectedEvent.startDay)
-                        || (e.endDay == mSelectedEvent.endDay)))
-                {
-                    Llog.d(eventName + " is in column " + column +
-                        " not before " +  selectedName + " in column " +
-                        mSelectedEvent.getColumn() + ", not wanted");
+                if (e.startDay > mClickedDay) {
+                    mTempTime.setJulianDay(mClickedDay);
+                    Llog.d(eventName
+                        + mTempTime.format(" starts after %b%d, not wanted"));
                     continue;
                 }
-            }
-            String clickedName = null;
-            boolean compareColumns = false;
-            if (mClickedEvent != null) {
-                clickedName = ((mClickedEvent.title == null)
-                    ? "Untitled event"
-                    : mClickedEvent.title).toString();
-                compareColumns =    (e.endDay == mClickedEvent.endDay)
-                                 || (e.startDay == mClickedEvent.startDay);
-                if (   compareColumns
-                    && (column < mClickedEvent.getColumn()))
-                {
-                    Llog.d(eventName + " is in column " + column +
-                        " before " + clickedName + " in column " +
-                        mClickedEvent.getColumn() + ", not wanted");
+                if (e.endDay < mClickedDay) {
+                    mTempTime.setJulianDay(mClickedDay);
+                    Llog.d(eventName
+                        + mTempTime.format(" ends before %b%d, not wanted"));
                     continue;
                 }
+                long eStartMillis = e.startMillis;
+                long eEndMillis = e.endMillis;
+                if (mSelectedEvent != null) {
+                    String selectedName = ((mSelectedEvent.title == null)
+                        ? "Untitled event"
+                        : mSelectedEvent.title).toString();
+                    if (e.equals(mSelectedEvent)) {
+                        if (!allowSelected) {
+                            Llog.d(eventName + " is already selected, not wanted");
+                            continue;
+                        }
+                    } else {
+                        if (   (e.endDay > mClickedDay)
+                            && (e.startDay == mClickedDay)
+                            && (mSelectedEvent.endDay > mClickedDay)
+                            && (mSelectedEvent.startDay == mClickedDay))
+                        {
+                            if (   (eStartMillis >= mSelectedEvent.startMillis)
+                                || allowSelected)
+                            {
+                                Llog.d(eventName + " ends after selected event "
+                                    + selectedName + ", not wanted");
+                                continue;
+                            }
+                        } else if (   (eEndMillis > mSelectedEvent.endMillis)
+                                   || (   (eEndMillis == mSelectedEvent.endMillis)
+                                       && (   (eStartMillis > mSelectedEvent.startMillis)))
+                                           || (   (eStartMillis == mSelectedEvent.startMillis)
+                                               && (e.getColumn() <= mSelectedEvent.getColumn())))
+                        {
+                            Llog.d(eventName + " is after selected event "
+                                + selectedName + ", not wanted");
+                            continue;
+                        }
+                    }
+                }
+                if (mClickedEvent != null) {
+                    String clickedName = ((mClickedEvent.title == null)
+                        ? "Untitled event"
+                        : mClickedEvent.title).toString();
+                    if (   ((mClickedEvent.endDay > mClickedDay) == (e.endDay > mClickedDay))
+                        && (   (eEndMillis < mClickedEvent.endMillis)
+                            || (   (eEndMillis == mClickedEvent.endMillis)
+                                && (eStartMillis <= mClickedEvent.startMillis))))
+                    {
+                        Llog.d(eventName
+                            + " is before best so far " + clickedName + ", not wanted");
+                        continue;
+                    }
+                    if (   (mClickedEvent.startDay == mClickedDay)
+                        && (e.startDay != mClickedDay))
+                    {
+                        mCompareTime.setJulianDay(e.startDay);
+                        Llog.d("best so far " + clickedName
+                            + mTempTime.format(" starts on %b%d and ")
+                            + eventName + mCompareTime.format(" starts on %b%d, not wanted"));
+                        continue;
+                    }
+                }
+                // We have a better event
+                Llog.d(eventName + " is now best so far");
+                mClickedEvent = e;
             }
-            int startMinutes = mClickedHour * MINUTES_PER_HOUR;
-            int endMinutes = (mClickedHour + 1) * MINUTES_PER_HOUR;
-            Llog.d(String.format("Potential overlap is %02d:%02d-%02d:%02d",
-                startMinutes / 60, startMinutes % 60,
-                endMinutes / 60, endMinutes % 60));
-            if (e.startDay < mClickedDay) {
-                Llog.d (eventName +
-                    " starts previous day, not adjusting start overlap");
-            } else if (e.startTime > startMinutes) {
-                startMinutes = e.startTime;
-                Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
+        } else {
+            mTempTime.hour = mClickedHour;
+            long startMillis = mTempTime.toMillis(false);
+            Llog.d(mTempTime.format("Looking for next event from %H:00  on %b%d" ));
+            mTempTime.hour += 1;
+            long endMillis = mTempTime.toMillis(true);
+            int bestoverlap = 0;
+            String selectedName = (mSelectedEvent == null ? null :
+                ((mSelectedEvent.title == null) ? "Untitled event"
+                    : mSelectedEvent.title).toString());
+            for (int i = 0; i < numEvents; i++) {
+                Event e = mEvents.get(i);
+                dumpOneEvent(null, e);
+                String eventName =
+                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (e.drawAsAllday()) {
+                    Llog.d("All day event " + eventName + " not wanted");
+                    continue;
+                }
+                if (e.equals(mSelectedEvent)) {
+                    Llog.d(eventName + " is already selected, not wanted");
+                    continue;
+                }
+                long eStartMillis = e.startMillis;
+                long eEndMillis = e.endMillis;
+                if (eStartMillis >= endMillis) {
+                    mTempTime.set(endMillis);
+                    Llog.d(eventName
+                        + mTempTime.format(" is after %b%d %H%M, not wanted"));
+                    continue;
+                }
+                if (eEndMillis <= startMillis) {
+                    mTempTime.set(startMillis);
+                    Llog.d(eventName
+                        + mTempTime.format(" is before %b%d %H%M, not wanted"));
+                    continue;
+                }
+                int column = e.getColumn();
+                if (mSelectedEvent != null) {
+                    if (eStartMillis >= mSelectedEvent.endMillis) {
+                        Llog.d(eventName + " is after " + selectedName + ", not wanted");
+                        continue;
+                    }
+                    if ((column >= mSelectedEvent.getColumn())
+                        && ((e.startDay == mSelectedEvent.startDay)
+                        || (e.endDay == mSelectedEvent.endDay))) {
+                        Llog.d(eventName + " is in column " + column +
+                            " not before " + selectedName + " in column " +
+                            mSelectedEvent.getColumn() + ", not wanted");
+                        continue;
+                    }
+                }
+                String clickedName = null;
+                boolean compareColumns = false;
+                if (mClickedEvent != null) {
+                    clickedName = ((mClickedEvent.title == null)
+                        ? "Untitled event"
+                        : mClickedEvent.title).toString();
+                    compareColumns = (e.endDay == mClickedEvent.endDay)
+                        || (e.startDay == mClickedEvent.startDay);
+                    if (compareColumns
+                        && (column < mClickedEvent.getColumn())) {
+                        Llog.d(eventName + " is in column " + column +
+                            " before " + clickedName + " in column " +
+                            mClickedEvent.getColumn() + ", not wanted");
+                        continue;
+                    }
+                }
+                int startMinutes = mClickedHour * MINUTES_PER_HOUR;
+                int endMinutes = (mClickedHour + 1) * MINUTES_PER_HOUR;
+                Llog.d(String.format("Potential overlap is %02d:%02d-%02d:%02d",
                     startMinutes / 60, startMinutes % 60,
                     endMinutes / 60, endMinutes % 60));
+                if (e.startDay < mClickedDay) {
+                    Llog.d(eventName +
+                        " starts previous day, not adjusting start overlap");
+                } else if (e.startTime > startMinutes) {
+                    startMinutes = e.startTime;
+                    Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
+                        startMinutes / 60, startMinutes % 60,
+                        endMinutes / 60, endMinutes % 60));
+                }
+                if (e.endDay > mClickedDay) {
+                    Llog.d(eventName + " ends next day, not adjusting end overlap");
+                } else if (e.endTime < endMinutes) {
+                    endMinutes = e.endTime;
+                    Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
+                        startMinutes / 60, startMinutes % 60,
+                        endMinutes / 60, endMinutes % 60));
+                }
+                int overlap = endMinutes - startMinutes;
+                if (compareColumns
+                    && (mClickedEvent != null)
+                    && (overlap > 0)
+                    && (column > mClickedEvent.getColumn())) {
+                    Llog.d("Overlap " + overlap + " > 0 and " + eventName
+                        + " in column " + column + " greater than " + clickedName
+                        + " in column " + column + ", now best so far");
+                } else if (overlap <= bestoverlap) {
+                    Llog.d("Overlap " + overlap + " minutes less or equal best "
+                        + bestoverlap + " minutes, " + eventName + " not wanted");
+                    continue;
+                } else {
+                    Llog.d("Overlap " + overlap + " minutes more than best "
+                        + bestoverlap + " minutes, " + eventName + " now best so far");
+                }
+                bestoverlap = overlap;
+                mClickedEvent = e;
             }
-            if (e.endDay > mClickedDay) {
-                Llog.d (eventName + " ends next day, not adjusting end overlap");
-            } else if (e.endTime < endMinutes){
-                endMinutes = e.endTime;
-                Llog.d(String.format("Adjusting overlap to %02d:%02d-%02d:%02d",
-                    startMinutes / 60, startMinutes % 60,
-                    endMinutes / 60, endMinutes % 60));
-            }
-            int overlap = endMinutes - startMinutes;
-            if (   compareColumns
-                && (mClickedEvent != null)
-                && (overlap > 0)
-                && (column > mClickedEvent.getColumn()))
-            {
-                Llog.d("Overlap " + overlap + " > 0 and " + eventName
-                    + " in column " + column + " greater than " + clickedName
-                    + " in column " + column + ", now best so far");
-            } else if (overlap <= bestoverlap) {
-                Llog.d ("Overlap " + overlap + " minutes less or equal best "
-                    + bestoverlap + " minutes, " + eventName + " not wanted");
-                continue;
-            } else {
-                Llog.d("Overlap " + overlap + " minutes more than best "
-                    + bestoverlap + " minutes, " + eventName + " now best so far");
-            }
-            bestoverlap = overlap;
-            mClickedEvent = e;
         }
         return mClickedEvent != null;
     }
@@ -1865,146 +1937,38 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     // what was found
     private void nextLeft() {
         mClickedAllday = mSelectionAllday;
+        mClickedDay = mSelectionJulianDay;
         mClickedHour = mSelectionTime.hour;
         mClickedEvent = null;
-        if (mSelectionAllday) {
-            Llog.d("***********************************************");
-            int rightDay = mSelectionJulianDay;
-            int leftDay = rightDay - 1;
-            if (mSelectedEvent == null) {
-                rightDay = leftDay;
-            }
-            long startMillis = -1;
-            long endMillis =  -1;
-            int numEvents = mEvents.size();
-            for (int i = 0; i < numEvents; i++) {
-                Event e = mEvents.get(i);
-                dumpOneEvent(null, e);
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
-                if (!e.drawAsAllday()) {
-                    Llog.d("Not all day event " + eventName + " not wanted");
-                    continue;
-                }
-                if (e.equals(mSelectedEvent)) {
-                    Llog.d(eventName + " is already selected, not wanted");
-                    continue;
-                }
-                if (e.startDay > rightDay) {
-                    mTempTime.setJulianDay(rightDay);
-                    Llog.d(eventName
-                        + mTempTime.format(" starts after %b%d, not wanted"));
-                    continue;
-                }
-                if (e.endDay < leftDay) {
-                    mTempTime.setJulianDay(leftDay);
-                    Llog.d(eventName
-                        + mTempTime.format(" ends before %b%d, not wanted"));
-                    continue;
-                }
-                long eEndMillis = e.endMillis;
-                if (eEndMillis < endMillis) {
-                    Llog.d(eventName
-                        + " ends before best so far, not wanted");
-                    continue;
-                }
-                long eStartMillis = e.endMillis;
-                int column = e.getColumn();
-                if (   (eEndMillis == eEndMillis)
-                    // ends with best so far, see if starts same or earlier
-                    && (   (eStartMillis < startMillis)
-                        || (   (eStartMillis == startMillis)
-                    // mClickedEvent can't be null here
-                    // because endMillis would still be Long.MAX_VALUE
-                    && (column > mClickedEvent.getColumn()))))
-                {
-                    Llog.d(eventName
-                        + " ends at same time as best so far but starts earlier, not wanted");
-                    continue;
-                }
-                if (mSelectedEvent != null) {
-                    if (eEndMillis > mSelectedEvent.endMillis) {
-                        Llog.d(eventName
-                            + " ends after currently selected event, not wanted");
-                        continue;
-                    }
-                    if (   (eEndMillis == mSelectedEvent.endMillis)
-                        && (eStartMillis >= mSelectedEvent.startMillis))
-                    {
-                        Llog.d(eventName
-                            + " ends at same time as currently selected event "
-                            + "but does not start after it, not wanted");
-                        continue;
-                    }
-                }
-                // We have a better event
-                Llog.d(eventName + " is now best so far");
-                startMillis = eStartMillis;
-                endMillis = eEndMillis;
-                mClickedEvent = e;
-            }
-            if (mClickedEvent == null) {
-                mClickedDay = leftDay;
-                if (   mSelectionAllday
-                    && (mSelectedEvent != null)
-                    && (mSelectedEvent.startDay <= mClickedDay))
-                {
-                    Llog.d("Moved to left and no event found, but previous one"
-                        + " still overlaps this day, re-selecting it");
-                    mClickedEvent = mSelectedEvent;
-                }
-            } else {
-                String clickedName = ((mClickedEvent.title == null)
-                    ? "Untitled event"
-                    : mClickedEvent.title).toString();
-                if (mClickedEvent.endDay <= mSelectionJulianDay) {
-                    Llog.d("Moved to left and selected event " + clickedName);
-                    mClickedDay = mClickedEvent.endDay;
-                } else {
-                    Llog.d("Selected event " + clickedName + " on same day");
-                    mClickedDay = mSelectionJulianDay;
-                }
-            }
-        } else { // not mSelectionAllDay
-            if (mSelectedEvent != null) {
-                mClickedDay = mSelectionJulianDay;
-                mTempTime.setJulianDay(mClickedDay);
-                mTempTime.hour = mClickedHour;
-                long startMillis = mTempTime.toMillis(false);
-                Llog.d("***********************************************");
-                Llog.d(mTempTime.format(
-                    "Previously selected event, looking for next from %H:00  on %b%d" ));
-                mTempTime.hour += 1;
-                long endMillis = mTempTime.toMillis(true);
-                if (findLeftEvent(startMillis, endMillis)) {
-                    String eventName = ((mClickedEvent.title == null)
-                        ? "Untitled event" : mClickedEvent.title).toString();
-                    Llog.d("Returning with clicked event " + eventName);
-                    return;
-                }
-            }
-            mClickedDay = mSelectionJulianDay - 1;
-            mTempTime.setJulianDay(mClickedDay);
-            mTempTime.hour = mClickedHour;
-            long startMillis = mTempTime.toMillis(false);
-            Llog.d("***********************************************");
-            if (mSelectedEvent != null) {
-                Llog.d(mTempTime.format(
-                    "No event found, looking for next from %H:00  on %b%d"));
-            } else {
-                Llog.d(mTempTime.format(
-                    "No previously selected event, looking for next from %H:00  on %b%d"));
-            }
-            mTempTime.hour += 1;
-            long endMillis = mTempTime.toMillis(false);
-            if (findLeftEvent(startMillis, endMillis)) {
+        mTempTime.setJulianDay(mClickedDay);
+        if (mSelectedEvent != null) {
+            if (findLeftEvent(false)) {
                 String eventName = ((mClickedEvent.title == null)
                     ? "Untitled event" : mClickedEvent.title).toString();
                 Llog.d("Returning with clicked event " + eventName);
+                return;
+            }
+        }
+        mClickedDay = mSelectionJulianDay - 1;
+        mTempTime.setJulianDay(mClickedDay);
+        if (mSelectedEvent != null) {
+            Llog.d(mTempTime.format(
+                "No event found, looking for next from %H:00  on %b%d"));
+        } else {
+            Llog.d(mTempTime.format(
+                "No previously selected event, looking for next from %H:00  on %b%d"));
+        }
+        if (findLeftEvent(true)) {
+            String eventName = ((mClickedEvent.title == null)
+                ? "Untitled event" : mClickedEvent.title).toString();
+            Llog.d("Returning with clicked event " + eventName);
+        } else {
+            mTempTime.setJulianDay(mClickedDay);
+            if (mSelectionAllday) {
+                Llog.d(mTempTime.format("No event found, just selecting %b%d"));
             } else {
-                mTempTime.setJulianDay(mClickedDay);
                 mTempTime.hour = mClickedHour;
-                Llog.d(mTempTime.format("No event found, just selecting %H:00  on %b%d" ));
+                Llog.d(mTempTime.format("No event found, just selecting %H:00 on %b%d"));
             }
         }
     }
@@ -2105,7 +2069,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (   (!mShowAllAllDayEvents)
             && (mSelectedEvent != null)
             && (mSelectedEvent.drawAsAllday())
-            && (mSelectedEvent.getColumn() > mMaxUnexpandedAlldayEventCount - 1))
+            && (mSelectedEvent.getColumn() >= mMaxUnexpandedAlldayEventCount - 1))
         {
             doExpandAllDayClick();
         }
@@ -5336,15 +5300,16 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
     /* uncomment if required for debugging */
     private void dumpOneEvent(StringBuilder sb, Event e) {
+        Time t = new Time();
         if (e == null) { Llog.d("Null event"); return; }
         if (sb == null) { sb = new StringBuilder(); }
         sb.append("Event hashCode ").append(e.hashCode());
         if (e.title == null) { sb.append(" with null title"); }
         else { sb.append(' ').append('"').append(e.title).append('"'); }
-        mTempTime.set(e.startMillis);
-        sb.append(mTempTime.format(" start %b%d %H:%M " + e.startMillis));
-        mTempTime.set(e.endMillis);
-        sb.append(mTempTime.format(", end %b%d %H:%M " + e.endMillis));
+        t.set(e.startMillis);
+        sb.append(t.format(" start %b%d %H:%M " + e.startMillis));
+        t.set(e.endMillis);
+        sb.append(t.format(", end %b%d %H:%M " + e.endMillis));
         sb.append(", column ").append(e.getColumn());
         sb.append(", top ").append(e.top);
         sb.append(", bottom ").append(e.bottom);
