@@ -145,10 +145,6 @@ public class Event implements Cloneable {
     public float bottom;
     // These 4 fields are used for navigating among events within the selected
     // hour in the Day and Week view.
-    public Event nextRight;
-    public Event nextLeft;
-    public Event nextUp;
-    public Event nextDown;
     private int mColumn;
     private int mMaxColumns;
 
