@@ -2987,9 +2987,14 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 }
 
                 // Create a shorter array for all day events
+                boolean found = false;
                 for (Event e : events) {
                     if (e.drawAsAllday()) { mAllDayEvents.add(e); }
+                    if (e.equals(mSelectedEvent)) { found = true; }
                 }
+                // If the selected event no longer exists (it got deleted),
+                // deselect it.
+                if (!found) { setSelectedEvent(null); }
 
                 // New events, new layouts
                 if (mLayouts == null || mLayouts.length < events.size()) {
@@ -5373,7 +5378,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         clearCachedEvents();
                         mController.sendEventRelatedEvent(this, EventType.DELETE_EVENT, id, begin,
                                 end, 0, 0, -1);
-                        //FIXME if the event gets deleted we should unselect it
                     }
                     break;
                 }
