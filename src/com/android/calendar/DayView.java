@@ -3739,7 +3739,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         return layout;
     }
 
-    //FIXME show multi-day events covering only part days
     private void drawAllDayEvents(Canvas canvas, Paint p) {
 
         p.setTextSize(NORMAL_FONT_SIZE);
@@ -3800,6 +3799,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         int alpha = eventTextPaint.getAlpha();
         eventTextPaint.setAlpha(mEventsAlpha);
+        int cellWidth = (mViewWidth - mHoursWidth) / mNumDays - DAY_GAP;
         for (int i = 0; i < numEvents; i++) {
             Event event = events.get(i);
             int startDay = event.startDay;
@@ -3807,11 +3807,20 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             if (startDay > lastDay || endDay < mFirstJulianDay) {
                 continue;
             }
+            int leftoffset;
+            int rightoffset;
             if (startDay < mFirstJulianDay) {
                 startDay = mFirstJulianDay;
+                leftoffset = 0;
+            } else {
+                leftoffset = (event.startTime * cellWidth) / MINUTES_PER_DAY;
             }
             if (endDay > lastDay) {
                 endDay = lastDay;
+                rightoffset = 0;
+            } else {
+                rightoffset =
+                    ((MINUTES_PER_DAY - event.endTime) * cellWidth) / MINUTES_PER_DAY;
             }
             int startIndex = startDay - mFirstJulianDay;
             int endIndex = endDay - mFirstJulianDay;
@@ -3825,8 +3834,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
             // Leave a one-pixel space between the vertical day lines and the
             // event rectangle.
-            event.left = computeDayLeftPosition(startIndex);
-            event.right = computeDayLeftPosition(endIndex + 1) - DAY_GAP;
+            event.left = computeDayLeftPosition(startIndex) + leftoffset;
+            event.right = computeDayLeftPosition(endIndex + 1) - DAY_GAP - rightoffset;
             if (mNumDays == 1) {
                 event.top = y;
                 y += height;
