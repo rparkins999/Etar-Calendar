@@ -200,7 +200,6 @@ android {
 
         debug {
             minifyEnabled false
-            useProguard false
 
             applicationIdSuffix ".debug"
         }
