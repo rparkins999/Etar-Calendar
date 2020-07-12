@@ -15,7 +15,7 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-class Llog extends Object {
+public class Llog extends Object {
     private static String forceNonEmpty(String s) {
         if ((s == null) || s.isEmpty()) { return " "; } else { return s; }
     }
@@ -51,17 +51,17 @@ class Llog extends Object {
         return sb.toString();
     }
     // Log method name with (), line number, and a string
-    static void d(String s) {
+    public static void d(String s) {
         Log.d(caller(0, null), forceNonEmpty(s));
     }
     // Log method name with (args), line number, and a string
     // args should be stringified arguments to the method
-    static void d(String s, String args) {
+    public static void d(String s, String args) {
         Log.d(caller(0, args), forceNonEmpty(s));
     }
     // Log method name with n extra backtrace frames, and a string
     // args should be stringified arguments to the method or null
-    static void d(String s, @Nullable String args, int n) {
+    public static void d(String s, @Nullable String args, int n) {
         Log.d(caller(n, args), forceNonEmpty(s));
     }
 }
