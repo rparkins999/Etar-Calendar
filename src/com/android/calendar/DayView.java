@@ -177,7 +177,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static String TAG = "DayView";
     private static final boolean DEBUG = false;
     private static final boolean DEBUG_SCALING = false;
-    private static final boolean DEBUG_DPAD = false;
+    private static final boolean DEBUG_DPAD = true;
     private static float mScale = 0; // Used for supporting different screen densities
     private static int DEFAULT_CELL_HEIGHT = 64;
     private static int MAX_CELL_HEIGHT = 150;
@@ -1458,7 +1458,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (DEBUG_DPAD) {
             Llog.d("***********************************************");
         }
-        String selectedName = null;
+        String selectedName;
         String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
@@ -1784,7 +1784,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (DEBUG_DPAD) {
             Llog.d("***********************************************");
         }
-        String selectedName = null;
+        String selectedName;
         String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
@@ -2111,7 +2111,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (DEBUG_DPAD) {
             Llog.d("***********************************************");
         }
-        String selectedName = null;
+        String selectedName;
         String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
@@ -2375,7 +2375,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (DEBUG_DPAD) {
             Llog.d("***********************************************");
         }
-        String selectedName = null;
+        String selectedName;
         String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
