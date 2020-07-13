@@ -1909,6 +1909,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 }
             } else {
                 if (DEBUG_DPAD) {
+                    selectedName = ((mSelectedEvent.title == null)
+                        ? "Untitled event" : mSelectedEvent.title).toString();
                     Llog.d(mTempTime.format(
                         "Looking for event during %H:00 on %b%d to left of "
                         + selectedName));
