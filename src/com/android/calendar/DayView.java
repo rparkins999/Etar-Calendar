@@ -1459,6 +1459,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             Llog.d("***********************************************");
         }
         String selectedName = null;
+        String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
             if (DEBUG_DPAD) {
@@ -1474,9 +1475,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (!e.drawAsAllday()) {
                     if (DEBUG_DPAD) {
                         Llog.d("Not all day event " + eventName + " not wanted");
@@ -1590,9 +1593,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             int bestoverlap = 0;
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (e.drawAsAllday()) {
                     if (DEBUG_DPAD) {
                         Llog.d("All day event " + eventName + " not wanted");
@@ -1780,6 +1785,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             Llog.d("***********************************************");
         }
         String selectedName = null;
+        String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
             if (DEBUG_DPAD) {
@@ -1795,9 +1801,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (!e.drawAsAllday()) {
                     if (DEBUG_DPAD) {
                         Llog.d("Not all day event " + eventName + " not wanted");
@@ -1812,8 +1820,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     continue;
                 }
                 if (e.endDay < mClickedDay) {
-                    Llog.d(eventName
-                        + mTempTime.format(" ends before %b%d, not wanted"));
+                    if (DEBUG_DPAD) {
+                        Llog.d(eventName
+                            + mTempTime.format(" ends before %b%d, not wanted"));
+                    }
                     continue;
                 }
                 long eStartMillis = e.startMillis;
@@ -1821,7 +1831,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (mSelectedEvent != null) {
                     if (e.equals(mSelectedEvent)) {
                         if (!allowSelected) {
-                            Llog.d(eventName + " is already selected, not wanted");
+                            if (DEBUG_DPAD) {
+                                Llog.d(eventName + " is already selected, not wanted");
+                            }
                             continue;
                         }
                     } else {
@@ -1833,8 +1845,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                             if (   (eStartMillis >= mSelectedEvent.startMillis)
                                 || allowSelected)
                             {
-                                Llog.d(eventName + " ends after selected event "
-                                    + selectedName + ", not wanted");
+                                if (DEBUG_DPAD) {
+                                    Llog.d(eventName + " ends after selected event "
+                                        + selectedName + ", not wanted");
+                                }
                                 continue;
                             }
                         } else if (   (eEndMillis > mSelectedEvent.endMillis)
@@ -1905,9 +1919,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             int bestoverlap = 0;
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (e.drawAsAllday()) {
                     if (DEBUG_DPAD) {
                         Llog.d("All day event " + eventName + " not wanted");
@@ -1946,7 +1962,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         }
                         continue;
                     }
-                    if ((column >= mSelectedEvent.getColumn())
+                    if (   (column >= mSelectedEvent.getColumn())
                         && (   (e.startDay == mSelectedEvent.startDay)
                             || (e.endDay == mSelectedEvent.endDay)))
                     {
@@ -1967,7 +1983,8 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     compareColumns = (e.endDay == mClickedEvent.endDay)
                         || (e.startDay == mClickedEvent.startDay);
                     if (   compareColumns
-                        && (column < mClickedEvent.getColumn())) {
+                        && (column < mClickedEvent.getColumn()))
+                    {
                         if (DEBUG_DPAD) {
                             Llog.d(eventName + " is in column " + column +
                                 " before " + clickedName + " in column " +
@@ -2095,6 +2112,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             Llog.d("***********************************************");
         }
         String selectedName = null;
+        String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
             if (DEBUG_DPAD) {
@@ -2114,9 +2132,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     ? mSelectedEvent.getColumn() : Integer.MAX_VALUE;
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (e.drawAsAllday()) {
                     if (e.equals(mSelectedEvent)) {
                         if (DEBUG_DPAD) {
@@ -2181,9 +2201,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             long endMillis = mCompareTime.toMillis(true);
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (e.drawAsAllday()) {
                     if (DEBUG_DPAD) {
                         Llog.d("All day event " + eventName + " not wanted");
@@ -2223,8 +2245,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                             || (   (eStartMillis == mSelectedEvent.startMillis)
                                 && e.getColumn() > mSelectedEvent.getColumn()))
                         {
-                            Llog.d(eventName +
-                                ", not wanted because it starts after " + selectedName);
+                            if (DEBUG_DPAD) {
+                                Llog.d(eventName +
+                                    ", not wanted because it starts after " + selectedName);
+                            }
                             continue;
                         }
                     } else if (   (eEndMillis > mSelectedEvent.endMillis)
@@ -2249,8 +2273,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         && (mClickedEvent.endMillis >= endMillis))
                     {
                         if (eStartMillis < mClickedEvent.startMillis) {
-                            Llog.d(eventName +
-                                ", not wanted because it starts before " + clickedName);
+                            if (DEBUG_DPAD) {
+                                Llog.d(eventName +
+                                    ", not wanted because it starts before " + clickedName);
+                            }
                             continue;
                         }
                     } else if (   (eEndMillis < mClickedEvent.endMillis)
@@ -2350,6 +2376,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             Llog.d("***********************************************");
         }
         String selectedName = null;
+        String eventName;
         int numEvents = mEvents.size();
         if (mClickedAllday) {
             if (DEBUG_DPAD) {
@@ -2369,9 +2396,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             int maxColumn = Integer.MAX_VALUE;
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (e.drawAsAllday()) {
                     if (e.equals(mSelectedEvent)) {
                         if (DEBUG_DPAD) {
@@ -2437,9 +2466,11 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             long endMillis = mCompareTime.toMillis(true);
             for (int i = 0; i < numEvents; i++) {
                 Event e = mEvents.get(i);
-                if (DEBUG_DPAD) { dumpOneEvent(null, e); }
-                String eventName =
-                    ((e.title == null) ? "Untitled event" : e.title).toString();
+                if (DEBUG_DPAD) {
+                    dumpOneEvent(null, e);
+                    eventName =
+                        ((e.title == null) ? "Untitled event" : e.title).toString();
+                }
                 if (e.drawAsAllday()) {
                     if (DEBUG_DPAD) {
                         Llog.d("All day event " + eventName + " not wanted");
@@ -2479,8 +2510,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                             || (   (eEndMillis == mSelectedEvent.endMillis)
                                 && (e.getColumn() < mSelectedEvent.getColumn())))
                         {
-                            Llog.d(eventName +
-                                ", not wanted because it ends before " + selectedName);
+                            if (DEBUG_DPAD) {
+                                Llog.d(eventName +
+                                    ", not wanted because it ends before " + selectedName);
+                            }
                             continue;
                         }
                     } else if (   (eStartMillis < mSelectedEvent.startMillis)
@@ -2505,8 +2538,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         && (mClickedEvent.startMillis <= startMillis))
                     {
                         if (eEndMillis >= mClickedEvent.endMillis) {
-                            Llog.d(eventName +
-                                ", not wanted because it ends after " + clickedName);
+                            if (DEBUG_DPAD) {
+                                Llog.d(eventName +
+                                    ", not wanted because it ends after " + clickedName);
+                            }
                             continue;
                         }
                     } else if (   (eStartMillis > mClickedEvent.startMillis)
