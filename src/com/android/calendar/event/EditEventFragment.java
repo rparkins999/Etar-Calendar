@@ -17,10 +17,12 @@
 package com.android.calendar.event;
 
 import android.Manifest;
-import androidx.appcompat.app.ActionBar;
+
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Fragment;
+import android.app.Dialog;
+import android.app.DialogFragment;
 import android.app.FragmentManager;
 import android.content.AsyncQueryHandler;
 import android.content.ContentProviderOperation;
@@ -38,14 +40,19 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Colors;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
+
+import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+
 import android.text.TextUtils;
 import android.text.format.Time;
 import android.util.Log;
@@ -56,7 +63,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.android.calendar.AsyncQueryService;
@@ -69,16 +75,23 @@ import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.DeleteEventHelper;
 import com.android.calendar.Utils;
+import com.android.calendar.icalendar.IcalendarUtils;
+import com.android.calendar.icalendar.Organizer;
+import com.android.calendar.icalendar.VCalendar;
+import com.android.calendar.icalendar.VEvent;
 import com.android.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
 import com.android.colorpicker.HsvColorComparator;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import ws.xsoh.etar.BuildConfig;
 import ws.xsoh.etar.R;
 
-public class EditEventFragment extends Fragment implements EventHandler, OnColorSelectedListener {
+public class EditEventFragment extends DialogFragment implements EventHandler, OnColorSelectedListener, DeleteEventHelper.DeleteNotifyListener {
     private static final String TAG = "EditEventActivity";
     private static final String COLOR_PICKER_DIALOG_TAG = "ColorPickerDialog";
 
@@ -90,6 +103,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
     private static final String BUNDLE_KEY_READ_ONLY = "key_read_only";
     private static final String BUNDLE_KEY_EDIT_ON_LAUNCH = "key_edit_on_launch";
     private static final String BUNDLE_KEY_SHOW_COLOR_PALETTE = "show_color_palette";
+    private static final String BUNDLE_KEY_DELETE_DIALOG_VISIBLE = "key_delete_dialog_visible";
 
     private static final String BUNDLE_KEY_DATE_BUTTON_CLICKED = "date_button_clicked";
 
@@ -135,6 +149,22 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
     private boolean mSaveOnDetach = true;
     private boolean mIsReadOnly = false;
     private boolean mShowColorPalette = false;
+    private DeleteEventHelper mDeleteHelper;
+    private boolean mIsPaused = true;
+    private boolean mDismissOnResume = false;
+    private boolean mDeleteDialogVisible = false;
+    private final Runnable onDeleteRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (EditEventFragment.this.mIsPaused) {
+                mDismissOnResume = true;
+                return;
+            }
+            if (EditEventFragment.this.isVisible()) {
+                EditEventFragment.this.dismiss();
+            }
+        }
+    };
     private InputMethodManager mInputMethodManager;
     private final View.OnClickListener mActionBarListener = new View.OnClickListener() {
         @Override
@@ -142,7 +172,6 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
             onActionBarItemSelected(v.getId());
         }
     };
-    private boolean mUseCustomActionBar;
     private View.OnClickListener mOnColorPickerClicked = new View.OnClickListener() {
 
         @Override
@@ -164,12 +193,32 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
         }
     };
 
-    public EditEventFragment() {
-        this(null, null, false, -1, false, null);
+    private enum ShareType {
+        SDCARD,
+        INTENT
     }
 
+    public long getEventId() {
+        return mEvent.id;
+    }
+
+    public long getStartMillis() {
+        return mBegin;
+    }
+
+    public long getEndMillis() {
+        return mEnd;
+    }
+
+    public EditEventFragment() {
+        this(null, null, false, -1,
+            false, null);
+    }
+
+    @SuppressLint("ValidFragment")
     public EditEventFragment(EventInfo event, ArrayList<ReminderEntry> reminders,
-                             boolean eventColorInitialized, int eventColor, boolean readOnly, Intent intent) {
+                             boolean eventColorInitialized, int eventColor,
+                             boolean readOnly, Intent intent) {
         mEvent = event;
         mIsReadOnly = readOnly;
         mIntent = intent;
@@ -307,14 +356,15 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
         mModel = new CalendarEventModel(activity, mIntent);
         mInputMethodManager = (InputMethodManager)
                 activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-
-        mUseCustomActionBar = !Utils.getConfigBool(mContext, R.bool.multiple_pane_config);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-//        mContext.requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+        if (savedInstanceState != null) {
+            mDeleteDialogVisible =
+                savedInstanceState.getBoolean(BUNDLE_KEY_DELETE_DIALOG_VISIBLE,false);
+        }
         View view;
         if (mIsReadOnly) {
             view = inflater.inflate(R.layout.edit_event_single_column, null);
@@ -332,28 +382,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
             startQuery();
         }
 
-
-        if (mUseCustomActionBar) {
-            View actionBarButtons = inflater.inflate(R.layout.edit_event_custom_actionbar,
-                    new LinearLayout(mContext), false);
-            View cancelActionView = actionBarButtons.findViewById(R.id.action_cancel);
-            cancelActionView.setOnClickListener(mActionBarListener);
-            View doneActionView = actionBarButtons.findViewById(R.id.action_done);
-            doneActionView.setOnClickListener(mActionBarListener);
-            ActionBar.LayoutParams layout = new ActionBar.LayoutParams(ActionBar.LayoutParams.MATCH_PARENT, ActionBar.LayoutParams.MATCH_PARENT);
-            mContext.getSupportActionBar().setCustomView(actionBarButtons, layout);
-        }
-
         return view;
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-
-        if (mUseCustomActionBar) {
-            mContext.getSupportActionBar().setCustomView(null);
-        }
     }
 
     @Override
@@ -391,18 +420,187 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
         }
     }
 
+    @SuppressLint("RestrictedApi")
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-
-        if (!mUseCustomActionBar) {
-            inflater.inflate(R.menu.edit_event_title_bar, menu);
+        inflater.inflate(R.menu.edit_event_title_bar, menu);
+        if (   EditEventHelper.canModifyEvent(mModel)
+            || EditEventHelper.canRespond(mModel))
+        {
+            MenuItem m = menu.findItem(R.id.action_done);
+            m.setEnabled(true);
+            m.setVisible(true);
+            m = menu.findItem(R.id.action_done_menu);
+            m.setEnabled(true);
+            m.setVisible(true);
+        }
+        if (mModel.mUri == null) {
+            MenuItem m = menu.findItem(R.id.info_action_delete);
+            m.setEnabled(false);
+            m.setVisible(false);
+            m = menu.findItem(R.id.info_action_delete_menu);
+            m.setEnabled(false);
+            m.setVisible(false);
+        }
+        if (menu instanceof MenuBuilder) {
+            MenuBuilder m = (MenuBuilder) menu;
+            m.setOptionalIconsVisible(true);
         }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         return onActionBarItemSelected(item.getItemId());
+    }
+
+    @Override
+    public void onDeleteStarted() {
+    }
+
+    /**
+     * Generates an .ics formatted file with the event info and launches intent chooser to
+     * share said file
+     */
+    private void shareEvent(ShareType type) {
+        // Create the respective ICalendar objects from the event info
+        VCalendar calendar = new VCalendar();
+        calendar.addProperty(VCalendar.VERSION, "2.0");
+        calendar.addProperty(VCalendar.PRODID, VCalendar.PRODUCT_IDENTIFIER);
+        calendar.addProperty(VCalendar.CALSCALE, "GREGORIAN");
+        calendar.addProperty(VCalendar.METHOD, "REQUEST");
+
+        VEvent event = new VEvent();
+        // Add event start and end datetime
+        if (!mModel.mAllDay) {
+            String eventTimeZone = mModel.mTimezone;
+            event.addEventStart(mBegin, eventTimeZone);
+            event.addEventEnd(mEnd, eventTimeZone);
+        } else {
+            // All-day events' start and end time are stored as UTC.
+            // Treat the event start and end time as being in the local time zone and convert them
+            // to the corresponding UTC datetime. If the UTC time is used as is, the ical recipients
+            // will report the wrong start and end time (+/- 1 day) for the event as they will
+            // convert the UTC time to their respective local time-zones
+            String localTimeZone = Time.getCurrentTimezone();
+            long eventStart = IcalendarUtils.convertTimeToUtc(mBegin, localTimeZone);
+            long eventEnd = IcalendarUtils.convertTimeToUtc(mEnd, localTimeZone);
+            event.addEventStart(eventStart, "UTC");
+            event.addEventEnd(eventEnd, "UTC");
+        }
+
+        event.addProperty(VEvent.LOCATION, mModel.mLocation);
+        event.addProperty(VEvent.DESCRIPTION, mModel.mDescription);
+        event.addProperty(VEvent.SUMMARY, mModel.mTitle);
+        event.addOrganizer(new Organizer(mModel.mOrganizerDisplayName, mModel.mOrganizer));
+
+        // Add Attendees to event
+        for (String key : mModel.mAttendeesList.keySet()) {
+            IcalendarUtils.addAttendeeToEvent(mModel.mAttendeesList.get(key), event);
+        }
+
+        // Compose all of the ICalendar objects
+        calendar.addEvent(event);
+
+        // Create and share ics file
+        boolean isShareSuccessful = false;
+        try {
+            // Event title serves as the file name prefix
+            String filePrefix = event.getProperty(VEvent.SUMMARY);
+            if (filePrefix == null || filePrefix.length() < 3) {
+                // Default to a generic filename if event title doesn't qualify
+                // Prefix length constraint is imposed by File#createTempFile
+                filePrefix = "invite";
+            }
+
+            filePrefix = filePrefix.replaceAll("\\W+", " ");
+
+            if (!filePrefix.endsWith(" ")) {
+                filePrefix += " ";
+            }
+
+            File dir;
+            if (type == ShareType.SDCARD) {
+                dir = new File(
+                    Environment.getExternalStorageDirectory(), "CalendarEvents");
+                if (!dir.exists()) {
+                    dir.mkdir();
+                }
+            } else {
+                dir = mContext.getExternalCacheDir();
+            }
+
+            File inviteFile = IcalendarUtils.createTempFile(filePrefix, ".ics",
+                dir);
+
+            if (IcalendarUtils.writeCalendarToFile(calendar, inviteFile)) {
+                if (type == ShareType.INTENT) {
+                    inviteFile.setReadable(true, false);     // Set world-readable
+                    Uri icsFile = FileProvider.getUriForFile(getActivity(),
+                        BuildConfig.APPLICATION_ID + ".provider", inviteFile);
+                    Intent shareIntent = new Intent();
+                    shareIntent.setAction(Intent.ACTION_SEND);
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, icsFile);
+                    // The ics file is sent as an extra, the receiving application decides whether
+                    // to parse the file to extract calendar events or treat it as a regular file
+                    shareIntent.setType("application/octet-stream");
+
+                    Intent chooserIntent = Intent.createChooser(shareIntent,
+                        getResources().getString(R.string.cal_share_intent_title));
+
+                    // The MMS app only responds to "text/x-vcalendar" so we create a chooser intent
+                    // that includes the targeted mms intent + any that respond to the above general
+                    // purpose "application/octet-stream" intent.
+                    File vcsInviteFile = File.createTempFile(filePrefix, ".vcs",
+                        mContext.getExternalCacheDir());
+
+                    // For now, we are duplicating ics file and using that as the vcs file
+                    // TODO: revisit above
+                    if (IcalendarUtils.copyFile(inviteFile, vcsInviteFile)) {
+                        Uri vcsFile = FileProvider.getUriForFile(getActivity(),
+                            BuildConfig.APPLICATION_ID + ".provider", vcsInviteFile);
+                        Intent mmsShareIntent = new Intent();
+                        mmsShareIntent.setAction(Intent.ACTION_SEND);
+                        mmsShareIntent.setPackage("com.android.mms");
+                        mmsShareIntent.putExtra(Intent.EXTRA_STREAM, vcsFile);
+                        mmsShareIntent.setType("text/x-vcalendar");
+                        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS,
+                            new Intent[]{mmsShareIntent});
+                    }
+                    startActivity(chooserIntent);
+                } else {
+                    String msg = getString(R.string.cal_export_succ_msg);
+                    Toast.makeText(mContext, String.format(msg, inviteFile),
+                        Toast.LENGTH_SHORT).show();
+                }
+                isShareSuccessful = true;
+
+            } else {
+                // Error writing event info to file
+                isShareSuccessful = false;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            isShareSuccessful = false;
+        }
+
+        if (!isShareSuccessful) {
+            Log.e(TAG, "Couldn't generate ics file");
+            Toast.makeText(mContext, R.string.error_generating_ics, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private Dialog.OnDismissListener createDeleteOnDismissListener() {
+        return new Dialog.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                // Since OnPause will force the dialog to dismiss , do
+                // not change the dialog status
+                if (!mIsPaused) {
+                    mDeleteDialogVisible = false;
+                }
+            }
+        };
     }
 
     /**
@@ -414,8 +612,17 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
      * @return whether the event was handled here
      */
     private boolean onActionBarItemSelected(int itemId) {
-        if (itemId == R.id.action_done) {
-            if (EditEventHelper.canModifyEvent(mModel) || EditEventHelper.canRespond(mModel)) {
+        if (   (itemId == R.id.action_cancel)
+            || (itemId == R.id.action_cancel_menu))
+        {
+            mOnDone.setDoneCode(Utils.DONE_REVERT);
+            mOnDone.run();
+        } else if (   (itemId == R.id.action_done)
+                   || (itemId == R.id.action_done_menu)
+        ) {
+            if (   EditEventHelper.canModifyEvent(mModel)
+                || EditEventHelper.canRespond(mModel))
+            {
                 if (mView != null && mView.prepareForSave()) {
                     if (mModification == Utils.MODIFY_UNINITIALIZED) {
                         mModification = Utils.MODIFY_ALL;
@@ -427,7 +634,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                     mOnDone.run();
                 }
             } else if (EditEventHelper.canAddReminders(mModel) && mModel.mId != -1
-                    && mOriginalModel != null && mView.prepareForSave()) {
+                && mOriginalModel != null && mView.prepareForSave()) {
                 saveReminders();
                 mOnDone.setDoneCode(Utils.DONE_EXIT);
                 mOnDone.run();
@@ -435,9 +642,23 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                 mOnDone.setDoneCode(Utils.DONE_REVERT);
                 mOnDone.run();
             }
-        } else if (itemId == R.id.action_cancel) {
-            mOnDone.setDoneCode(Utils.DONE_REVERT);
-            mOnDone.run();
+        } else if (   (itemId == R.id.info_action_delete)
+                   || (itemId == R.id.info_action_delete_menu))
+        {
+                mDeleteHelper = new DeleteEventHelper(
+                    mContext, mContext, !mIsReadOnly /* exitWhenDone */);
+                mDeleteHelper.setDeleteNotificationListener(EditEventFragment.this);
+                mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
+                mDeleteDialogVisible = true;
+                mDeleteHelper.delete(mBegin, mEnd, mEvent.id, -1, onDeleteRunnable);
+        } else if (   (itemId == R.id.info_action_export)
+                   || (itemId == R.id.info_action_export_menu))
+        {
+            shareEvent(ShareType.SDCARD);
+        } else if (   (itemId == R.id.info_action_share_event)
+                   || (itemId == R.id.info_action_share_event_menu))
+        {
+            shareEvent(ShareType.INTENT);
         }
         return true;
     }
@@ -568,7 +789,31 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                     ContextCompat.checkSelfPermission(EditEventFragment.this.getActivity(),
                         Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED))
             act.finish();
+        mIsPaused = true;
+        // Remove event deletion alert box since it is being rebuild in the OnResume
+        // This is done to get the same behavior on OnResume since the AlertDialog is gone on
+        // rotation but not if you press the HOME key
+        if (mDeleteDialogVisible && mDeleteHelper != null) {
+            mDeleteHelper.dismissAlertDialog();
+            mDeleteHelper = null;
+        }
         super.onPause();
+    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        mIsPaused = false;
+        if (mDismissOnResume) {
+            mHandler.post(onDeleteRunnable);
+        }
+        // Display the "delete confirmation" or "edit response helper" dialog if needed
+        if (mDeleteDialogVisible) {
+            mDeleteHelper = new DeleteEventHelper(
+                mContext, mContext, !mIsReadOnly /* exitWhenDone */);
+            mDeleteHelper.setDeleteNotificationListener(EditEventFragment.this);
+            mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
+            mDeleteHelper.delete(mBegin, mEnd, mEvent.id, -1, onDeleteRunnable);
+        }
     }
 
     @Override
@@ -607,6 +852,7 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
         outState.putSerializable(BUNDLE_KEY_EVENT, mEventBundle);
         outState.putBoolean(BUNDLE_KEY_READ_ONLY, mIsReadOnly);
         outState.putBoolean(BUNDLE_KEY_SHOW_COLOR_PALETTE, mView.isColorPaletteVisible());
+        outState.putBoolean(BUNDLE_KEY_DELETE_DIALOG_VISIBLE, mDeleteDialogVisible);
     }
 
     @Override
@@ -899,13 +1145,15 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                 mModification = Utils.MODIFY_ALL;
             }
 
-            if ((mCode & Utils.DONE_SAVE) != 0 && mModel != null
-                    && (EditEventHelper.canRespond(mModel)
+            if (   ((mCode & Utils.DONE_SAVE) != 0)
+                && (mModel != null)
+                && (   EditEventHelper.canRespond(mModel)
                     || EditEventHelper.canModifyEvent(mModel))
-                    && mView.prepareForSave()
-                    && !isEmptyNewEvent()
-                    && mModel.normalizeReminders()
-                    && mHelper.saveEvent(mModel, mOriginalModel, mModification)) {
+                && mView.prepareForSave()
+                && (!isEmptyNewEvent())
+                && mModel.normalizeReminders()
+                && mHelper.saveEvent(mModel, mOriginalModel, mModification))
+            {
                 int stringResource;
                 if (!mModel.mAttendeesList.isEmpty()) {
                     if (mModel.mUri != null) {
@@ -918,10 +1166,13 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                         stringResource = R.string.saving_event;
                     } else {
                         stringResource = R.string.creating_event;
+                        // FIXME arrange to select the event
                     }
                 }
                 Toast.makeText(mContext, stringResource, Toast.LENGTH_SHORT).show();
-            } else if ((mCode & Utils.DONE_SAVE) != 0 && mModel != null && isEmptyNewEvent()) {
+            } else if (   ((mCode & Utils.DONE_SAVE) != 0)
+                       && (mModel != null)
+                       && isEmptyNewEvent()) {
                 Toast.makeText(mContext, R.string.empty_event, Toast.LENGTH_SHORT).show();
             }
 
@@ -967,8 +1218,8 @@ public class EditEventFragment extends Fragment implements EventHandler, OnColor
                             t.timezone = tz;
                             end = t.toMillis(true);
                         }
-                        CalendarController.getInstance(mContext).launchViewEvent(-1, start, end,
-                                Attendees.ATTENDEE_STATUS_NONE);
+                        CalendarController.getInstance(mContext).launchViewEvent
+                            (-1, start, end, Attendees.ATTENDEE_STATUS_NONE);
                     }
                 }
                 Activity a = EditEventFragment.this.getActivity();

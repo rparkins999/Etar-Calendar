@@ -17,6 +17,7 @@
 package com.android.calendar.agenda;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -41,6 +42,7 @@ import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.EventInfoFragment;
 import com.android.calendar.StickyHeaderListView;
 import com.android.calendar.Utils;
+import com.android.calendar.event.EditEventFragment;
 import com.android.calendar.settings.GeneralPreferences;
 
 import java.util.Date;
@@ -71,7 +73,6 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     };
     private boolean mShowEventDetailsWithAgenda;
     private CalendarController mController;
-    private EventInfoFragment mEventFragment;
     private String mQuery;
     private boolean mUsedForSearch = false;
     private boolean mIsTabletConfig;
@@ -89,6 +90,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
 
     // timeMillis - time of first event to show
     // usedForSearch - indicates if this fragment is used in the search fragment
+    @SuppressLint("ValidFragment")
     public AgendaFragment(long timeMillis, boolean usedForSearch) {
         mInitialTimeMillis = timeMillis;
         mTime = new Time();
@@ -225,15 +227,6 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
             mAgendaListView.goTo(mTime, -1, mQuery, true, false);
         }
         mAgendaListView.onResume();
-
-//        // Register for Intent broadcasts
-//        IntentFilter filter = new IntentFilter();
-//        filter.addAction(Intent.ACTION_TIME_CHANGED);
-//        filter.addAction(Intent.ACTION_DATE_CHANGED);
-//        filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
-//        registerReceiver(mIntentReceiver, filter);
-//
-//        mContentResolver.registerContentObserver(Events.CONTENT_URI, true, mObserver);
     }
 
     @Override
@@ -302,12 +295,6 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
         super.onPause();
 
         mAgendaListView.onPause();
-
-//        mContentResolver.unregisterContentObserver(mObserver);
-//        unregisterReceiver(mIntentReceiver);
-
-        // Record Agenda View as the (new) default detailed view.
-//        Utils.setDefaultView(this, CalendarApplication.AGENDA_VIEW_ID);
     }
 
     private void goTo(EventInfo event, boolean animate) {
@@ -412,21 +399,10 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
                 Log.d(TAG, "***");
             }
 
-            long startMillis = event.startTime.toMillis(true);
-            long endMillis = event.endTime.toMillis(true);
-            EventInfoFragment fOld =
-                    (EventInfoFragment)fragmentManager.findFragmentById(R.id.agenda_event_info);
-            if (fOld == null || replaceFragment || fOld.getStartMillis() != startMillis ||
-                    fOld.getEndMillis() != endMillis || fOld.getEventId() != event.id) {
-                mEventFragment = new EventInfoFragment(mActivity, event.id,
-                        startMillis, endMillis,
-                        Attendees.ATTENDEE_STATUS_NONE, false,
-                        EventInfoFragment.DIALOG_WINDOW_STYLE, null);
-                ft.replace(R.id.agenda_event_info, mEventFragment);
-                ft.commit();
-            } else {
-                fOld.reloadEvents();
-            }
+            ft.replace(R.id.agenda_event_info, new EditEventFragment(
+                    event, null, false, 0,
+                    false, getActivity().getIntent()));
+            ft.commit();
         }
     }
 

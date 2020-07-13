@@ -183,7 +183,6 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     private int mCalendarControlsAnimationTime;
     private int mControlsAnimateWidth;
     private int mControlsAnimateHeight;
-    private long mViewEventId = -1;
     private long mIntentEventStartMillis = -1;
     private long mIntentEventEndMillis = -1;
     private int mIntentAttendeeResponse = Attendees.ATTENDEE_STATUS_NONE;
@@ -230,6 +229,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
 
     @Override
     protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
         String action = intent.getAction();
         if (DEBUG)
             Log.d(TAG, "New intent received " + intent.toString());
@@ -240,7 +240,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             if (millis == -1) {
                 millis = Utils.timeFromIntentInMillis(intent);
             }
-            if (millis != -1 && mViewEventId == -1 && mController != null) {
+            if (millis != -1 && mController != null) {
                 Time time = new Time(mTimeZone);
                 time.set(millis);
                 time.normalize(true);
@@ -514,8 +514,8 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             List<String> path = data.getPathSegments();
             if (path.size() == 2 && path.get(0).equals("events")) {
                 try {
-                    mViewEventId = Long.valueOf(data.getLastPathSegment());
-                    if (mViewEventId != -1) {
+                    long eventId = Long.valueOf(data.getLastPathSegment());
+                    if (eventId != -1) {
                         mIntentEventStartMillis = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, 0);
                         mIntentEventEndMillis = intent.getLongExtra(EXTRA_EVENT_END_TIME, 0);
                         mIntentAttendeeResponse = intent.getIntExtra(
@@ -524,7 +524,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                         timeMillis = mIntentEventStartMillis;
                     }
                 } catch (NumberFormatException e) {
-                    // Ignore if mViewEventId can't be parsed
+                    // Ignore if eventId can't be parsed
                 }
             }
         }
@@ -577,21 +577,6 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
         mPaused = false;
 
-        if (mViewEventId != -1 && mIntentEventStartMillis != -1 && mIntentEventEndMillis != -1) {
-            long currentMillis = System.currentTimeMillis();
-            long selectedTime = -1;
-            if (currentMillis > mIntentEventStartMillis && currentMillis < mIntentEventEndMillis) {
-                selectedTime = currentMillis;
-            }
-            mController.sendEventRelatedEventWithExtra(this, EventType.VIEW_EVENT, mViewEventId,
-                    mIntentEventStartMillis, mIntentEventEndMillis, -1, -1,
-                    EventInfo.buildViewExtraLong(mIntentAttendeeResponse, mIntentAllDay),
-                    selectedTime);
-            mViewEventId = -1;
-            mIntentEventStartMillis = -1;
-            mIntentEventEndMillis = -1;
-            mIntentAllDay = false;
-        }
         Utils.setMidnightUpdater(mHandler, mTimeChangesUpdater, mTimeZone);
         // Make sure the today icon is up to date
         invalidateOptionsMenu();
@@ -1215,7 +1200,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.GO_TO | EventType.VIEW_EVENT | EventType.UPDATE_TITLE;
+        return EventType.GO_TO | EventType.UPDATE_TITLE;
     }
 
     @Override
@@ -1281,70 +1266,6 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             if (!mIsTabletConfig) {
                 refreshActionbarTitle(displayTime);
             }
-        } else if (event.eventType == EventType.VIEW_EVENT) {
-
-            // If in Agenda view and "show_event_details_with_agenda" is "true",
-            // do not create the event info fragment here, it will be created by the Agenda
-            // fragment
-
-            if (mCurrentView == ViewType.AGENDA && mShowEventDetailsWithAgenda) {
-                if (event.startTime != null && event.endTime != null) {
-                    // Event is all day , adjust the goto time to local time
-                    if (event.isAllDay()) {
-                        Utils.convertAlldayUtcToLocal(
-                                event.startTime, event.startTime.toMillis(false), mTimeZone);
-                        Utils.convertAlldayUtcToLocal(
-                                event.endTime, event.endTime.toMillis(false), mTimeZone);
-                    }
-                    mController.sendEvent(this, EventType.GO_TO, event.startTime, event.endTime,
-                            event.selectedTime, event.id, ViewType.AGENDA,
-                            CalendarController.EXTRA_GOTO_TIME, null, null);
-                } else if (event.selectedTime != null) {
-                    mController.sendEvent(this, EventType.GO_TO, event.selectedTime,
-                        event.selectedTime, event.id, ViewType.AGENDA);
-                }
-            } else {
-                // TODO Fix the temp hack below: && mCurrentView !=
-                // ViewType.AGENDA
-                if (event.selectedTime != null && mCurrentView != ViewType.AGENDA) {
-                    mController.sendEvent(this, EventType.GO_TO, event.selectedTime,
-                            event.selectedTime, -1, ViewType.CURRENT);
-                }
-                int response = event.getResponse();
-                if ((mCurrentView == ViewType.AGENDA && mShowEventInfoFullScreenAgenda) ||
-                        ((mCurrentView == ViewType.DAY || (mCurrentView == ViewType.WEEK) ||
-                                mCurrentView == ViewType.MONTH) && mShowEventInfoFullScreen)){
-                    // start event info as activity
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, event.id);
-                    intent.setData(eventUri);
-                    intent.setClass(this, EventInfoActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT |
-                            Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                    intent.putExtra(EXTRA_EVENT_BEGIN_TIME, event.startTime.toMillis(false));
-                    intent.putExtra(EXTRA_EVENT_END_TIME, event.endTime.toMillis(false));
-                    intent.putExtra(ATTENDEE_STATUS, response);
-                    startActivity(intent);
-                } else {
-                    // start event info as a dialog
-                    EventInfoFragment fragment = new EventInfoFragment(this,
-                            event.id, event.startTime.toMillis(false),
-                            event.endTime.toMillis(false), response, true,
-                            EventInfoFragment.DIALOG_WINDOW_STYLE,
-                            null /* No reminders to explicitly pass in. */);
-                    fragment.setDialogParams(event.x, event.y, mActionBar.getHeight());
-                    FragmentManager fm = getFragmentManager();
-                    FragmentTransaction ft = fm.beginTransaction();
-                    // if we have an old popup replace it
-                    Fragment fOld = fm.findFragmentByTag(EVENT_INFO_FRAGMENT_TAG);
-                    if (fOld != null && fOld.isAdded()) {
-                        ft.remove(fOld);
-                    }
-                    ft.add(fragment, EVENT_INFO_FRAGMENT_TAG);
-                    ft.commit();
-                }
-            }
-            displayTime = event.startTime.toMillis(true);
         } else if (event.eventType == EventType.UPDATE_TITLE) {
             setTitleInActionBar(event);
             if (!mIsTabletConfig) {

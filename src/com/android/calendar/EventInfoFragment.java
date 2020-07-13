@@ -19,6 +19,7 @@ package com.android.calendar;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -466,9 +467,10 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     public EventInfoFragment() {
     }
 
+    @SuppressLint("ValidFragment")
     public EventInfoFragment(Context context, long eventId, long startMillis, long endMillis,
-            int attendeeResponse, boolean isDialog, int windowStyle,
-            ArrayList<ReminderEntry> reminders) {
+                             int attendeeResponse, boolean isDialog, int windowStyle,
+                             ArrayList<ReminderEntry> reminders) {
         this(context, ContentUris.withAppendedId(Events.CONTENT_URI, eventId), startMillis,
                 endMillis, attendeeResponse, isDialog, windowStyle, reminders);
         mEventId = eventId;

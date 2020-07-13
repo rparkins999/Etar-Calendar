@@ -50,6 +50,8 @@ public class EditEventActivity extends AbstractCalendarActivity {
     private static final boolean DEBUG = false;
     private static final String BUNDLE_KEY_EVENT_ID = "key_event_id";
 
+    private Intent mIntent;
+
     private static boolean mIsMultipane;
     private final DynamicTheme dynamicTheme = new DynamicTheme();
     private EditEventFragment mEditFragment;
@@ -67,11 +69,12 @@ public class EditEventActivity extends AbstractCalendarActivity {
         super.onCreate(icicle);
 
         dynamicTheme.onCreate(this);
+        mIntent = getIntent();
         setContentView(R.layout.simple_frame_layout_material);
         mEventInfo = getEventInfoFromIntent(icicle);
         mReminders = getReminderEntriesFromIntent();
         mEventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
-        mEventColor = getIntent().getIntExtra(EXTRA_EVENT_COLOR, -1);
+        mEventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
 
@@ -94,17 +97,15 @@ public class EditEventActivity extends AbstractCalendarActivity {
         }
 
         if (mEditFragment == null) {
-            Intent intent = null;
             boolean readOnly = false;
             if (mEventInfo.id == -1) {
-                intent = getIntent();
-                readOnly = intent.getBooleanExtra(EXTRA_READ_ONLY, false);
+                readOnly = mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
             }
 
-            mEditFragment = new EditEventFragment(mEventInfo, mReminders, mEventColorInitialized,
-                    mEventColor, readOnly, intent);
+            mEditFragment = new EditEventFragment(mEventInfo, mReminders,
+                mEventColorInitialized, mEventColor, readOnly, mIntent);
 
-            mEditFragment.mShowModifyDialogOnLaunch = getIntent().getBooleanExtra(
+            mEditFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
                     CalendarController.EVENT_EDIT_ON_LAUNCH, false);
 
             FragmentTransaction ft = getFragmentManager().beginTransaction();
@@ -116,16 +117,16 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     @SuppressWarnings("unchecked")
     private ArrayList<ReminderEntry> getReminderEntriesFromIntent() {
-        Intent intent = getIntent();
-        return (ArrayList<ReminderEntry>) intent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
+        return (ArrayList<ReminderEntry>) mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
     }
 
     private EventInfo getEventInfoFromIntent(Bundle icicle) {
         EventInfo info = new EventInfo();
         long eventId = -1;
-        Intent intent = getIntent();
-        Uri data = intent.getData();
-        if (data != null) {
+        Uri data = mIntent.getData();
+        if (icicle != null && icicle.containsKey(BUNDLE_KEY_EVENT_ID)) {
+            eventId = icicle.getLong(BUNDLE_KEY_EVENT_ID);
+        } else if (data != null) {
             try {
                 eventId = Long.parseLong(data.getLastPathSegment());
             } catch (NumberFormatException e) {
@@ -133,14 +134,12 @@ public class EditEventActivity extends AbstractCalendarActivity {
                     Log.d(TAG, "Create new event");
                 }
             }
-        } else if (icicle != null && icicle.containsKey(BUNDLE_KEY_EVENT_ID)) {
-            eventId = icicle.getLong(BUNDLE_KEY_EVENT_ID);
         }
 
-        boolean allDay = intent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
+        boolean allDay = mIntent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
 
-        long begin = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
-        long end = intent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
+        long begin = mIntent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
+        long end = mIntent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
         if (end != -1) {
             info.endTime = new Time();
             if (allDay) {
@@ -156,8 +155,8 @@ public class EditEventActivity extends AbstractCalendarActivity {
             info.startTime.set(begin);
         }
         info.id = eventId;
-        info.eventTitle = intent.getStringExtra(Events.TITLE);
-        info.calendarId = intent.getLongExtra(Events.CALENDAR_ID, -1);
+        info.eventTitle = mIntent.getStringExtra(Events.TITLE);
+        info.calendarId = mIntent.getLongExtra(Events.CALENDAR_ID, -1);
 
         if (allDay) {
             info.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;

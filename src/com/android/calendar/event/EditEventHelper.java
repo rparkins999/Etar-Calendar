@@ -42,11 +42,11 @@ import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.Utils;
+import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendarcommon2.DateException;
 import com.android.calendarcommon2.EventRecurrence;
 import com.android.calendarcommon2.RecurrenceProcessor;
 import com.android.calendarcommon2.RecurrenceSet;
-import com.android.common.Rfc822Validator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -863,9 +863,9 @@ public class EditEventHelper {
      * created until the row is added.
      *
      * @param ops the array of ContentProviderOperations
-     * @param eventId the id of the event whose reminders are being updated
-     * @param reminderMinutes the array of reminders set by the user
-     * @param originalMinutes the original array of reminders
+     * @param eventIdIndex the id of the event whose reminders are being updated
+     * @param reminders the array of reminders set by the user
+     * @param originalReminders the original array of reminders
      * @param forceSave if true, then save the reminders even if they didn't change
      * @return true if operations to update the database were added
      */

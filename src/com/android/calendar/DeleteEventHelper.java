@@ -58,10 +58,10 @@ import ws.xsoh.etar.R;
  * To use this class, create an instance, passing in the parent activity
  * and a boolean that determines if the parent activity should exit if the
  * event is deleted.  Then to use the instance, call one of the
- * {@link delete()} methods on this class.
+ * {@see delete()} methods on this class.
  *
  * An instance of this class may be created once and reused (by calling
- * {@link #delete()} multiple times).
+ * {@see #delete()} multiple times).
  */
 public class DeleteEventHelper {
     /**
@@ -203,8 +203,8 @@ public class DeleteEventHelper {
      * @param begin the begin time of the event, in UTC milliseconds
      * @param end the end time of the event, in UTC milliseconds
      * @param eventId the event id
-     * @param which one of the values {@link DELETE_SELECTED},
-     *  {@link DELETE_ALL_FOLLOWING}, {@link DELETE_ALL}, or -1
+     * @param which one of the values {@see DELETE_SELECTED},
+     *  {@see DELETE_ALL_FOLLOWING}, {@see DELETE_ALL}, or -1
      */
     public void delete(long begin, long end, long eventId, int which) {
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
@@ -250,9 +250,8 @@ public class DeleteEventHelper {
      *
      * @param begin the begin time of the event, in UTC milliseconds
      * @param end the end time of the event, in UTC milliseconds
-     * @param cursor the database cursor containing the required fields
-     * @param which one of the values {@link DELETE_SELECTED},
-     *  {@link DELETE_ALL_FOLLOWING}, {@link DELETE_ALL}, or -1
+     * @param which one of the values {@see DELETE_SELECTED},
+     *  {@see DELETE_ALL_FOLLOWING}, {@see DELETE_ALL}, or -1
      */
     public void delete(long begin, long end, CalendarEventModel model, int which) {
         mWhichDelete = which;

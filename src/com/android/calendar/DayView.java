@@ -122,10 +122,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static final int CLICK_DISPLAY_DURATION = 50;
     private static final int MENU_AGENDA = 2;
     private static final int MENU_DAY = 3;
-    private static final int MENU_EVENT_VIEW = 5;
-    private static final int MENU_EVENT_CREATE = 6;
-    private static final int MENU_EVENT_EDIT = 7;
-    private static final int MENU_EVENT_DELETE = 8;
+    private static final int MENU_EVENT_CREATE = 4;
+    private static final int MENU_EVENT_EDIT = 5;
+    private static final int MENU_EVENT_DELETE = 6;
     private static final String[] CALENDARS_PROJECTION = new String[] {
         Calendars._ID,          // 0
         Calendars.CALENDAR_ACCESS_LEVEL, // 1
@@ -1416,7 +1415,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 // because the selected event may get deleted
                 clearCachedEvents();
                 mController.sendEventRelatedEvent(
-                    this, EventType.VIEW_EVENT, selectedEvent.id,
+                    this, EventType.EDIT_EVENT, selectedEvent.id,
                     selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
                         -1);
             }
@@ -1443,7 +1442,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 // because the selected event may get deleted
                 clearCachedEvents();
                 mController.sendEventRelatedEvent(
-                    this, EventType.VIEW_EVENT, selectedEvent.id,
+                    this, EventType.EDIT_EVENT, selectedEvent.id,
                     selectedEvent.startMillis, selectedEvent.endMillis,
                     0, 0, -1);
             }
@@ -4421,7 +4420,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // force an event reload when we get back
             // because the selected event may get deleted
             clearCachedEvents();
-            mController.sendEventRelatedEvent(this, EventType.VIEW_EVENT,
+            mController.sendEventRelatedEvent(this, EventType.EDIT_EVENT,
                 mSelectedEvent.id,
                 mSelectedEvent.startMillis, mSelectedEvent.endMillis,
                 mViewWidth / 2, yLocation,
@@ -4879,10 +4878,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // If there is a selected event, then allow it to be viewed and
             // edited.
             if (numSelectedEvents >= 1) {
-                item = menu.add(0, MENU_EVENT_VIEW, 0, R.string.event_view);
-                item.setOnMenuItemClickListener(mContextMenuHandler);
-                item.setIcon(android.R.drawable.ic_menu_info_details);
-
                 int accessLevel = getEventAccessLevel(mContext, mSelectedEvent);
                 if (accessLevel == ACCESS_LEVEL_EDIT) {
                     item = menu.add(0, MENU_EVENT_EDIT, 0, R.string.event_edit);
@@ -4915,11 +4910,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // If there is a selected event, then allow it to be viewed and
             // edited.
             if (numSelectedEvents >= 1) {
-                item = menu.add(0, MENU_EVENT_VIEW, 0, R.string.event_view);
-                item.setOnMenuItemClickListener(mContextMenuHandler);
-                item.setIcon(android.R.drawable.ic_menu_info_details);
-
-                int accessLevel = getEventAccessLevel(mContext, mSelectedEvent);
+               int accessLevel = getEventAccessLevel(mContext, mSelectedEvent);
                 if (accessLevel == ACCESS_LEVEL_EDIT) {
                     item = menu.add(0, MENU_EVENT_EDIT, 0, R.string.event_edit);
                     item.setOnMenuItemClickListener(mContextMenuHandler);
@@ -5328,17 +5319,6 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
 
         public boolean onMenuItemClick(MenuItem item) {
             switch (item.getItemId()) {
-                case MENU_EVENT_VIEW: {
-                    if (mSelectedEvent != null) {
-                        // force an event reload when we get back
-                        // because the selected event may get deleted
-                        clearCachedEvents();
-                        mController.sendEventRelatedEvent(this, EventType.VIEW_EVENT_DETAILS,
-                                mSelectedEvent.id, mSelectedEvent.startMillis,
-                                mSelectedEvent.endMillis, 0, 0, -1);
-                    }
-                    break;
-                }
                 case MENU_EVENT_EDIT: {
                     if (mSelectedEvent != null) {
                         // force an event reload when we get back

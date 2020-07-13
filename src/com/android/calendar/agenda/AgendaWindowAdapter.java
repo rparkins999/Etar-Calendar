@@ -567,7 +567,7 @@ public class AgendaWindowAdapter extends BaseAdapter
             Log.d(TAG, "Sent (AgendaWindowAdapter): VIEW EVENT: " + new Date(startTime));
         }
         CalendarController.getInstance(mContext)
-        .sendEventRelatedEventWithExtra(this, EventType.VIEW_EVENT,
+        .sendEventRelatedEventWithExtra(this, EventType.EDIT_EVENT,
                 item.id, startTime, endTime, 0,
                 0, CalendarController.EventInfo.buildViewExtraLong(
                         Attendees.ATTENDEE_STATUS_NONE,

@@ -80,11 +80,11 @@ import com.android.calendar.EventRecurrenceFormatter;
 import com.android.calendar.RecipientAdapter;
 import com.android.calendar.Utils;
 import com.android.calendar.event.EditEventHelper.EditDoneRunnable;
+import com.android.calendar.fromcommon.Rfc822InputFilter;
+import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendar.recurrencepicker.RecurrencePickerDialog;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendarcommon2.EventRecurrence;
-import com.android.common.Rfc822InputFilter;
-import com.android.common.Rfc822Validator;
 import com.android.ex.chips.AccountSpecifier;
 import com.android.ex.chips.BaseRecipientAdapter;
 import com.android.ex.chips.ChipsUtil;
@@ -807,12 +807,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     public void setModel(CalendarEventModel model) {
         mModel = model;
 
-        // Need to close the autocomplete adapter to prevent leaking cursors.
-        if (mAddressAdapter != null && mAddressAdapter instanceof EmailAddressAdapter) {
-            ((EmailAddressAdapter)mAddressAdapter).close();
-            mAddressAdapter = null;
-        }
-
         if (model == null) {
             // Display loading screen
             mLoadingMessage.setVisibility(View.VISIBLE);
@@ -1322,14 +1316,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
     // From com.google.android.gm.ComposeActivity
     private MultiAutoCompleteTextView initMultiAutoCompleteTextView(RecipientEditTextView list) {
-        if (ChipsUtil.supportsChipsUi()) {
-            mAddressAdapter = new RecipientAdapter(mActivity);
-            list.setAdapter((BaseRecipientAdapter) mAddressAdapter);
-            list.setOnFocusListShrinkRecipients(false);
-        } else {
-            mAddressAdapter = new EmailAddressAdapter(mActivity);
-            list.setAdapter((EmailAddressAdapter)mAddressAdapter);
-        }
+        mAddressAdapter = new RecipientAdapter(mActivity);
+        list.setAdapter((BaseRecipientAdapter) mAddressAdapter);
+        list.setOnFocusListShrinkRecipients(false);
         list.setTokenizer(new Rfc822Tokenizer());
         list.setValidator(mEmailValidator);
 

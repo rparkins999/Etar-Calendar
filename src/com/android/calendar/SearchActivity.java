@@ -43,6 +43,8 @@ import com.android.calendar.CalendarController.EventInfo;
 import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
+import com.android.calendar.event.EditEventActivity;
+import com.android.calendar.event.EditEventFragment;
 
 import ws.xsoh.etar.R;
 
@@ -74,7 +76,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
             eventsChanged();
         }
     };
-    private EventInfoFragment mEventInfoFragment;
+    private EditEventFragment mEditEventFragment;
     private long mCurrentEventId = -1;
     private String mQuery;
     private SearchView mSearchView;
@@ -139,12 +141,12 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
                 Log.v(TAG, "Restore value from icicle: " + millis);
             }
         }
+        Intent intent = getIntent();
         if (millis == 0) {
             // Didn't find a time in the bundle, look in intent or current time
-            millis = Utils.timeFromIntentInMillis(getIntent());
+            millis = Utils.timeFromIntentInMillis(intent);
         }
 
-        Intent intent = getIntent();
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query;
             if (icicle != null && icicle.containsKey(BUNDLE_KEY_RESTORE_SEARCH_QUERY)) {
@@ -177,22 +179,22 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         search(query, t);
     }
 
-    private void showEventInfo(EventInfo event) {
+    private void editEvent(EventInfo event) {
         if (mShowEventDetailsWithAgenda) {
             FragmentManager fragmentManager = getFragmentManager();
             FragmentTransaction ft = fragmentManager.beginTransaction();
+            EditEventFragment mEditEventFragment = new EditEventFragment(event,
+                null, false, 0,
+                false, getIntent());
 
-            mEventInfoFragment = new EventInfoFragment(this, event.id,
-                    event.startTime.toMillis(false), event.endTime.toMillis(false),
-                    event.getResponse(), false, EventInfoFragment.DIALOG_WINDOW_STYLE,
-                    null /* No reminders to explicitly pass in. */);
-            ft.replace(R.id.agenda_event_info, mEventInfoFragment);
+
+            ft.replace(R.id.agenda_event_info, mEditEventFragment);
             ft.commit();
         } else {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
+            Intent intent = new Intent(Intent.ACTION_EDIT);
             Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, event.id);
             intent.setData(eventUri);
-            intent.setClass(this, EventInfoActivity.class);
+            intent.setClass(this, EditEventActivity.class);
             intent.putExtra(EXTRA_EVENT_BEGIN_TIME,
                     event.startTime != null ? event.startTime.toMillis(true) : -1);
             intent.putExtra(
@@ -227,13 +229,13 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
     private void deleteEvent(long eventId, long startMillis, long endMillis) {
         mDeleteEventHelper.delete(startMillis, endMillis, eventId, -1);
-        if (mIsMultipane && mEventInfoFragment != null
+        if (mIsMultipane && mEditEventFragment != null
                 && eventId == mCurrentEventId) {
             FragmentManager fragmentManager = getFragmentManager();
             FragmentTransaction ft = fragmentManager.beginTransaction();
-            ft.remove(mEventInfoFragment);
+            ft.remove(mEditEventFragment);
             ft.commit();
-            mEventInfoFragment = null;
+            mEditEventFragment = null;
             mCurrentEventId = -1;
         }
     }
@@ -292,6 +294,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         // received with onCreate(). This is why setIntent(Intent) is called
         // inside onNewIntent(Intent) (just in case you call getIntent() at a
         // later time)."
+        super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
     }
@@ -340,14 +343,14 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.VIEW_EVENT | EventType.DELETE_EVENT;
+        return EventType.EDIT_EVENT | EventType.DELETE_EVENT;
     }
 
     @Override
     public void handleEvent(EventInfo event) {
         long endTime = (event.endTime == null) ? -1 : event.endTime.toMillis(false);
-        if (event.eventType == EventType.VIEW_EVENT) {
-            showEventInfo(event);
+        if (event.eventType == EventType.EDIT_EVENT) {
+            editEvent(event);
         } else if (event.eventType == EventType.DELETE_EVENT) {
             deleteEvent(event.id, event.startTime.toMillis(false), endTime);
         }

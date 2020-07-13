@@ -193,7 +193,7 @@ public class CalendarController {
                                                                       long selectedMillis, String title, long calendarId) {
         EventInfo info = new EventInfo();
         info.eventType = eventType;
-        if (eventType == EventType.EDIT_EVENT || eventType == EventType.VIEW_EVENT_DETAILS) {
+        if (eventType == EventType.EDIT_EVENT) {
             info.viewType = ViewType.CURRENT;
         }
 
@@ -335,9 +335,7 @@ public class CalendarController {
         }
 
         // Store the eventId if we're entering edit event
-        if ((event.eventType
-                & (EventType.CREATE_EVENT | EventType.EDIT_EVENT | EventType.VIEW_EVENT_DETAILS))
-                != 0) {
+        if ((event.eventType & (EventType.CREATE_EVENT | EventType.EDIT_EVENT)) != 0) {
             if (event.id > 0) {
                 mEventId = event.id;
             } else {
@@ -422,15 +420,8 @@ public class CalendarController {
                         event.extraLong == EXTRA_CREATE_ALL_DAY, event.eventTitle,
                         event.calendarId);
                 return;
-            } else if (event.eventType == EventType.VIEW_EVENT) {
-                launchViewEvent(event.id, event.startTime.toMillis(false), endTime,
-                        event.getResponse());
-                return;
             } else if (event.eventType == EventType.EDIT_EVENT) {
                 launchEditEvent(event.id, event.startTime.toMillis(false), endTime, true);
-                return;
-            } else if (event.eventType == EventType.VIEW_EVENT_DETAILS) {
-                launchEditEvent(event.id, event.startTime.toMillis(false), endTime, false);
                 return;
             } else if (event.eventType == EventType.DELETE_EVENT) {
                 launchDeleteEvent(event.id, event.startTime.toMillis(false), endTime);
@@ -655,10 +646,6 @@ public class CalendarController {
             tmp = "Go to time/event";
         } else if ((eventInfo.eventType & EventType.CREATE_EVENT) != 0) {
             tmp = "New event";
-        } else if ((eventInfo.eventType & EventType.VIEW_EVENT) != 0) {
-            tmp = "View event";
-        } else if ((eventInfo.eventType & EventType.VIEW_EVENT_DETAILS) != 0) {
-            tmp = "View details";
         } else if ((eventInfo.eventType & EventType.EDIT_EVENT) != 0) {
             tmp = "Edit event";
         } else if ((eventInfo.eventType & EventType.DELETE_EVENT) != 0) {
@@ -697,12 +684,6 @@ public class CalendarController {
      */
     public interface EventType {
         final long CREATE_EVENT = 1L;
-
-        // Simple view of an event
-        final long VIEW_EVENT = 1L << 1;
-
-        // Full detail view in read only mode
-        final long VIEW_EVENT_DETAILS = 1L << 2;
 
         // full detail view in edit mode
         final long EDIT_EVENT = 1L << 3;
@@ -778,13 +759,6 @@ public class CalendarController {
         public long calendarId;
 
         /**
-         * For EventType.VIEW_EVENT:
-         * It is the default attendee response and an all day event indicator.
-         * Set to Attendees.ATTENDEE_STATUS_NONE, Attendees.ATTENDEE_STATUS_ACCEPTED,
-         * Attendees.ATTENDEE_STATUS_DECLINED, or Attendees.ATTENDEE_STATUS_TENTATIVE.
-         * To signal the event is an all-day event, "or" ALL_DAY_MASK with the response.
-         * Alternatively, use buildViewExtraLong(), getResponse(), and isAllDay().
-         * <p/>
          * For EventType.CREATE_EVENT:
          * Set to {@link #EXTRA_CREATE_ALL_DAY} for creating an all-day event.
          * <p/>
@@ -825,33 +799,8 @@ public class CalendarController {
         }
 
         public boolean isAllDay() {
-            if (eventType != EventType.VIEW_EVENT) {
-                Log.wtf(TAG, "illegal call to isAllDay , wrong event type " + eventType);
-                return false;
-            }
             return ((extraLong & ALL_DAY_MASK) != 0) ? true : false;
         }
 
-        public int getResponse() {
-            if (eventType != EventType.VIEW_EVENT) {
-                Log.wtf(TAG, "illegal call to getResponse , wrong event type " + eventType);
-                return Attendees.ATTENDEE_STATUS_NONE;
-            }
-
-            int response = (int) (extraLong & ATTENTEE_STATUS_MASK);
-            switch (response) {
-                case ATTENDEE_STATUS_NONE_MASK:
-                    return Attendees.ATTENDEE_STATUS_NONE;
-                case ATTENDEE_STATUS_ACCEPTED_MASK:
-                    return Attendees.ATTENDEE_STATUS_ACCEPTED;
-                case ATTENDEE_STATUS_DECLINED_MASK:
-                    return Attendees.ATTENDEE_STATUS_DECLINED;
-                case ATTENDEE_STATUS_TENTATIVE_MASK:
-                    return Attendees.ATTENDEE_STATUS_TENTATIVE;
-                default:
-                    Log.wtf(TAG, "Unknown attendee response " + response);
-            }
-            return ATTENDEE_STATUS_NONE_MASK;
-        }
     }
 }

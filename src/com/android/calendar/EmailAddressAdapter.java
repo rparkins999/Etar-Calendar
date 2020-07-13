@@ -23,7 +23,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.android.common.contacts.BaseEmailAddressAdapter;
+import com.android.calendar.fromcommon.BaseEmailAddressAdapter;
 import com.android.ex.chips.AccountSpecifier;
 
 import ws.xsoh.etar.R;
@@ -36,10 +36,12 @@ import ws.xsoh.etar.R;
 public class EmailAddressAdapter extends BaseEmailAddressAdapter implements AccountSpecifier {
 
    private LayoutInflater mInflater;
+   private Context mContext;
 
    public EmailAddressAdapter(Context context) {
        super(context);
        mInflater = LayoutInflater.from(context);
+       mContext = context;
    }
 
    @Override
@@ -64,7 +66,7 @@ public class EmailAddressAdapter extends BaseEmailAddressAdapter implements Acco
    @Override
    protected void bindViewLoading(View view, String directoryType, String directoryName) {
        TextView text1 = (TextView)view.findViewById(R.id.text1);
-       String text = getContext().getString(R.string.directory_searching_fmt,
+       String text = mContext.getString(R.string.directory_searching_fmt,
                TextUtils.isEmpty(directoryName) ? directoryType : directoryName);
        text1.setText(text);
    }

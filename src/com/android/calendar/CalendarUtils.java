@@ -50,7 +50,7 @@ public class CalendarUtils {
      * A helper method for writing a String value to the preferences
      * asynchronously.
      *
-     * @param context A context with access to the correct preferences
+     * @param prefs    A shared preferences structure
      * @param key     The preference to write to
      * @param value   The value to write
      */
@@ -65,7 +65,7 @@ public class CalendarUtils {
      * A helper method for writing a boolean value to the preferences
      * asynchronously.
      *
-     * @param context A context with access to the correct preferences
+     * @param prefs   A shared preferences structure
      * @param key     The preference to write to
      * @param value   The value to write
      */

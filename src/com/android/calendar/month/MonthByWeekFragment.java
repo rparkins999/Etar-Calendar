@@ -16,6 +16,7 @@
 
 package com.android.calendar.month;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
@@ -51,7 +52,7 @@ import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
 import com.android.calendar.Utils;
-import com.android.calendar.event.CreateEventDialogFragment;
+import com.android.calendar.event.CreateEventDlgFragment;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -100,7 +101,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
     protected boolean mHideDeclined;
     protected int mFirstLoadedJulianDay;
     protected int mLastLoadedJulianDay;
-    private CreateEventDialogFragment mEventDialog;
+    private CreateEventDlgFragment mEventDialog;
     private CursorLoader mLoader;
     private Uri mEventUri;
     private volatile boolean mShouldLoad = true;
@@ -147,7 +148,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
             final FragmentManager manager = getFragmentManager();
             if (manager != null) {
                 Time day = (Time) msg.obj;
-                mEventDialog = new CreateEventDialogFragment(day);
+                mEventDialog = new CreateEventDlgFragment(day);
                 mEventDialog.show(manager, TAG_EVENT_DIALOG);
             }
         }
@@ -158,6 +159,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
         this(System.currentTimeMillis(), true);
     }
 
+    @SuppressLint("ValidFragment")
     public MonthByWeekFragment(long initialTime, boolean isMiniMonth) {
         super(initialTime);
         mIsMiniMonth = isMiniMonth;
