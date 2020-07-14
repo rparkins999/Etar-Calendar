@@ -12,6 +12,9 @@
 package com.android.calendar;
 
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -63,5 +66,29 @@ public class Llog extends Object {
     // args should be stringified arguments to the method or null
     public static void d(String s, @Nullable String args, int n) {
         Log.d(caller(n, args), forceNonEmpty(s));
+    }
+    // dump a view hierarchy
+    private static void dumpView(View v, String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(v.getClass().getSimpleName());
+        if (v.getVisibility() == View.VISIBLE) {
+            if (v instanceof TextView) {
+                sb.append("->");
+                sb.append(((TextView) v).getText());
+            }
+            Log.d(indent, sb.toString());
+            if (v instanceof ViewGroup) {
+                int n = ((ViewGroup) v).getChildCount();
+                for (int i = 0; i < n; ++i) {
+                    dumpView(((ViewGroup) v).getChildAt(i), indent + ">>");
+                }
+            }
+        } else {
+            Log.d(indent, sb.append(" not visible").toString());
+        }
+    }
+    public static void d(View v) {
+        Log.d(caller(0, null), "Dumping View");
+        dumpView(v, ">>");
     }
 }
