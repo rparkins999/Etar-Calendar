@@ -52,17 +52,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private Intent mIntent;
 
-    private static boolean mIsMultipane;
     private final DynamicTheme dynamicTheme = new DynamicTheme();
-    private EditEventFragment mEditFragment;
-
-    private ArrayList<ReminderEntry> mReminders;
-
-    private int mEventColor;
-
-    private boolean mEventColorInitialized;
-
-    private EventInfo mEventInfo;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -71,24 +61,17 @@ public class EditEventActivity extends AbstractCalendarActivity {
         dynamicTheme.onCreate(this);
         mIntent = getIntent();
         setContentView(R.layout.simple_frame_layout_material);
-        mEventInfo = getEventInfoFromIntent(icicle);
-        mReminders = getReminderEntriesFromIntent();
-        mEventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
-        mEventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
+        EventInfo eventInfo = getEventInfoFromIntent(icicle);
 
-        mEditFragment = (EditEventFragment) getFragmentManager().findFragmentById(R.id.body_frame);
-
-        mIsMultipane = Utils.getConfigBool(this, R.bool.multiple_pane_config);
-
-        if (mIsMultipane) {
+        if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {
             getSupportActionBar().setDisplayOptions(
                     ActionBar.DISPLAY_SHOW_TITLE,
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
                             | ActionBar.DISPLAY_SHOW_TITLE);
             getSupportActionBar().setTitle(
-                    mEventInfo.id == -1 ? R.string.event_create : R.string.event_edit);
+                    eventInfo.id == -1 ? R.string.event_create : R.string.event_edit);
         }
         else {
             getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
@@ -96,21 +79,25 @@ public class EditEventActivity extends AbstractCalendarActivity {
                     ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
         }
 
-        if (mEditFragment == null) {
-            boolean readOnly = false;
-            if (mEventInfo.id == -1) {
-                readOnly = mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
-            }
+        EditEventFragment editFragment =
+            (EditEventFragment) getFragmentManager().findFragmentById(R.id.body_frame);
+        if (editFragment == null) {
 
-            mEditFragment = new EditEventFragment(mEventInfo, mReminders,
-                mEventColorInitialized, mEventColor, readOnly, mIntent);
+            ArrayList<ReminderEntry> reminders = getReminderEntriesFromIntent();
+            boolean eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
+            int eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
+            boolean readOnly =
+                   (eventInfo.id == -1)
+                && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
+            editFragment = new EditEventFragment(eventInfo, reminders,
+                eventColorInitialized, eventColor, readOnly, mIntent);
 
-            mEditFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
+            editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
                     CalendarController.EVENT_EDIT_ON_LAUNCH, false);
 
             FragmentTransaction ft = getFragmentManager().beginTransaction();
-            ft.replace(R.id.body_frame, mEditFragment);
-            ft.show(mEditFragment);
+            ft.replace(R.id.body_frame, editFragment);
+            ft.show(editFragment);
             ft.commit();
         }
     }
