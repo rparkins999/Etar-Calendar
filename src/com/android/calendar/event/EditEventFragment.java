@@ -473,7 +473,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         VEvent event = new VEvent();
         // Add event start and end datetime
         if (!mModel.mAllDay) {
-            String eventTimeZone = mModel.mTimezone;
+            String eventTimeZone = mModel.mTimezoneStart;
             event.addEventStart(mBegin, eventTimeZone);
             event.addEventEnd(mEnd, eventTimeZone);
         } else {

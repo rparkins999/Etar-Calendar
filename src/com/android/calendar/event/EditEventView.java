@@ -74,7 +74,6 @@ import android.widget.TimePicker;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
-import com.android.calendar.EmailAddressAdapter;
 import com.android.calendar.EventInfoFragment;
 import com.android.calendar.EventRecurrenceFormatter;
 import com.android.calendar.RecipientAdapter;
@@ -87,7 +86,6 @@ import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendarcommon2.EventRecurrence;
 import com.android.ex.chips.AccountSpecifier;
 import com.android.ex.chips.BaseRecipientAdapter;
-import com.android.ex.chips.ChipsUtil;
 import com.android.ex.chips.RecipientEditTextView;
 import com.android.timezonepicker.TimeZoneInfo;
 import com.android.timezonepicker.TimeZonePickerDialog;
@@ -688,7 +686,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mModel.mStart = mStartTime.toMillis(true);
             mModel.mEnd = mEndTime.toMillis(true);
         }
-        mModel.mTimezone = mTimezone;
+        mModel.mTimezoneStart = mTimezone;
         mModel.mAccessLevel = mAccessLevelSpinner.getSelectedItemPosition();
         // TODO set correct availability value
         mModel.mAvailability = mAvailabilityValues.get(mAvailabilitySpinner
@@ -818,7 +816,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         long begin = model.mStart;
         long end = model.mEnd;
-        mTimezone = model.mTimezone; // this will be UTC for all day events
+        mTimezone = model.mTimezoneStart; // this will be UTC for all day events
 
         // Set up the starting times
         if (begin > 0) {

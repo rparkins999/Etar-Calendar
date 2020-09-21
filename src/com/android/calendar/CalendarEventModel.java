@@ -41,95 +41,111 @@ import java.util.TimeZone;
 /**
  * Stores all the information needed to fill out an entry in the events table.
  * This is a convenient way for storing information needed by the UI to write to
- * the events table. Only fields that are important to the UI are included.
+ * the events table.
  */
 public class CalendarEventModel implements Serializable {
     private static final String TAG = "CalendarEventModel";
     /**
-     * The uri of the event in the db. This should only be null for new events.
+     * The uri of the event in the db. This should only be null for a new event
+     * or an event read from an ical file, or an event which has been deleted.
      */
     public String mUri = null;
+    /**
+     * The event ID of the event in the db.
+     * This should only be null for new events.
+     */
     public long mId = -1;
-
-    // TODO strip out fields that don't ever get used
+    public long mOriginalId = -1;
+    /* This is the UID field for the VEVENT entry in the iCal file.
+     * If we're writing to a file and we don't already have a UID,
+     * we create a random one.
+     */
+    public String mUid = null;
+    public long mStart = -1; // UTC milliseconds since the epoch
+    public String mTimezoneStart; // Displayed timezone for start
+    // This should be set the same as mStart when created and is used
+    // for making changes to recurring events.
+    // It should not be updated after it is initially set.
+    public long mOriginalStart = -1; // UTC milliseconds since the epoch
+    public long mEnd = -1; // UTC milliseconds since the epoch
+    // Displayed timezone for end
+    // Can be different from mTimezoneStart, for example for a flight between time zones
+    public String mTimezoneEnd;
+    // This should be set the same as mEnd when created and is used
+    // for making changes to recurring events.
+    // It should not be updated after it is initially set.
+    public long mOriginalEnd = -1;
+    // Recurrent events have a duration rather than an end time
+    // The format of the string is defined in RFC5545
+    public String mDuration = null;
+    public boolean mAllDay = false;
+    // Recurrence rule: a string as defined in RFC5545
+    public String mRrule = null;
+    // Currently the UI doesn't allow display or editing of RDATEs or EXDATEs
+    // but Android handles them, so we can read and write them in an ical file
+    public String mRdate = null; // list of extra dates or datetimes
+    public String mExdate = null; // list of excluded dates or datetimes
+    public boolean mIsFirstEventInSeries = true;
+    public String mTitle = null;
+    public String mLocation = null;
+    public String mDescription = null;
+    private int mEventColor = -1;
+    private boolean mEventColorInitialized = false;
+    public EventColorCache mEventColorCache;
+    // android.provider.CalendarContract.EventsColumns.ACCESS_DEFAULT is 0,
+    // but we can't import it because it's in a protected interface.
+    public int mAccessLevel = 0;
+    public int mAvailability = Events.AVAILABILITY_BUSY;
+    public int mEventStatus = Events.STATUS_CONFIRMED;
     public long mCalendarId = -1;
-    public String mCalendarDisplayName = ""; // Make sure this is in sync with the mCalendarId
+    // Make sure this is in sync with the mCalendarId
+    public String mCalendarDisplayName = "";
+    private int mCalendarColor = -1;
+    private boolean mCalendarColorInitialized = false;
     public String mCalendarAccountName;
     public String mCalendarAccountType;
     public int mCalendarMaxReminders;
     public String mCalendarAllowedReminders;
     public String mCalendarAllowedAttendeeTypes;
     public String mCalendarAllowedAvailability;
-    public String mSyncId = null;
-    public String mSyncAccountName = null;
-    public String mSyncAccountType = null;
-    public EventColorCache mEventColorCache;
+    public int mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
     // PROVIDER_NOTES owner account comes from the calendars table
     public String mOwnerAccount = null;
-    public String mTitle = null;
-    public String mLocation = null;
-    public String mDescription = null;
-    public String mRrule = null;
-    public String mOrganizer = null;
-    public String mOrganizerDisplayName = null;
-    /**
-     * Read-Only - Derived from other fields
-     */
-    public boolean mIsOrganizer = true;
-    public boolean mIsFirstEventInSeries = true;
-    // This should be set the same as mStart when created and is used for making changes to
-    // recurring events. It should not be updated after it is initially set.
-    public long mOriginalStart = -1;
-    public long mStart = -1;
-    // This should be set the same as mEnd when created and is used for making changes to
-    // recurring events. It should not be updated after it is initially set.
-    public long mOriginalEnd = -1;
-    public long mEnd = -1;
-    public String mDuration = null;
-    public String mTimezone = null;
-    public String mTimezone2 = null;
-    public boolean mAllDay = false;
+    public boolean mGuestsCanInviteOthers = false;
+    public boolean mGuestsCanModify = false;
+    public boolean mGuestsCanSeeGuests = false;
     public boolean mHasAlarm = false;
-    public int mAvailability = Events.AVAILABILITY_BUSY;
-    // PROVIDER_NOTES How does an event not have attendee data? The owner is added
-    // as an attendee by default.
+    public ArrayList<ReminderEntry> mReminders;
+    public ArrayList<ReminderEntry> mDefaultReminders;
+    // Needed to update the database if it has changed
+    // because all reminders were removed or there were none and we added some
     public boolean mHasAttendeeData = true;
+    public LinkedHashMap<String, Attendee> mAttendeesList;
+    public boolean mIsOrganizer = true;
+    public String mOrganizer = null; // email address
+    public String mOrganizerDisplayName = null;
     public int mSelfAttendeeStatus = -1;
     public int mOwnerAttendeeId = -1;
-    public String mOriginalSyncId = null;
-    public long mOriginalId = -1;
-    public Long mOriginalTime = null;
-    public Boolean mOriginalAllDay = null;
-    public boolean mGuestsCanModify = false;
-    public boolean mGuestsCanInviteOthers = false;
-    public boolean mGuestsCanSeeGuests = false;
     public boolean mOrganizerCanRespond = false;
-    public int mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
-    public int mEventStatus = Events.STATUS_CONFIRMED;
+    public String mSyncId = null;
+    public String mOriginalSyncId = null;
+    public String mSyncAccountName = null;
+    public String mSyncAccountType = null;
     // The model can't be updated with a calendar cursor until it has been
     // updated with an event cursor.
     public boolean mModelUpdatedWithEventCursor;
-    public int mAccessLevel = 0;
-    public ArrayList<ReminderEntry> mReminders;
-    public ArrayList<ReminderEntry> mDefaultReminders;
-    // PROVIDER_NOTES Using EditEventHelper the owner should not be included in this
-    // list and will instead be added by saveEvent. Is this what we want?
-    public LinkedHashMap<String, Attendee> mAttendeesList;
-    private int mCalendarColor = -1;
-    private boolean mCalendarColorInitialized = false;
-    private int mEventColor = -1;
-    private boolean mEventColorInitialized = false;
+
     public CalendarEventModel() {
         mReminders = new ArrayList<ReminderEntry>();
         mDefaultReminders = new ArrayList<ReminderEntry>();
         mAttendeesList = new LinkedHashMap<String, Attendee>();
-        mTimezone = TimeZone.getDefault().getID();
+        mTimezoneStart = TimeZone.getDefault().getID();
     }
 
     public CalendarEventModel(Context context) {
         this();
 
-        mTimezone = Utils.getTimeZone(context, null);
+        mTimezoneStart = Utils.getTimeZone(context, null);
         SharedPreferences prefs = GeneralPreferences.Companion.getSharedPreferences(context);
 
         String defaultReminder = prefs.getString(
@@ -227,7 +243,6 @@ public class CalendarEventModel implements Serializable {
         mCalendarColor = -1;
         mCalendarColorInitialized = false;
 
-        mEventColorCache = null;
         mEventColor = -1;
         mEventColorInitialized = false;
 
@@ -250,8 +265,8 @@ public class CalendarEventModel implements Serializable {
         mOriginalEnd = -1;
         mEnd = -1;
         mDuration = null;
-        mTimezone = null;
-        mTimezone2 = null;
+        mTimezoneStart = null;
+        mTimezoneEnd = null;
         mAllDay = false;
         mHasAlarm = false;
 
@@ -260,8 +275,6 @@ public class CalendarEventModel implements Serializable {
         mOwnerAttendeeId = -1;
         mOriginalId = -1;
         mOriginalSyncId = null;
-        mOriginalTime = null;
-        mOriginalAllDay = null;
 
         mGuestsCanModify = false;
         mGuestsCanInviteOthers = false;
@@ -337,12 +350,10 @@ public class CalendarEventModel implements Serializable {
         result = prime * result + (mIsOrganizer ? 1231 : 1237);
         result = prime * result + ((mLocation == null) ? 0 : mLocation.hashCode());
         result = prime * result + ((mOrganizer == null) ? 0 : mOrganizer.hashCode());
-        result = prime * result + ((mOriginalAllDay == null) ? 0 : mOriginalAllDay.hashCode());
         result = prime * result + (int) (mOriginalEnd ^ (mOriginalEnd >>> 32));
         result = prime * result + ((mOriginalSyncId == null) ? 0 : mOriginalSyncId.hashCode());
         result = prime * result + (int) (mOriginalId ^ (mOriginalEnd >>> 32));
         result = prime * result + (int) (mOriginalStart ^ (mOriginalStart >>> 32));
-        result = prime * result + ((mOriginalTime == null) ? 0 : mOriginalTime.hashCode());
         result = prime * result + ((mOwnerAccount == null) ? 0 : mOwnerAccount.hashCode());
         result = prime * result + ((mReminders == null) ? 0 : mReminders.hashCode());
         result = prime * result + ((mRrule == null) ? 0 : mRrule.hashCode());
@@ -352,8 +363,8 @@ public class CalendarEventModel implements Serializable {
         result = prime * result + ((mSyncAccountName == null) ? 0 : mSyncAccountName.hashCode());
         result = prime * result + ((mSyncAccountType == null) ? 0 : mSyncAccountType.hashCode());
         result = prime * result + ((mSyncId == null) ? 0 : mSyncId.hashCode());
-        result = prime * result + ((mTimezone == null) ? 0 : mTimezone.hashCode());
-        result = prime * result + ((mTimezone2 == null) ? 0 : mTimezone2.hashCode());
+        result = prime * result + ((mTimezoneStart == null) ? 0 : mTimezoneStart.hashCode());
+        result = prime * result + ((mTimezoneEnd == null) ? 0 : mTimezoneEnd.hashCode());
         result = prime * result + ((mTitle == null) ? 0 : mTitle.hashCode());
         result = prime * result + (mAvailability);
         result = prime * result + ((mUri == null) ? 0 : mUri.hashCode());
@@ -601,22 +612,6 @@ public class CalendarEventModel implements Serializable {
             return false;
         }
 
-        if (mOriginalAllDay == null) {
-            if (originalModel.mOriginalAllDay != null) {
-                return false;
-            }
-        } else if (!mOriginalAllDay.equals(originalModel.mOriginalAllDay)) {
-            return false;
-        }
-
-        if (mOriginalTime == null) {
-            if (originalModel.mOriginalTime != null) {
-                return false;
-            }
-        } else if (!mOriginalTime.equals(originalModel.mOriginalTime)) {
-            return false;
-        }
-
         if (mOwnerAccount == null) {
             if (originalModel.mOwnerAccount != null) {
                 return false;
@@ -663,19 +658,19 @@ public class CalendarEventModel implements Serializable {
             return false;
         }
 
-        if (mTimezone == null) {
-            if (originalModel.mTimezone != null) {
+        if (mTimezoneStart == null) {
+            if (originalModel.mTimezoneStart != null) {
                 return false;
             }
-        } else if (!mTimezone.equals(originalModel.mTimezone)) {
+        } else if (!mTimezoneStart.equals(originalModel.mTimezoneStart)) {
             return false;
         }
 
-        if (mTimezone2 == null) {
-            if (originalModel.mTimezone2 != null) {
+        if (mTimezoneEnd == null) {
+            if (originalModel.mTimezoneEnd != null) {
                 return false;
             }
-        } else if (!mTimezone2.equals(originalModel.mTimezone2)) {
+        } else if (!mTimezoneEnd.equals(originalModel.mTimezoneEnd)) {
             return false;
         }
 

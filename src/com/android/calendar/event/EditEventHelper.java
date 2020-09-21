@@ -634,13 +634,13 @@ public class EditEventHelper {
         long oldEnd = model.mOriginalEnd;
         boolean oldAllDay = originalModel.mAllDay;
         String oldRrule = originalModel.mRrule;
-        String oldTimezone = originalModel.mTimezone;
+        String oldTimezone = originalModel.mTimezoneStart;
 
         long newBegin = model.mStart;
         long newEnd = model.mEnd;
         boolean newAllDay = model.mAllDay;
         String newRrule = model.mRrule;
-        String newTimezone = model.mTimezone;
+        String newTimezone = model.mTimezoneStart;
 
         // If none of the time-dependent fields changed, then remove them.
         if (oldBegin == newBegin && oldEnd == newEnd && oldAllDay == newAllDay
@@ -712,7 +712,7 @@ public class EditEventHelper {
         // Get the start time of the first instance in the original recurrence.
         long startTimeMillis = originalModel.mStart;
         Time dtstart = new Time();
-        dtstart.timezone = originalModel.mTimezone;
+        dtstart.timezone = originalModel.mTimezoneStart;
         dtstart.set(startTimeMillis);
 
         ContentValues updateValues = new ContentValues();
@@ -988,7 +988,7 @@ public class EditEventHelper {
             int[] days = new int[1];
             int dayCount = 1;
             int[] dayNum = new int[dayCount];
-            Time startTime = new Time(model.mTimezone);
+            Time startTime = new Time(model.mTimezoneStart);
             startTime.set(model.mStart);
 
             days[0] = EventRecurrence.timeDay2Day(startTime.weekDay);
@@ -1003,7 +1003,7 @@ public class EditEventHelper {
             eventRecurrence.bydayCount = 0;
             eventRecurrence.bymonthdayCount = 1;
             int[] bymonthday = new int[1];
-            Time startTime = new Time(model.mTimezone);
+            Time startTime = new Time(model.mTimezoneStart);
             startTime.set(model.mStart);
             bymonthday[0] = startTime.monthDay;
             eventRecurrence.bymonthday = bymonthday;
@@ -1014,7 +1014,7 @@ public class EditEventHelper {
 
             int[] byday = new int[1];
             int[] bydayNum = new int[1];
-            Time startTime = new Time(model.mTimezone);
+            Time startTime = new Time(model.mTimezoneStart);
             startTime.set(model.mStart);
             // Compute the week number (for example, the "2nd" Monday)
             int dayCount = 1 + ((startTime.monthDay - 1) / 7);
@@ -1062,9 +1062,9 @@ public class EditEventHelper {
         String tz = cursor.getString(EVENT_INDEX_TIMEZONE);
         if (TextUtils.isEmpty(tz)) {
             Log.w(TAG, "Query did not return a timezone for the event.");
-            model.mTimezone = TimeZone.getDefault().getID();
+            model.mTimezoneStart = TimeZone.getDefault().getID();
         } else {
-            model.mTimezone = tz;
+            model.mTimezoneStart = tz;
         }
         String rRule = cursor.getString(EVENT_INDEX_RRULE);
         model.mRrule = rRule;
@@ -1218,7 +1218,7 @@ public class EditEventHelper {
         String title = model.mTitle;
         boolean isAllDay = model.mAllDay;
         String rrule = model.mRrule;
-        String timezone = model.mTimezone;
+        String timezone = model.mTimezoneStart;
         if (timezone == null) {
             timezone = TimeZone.getDefault().getID();
         }

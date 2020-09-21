@@ -179,7 +179,7 @@
         <item name="android:popupBackground">?attr/spinner_privacy_presence_bgcolor</item>
     </style>
 
-    <style name="TextAppearance.EditEvent_SpinnerButton">
+    <style name="TextAppearance.EditEvent_SpinnerButton" parent="TextAppearance.EditEvent_Spinner">
         <item name="android:paddingLeft">12dp</item>
         <item name="android:paddingRight">12dp</item>
         <item name="android:textColor">#757575</item>

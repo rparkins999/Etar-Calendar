@@ -378,7 +378,7 @@ public class DeleteEventHelper {
                 String title = mModel.mTitle;
                 values.put(Events.TITLE, title);
 
-                String timezone = mModel.mTimezone;
+                String timezone = mModel.mTimezoneStart;
                 long calendarId = mModel.mCalendarId;
                 values.put(Events.EVENT_TIMEZONE, timezone);
                 values.put(Events.ALL_DAY, allDay ? 1 : 0);
