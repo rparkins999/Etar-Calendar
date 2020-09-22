@@ -19,6 +19,8 @@ package com.android.calendar;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.net.Uri;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
@@ -26,10 +28,13 @@ import android.provider.CalendarContract.Reminders;
 import android.text.TextUtils;
 import android.text.util.Rfc822Token;
 
+import com.android.calendar.event.EditEventActivity;
 import com.android.calendar.event.EditEventHelper;
 import com.android.calendar.event.EventColorCache;
 import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendar.settings.GeneralPreferences;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -38,18 +43,19 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.TimeZone;
 
+import ws.xsoh.etar.R;
+
 /**
  * Stores all the information needed to fill out an entry in the events table.
  * This is a convenient way for storing information needed by the UI to write to
  * the events table.
  */
 public class CalendarEventModel implements Serializable {
-    private static final String TAG = "CalendarEventModel";
     /**
      * The uri of the event in the db. This should only be null for a new event
      * or an event read from an ical file, or an event which has been deleted.
      */
-    public String mUri = null;
+    public Uri mUri = null;
     /**
      * The event ID of the event in the db.
      * This should only be null for new events.
@@ -89,8 +95,8 @@ public class CalendarEventModel implements Serializable {
     public String mTitle = null;
     public String mLocation = null;
     public String mDescription = null;
-    private int mEventColor = -1;
-    private boolean mEventColorInitialized = false;
+    public int mEventColor = -1;
+    public boolean mEventColorInitialized = false;
     public EventColorCache mEventColorCache;
     // android.provider.CalendarContract.EventsColumns.ACCESS_DEFAULT is 0,
     // but we can't import it because it's in a protected interface.
@@ -114,11 +120,13 @@ public class CalendarEventModel implements Serializable {
     public boolean mGuestsCanInviteOthers = false;
     public boolean mGuestsCanModify = false;
     public boolean mGuestsCanSeeGuests = false;
+    // Needed to update the database if it has changed
+    // because all reminders were removed or there were none and we added some
     public boolean mHasAlarm = false;
     public ArrayList<ReminderEntry> mReminders;
     public ArrayList<ReminderEntry> mDefaultReminders;
     // Needed to update the database if it has changed
-    // because all reminders were removed or there were none and we added some
+    // because all attendees were removed or there were none and we added some
     public boolean mHasAttendeeData = true;
     public LinkedHashMap<String, Attendee> mAttendeesList;
     public boolean mIsOrganizer = true;
@@ -136,20 +144,97 @@ public class CalendarEventModel implements Serializable {
     public boolean mModelUpdatedWithEventCursor;
 
     public CalendarEventModel() {
-        mReminders = new ArrayList<ReminderEntry>();
-        mDefaultReminders = new ArrayList<ReminderEntry>();
-        mAttendeesList = new LinkedHashMap<String, Attendee>();
+        mReminders = new ArrayList<>();
+        mDefaultReminders = new ArrayList<>();
+        mAttendeesList = new LinkedHashMap<>();
         mTimezoneStart = TimeZone.getDefault().getID();
+    }
+
+
+    // copy constructor
+    public CalendarEventModel(CalendarEventModel other) {
+        mUri = other.mUri;
+        mId = other.mId;
+        mOriginalId = other.mOriginalId;
+        mUid = other.mUid;
+        mStart = other.mStart;
+        mTimezoneStart = other.mTimezoneStart;
+        mOriginalStart = other.mOriginalStart;
+        mEnd = other.mEnd;
+        mTimezoneEnd = other.mTimezoneEnd;
+        mOriginalEnd = other.mOriginalEnd;
+        mDuration = other.mDuration;
+        mAllDay = other.mAllDay;
+        mRrule = other.mRrule;
+        mRdate = other.mRdate;
+        mExdate = other.mExdate;
+        mIsFirstEventInSeries = other.mIsFirstEventInSeries;
+        mTitle = other.mTitle;
+        mLocation = other.mLocation;
+        mDescription = other.mDescription;
+        mEventColor = other.mEventColor;
+        mEventColorInitialized = other.mEventColorInitialized;
+        mEventColorCache = other.mEventColorCache;
+        mAccessLevel = other.mAccessLevel;
+        mAvailability = other.mAvailability;
+        mEventStatus = other.mEventStatus;
+        mCalendarId = other.mCalendarId;
+        mCalendarDisplayName = other.mCalendarDisplayName;
+        mCalendarColor = other.mCalendarColor;
+        mCalendarColorInitialized = other.mCalendarColorInitialized;
+        mCalendarAccountName = other.mCalendarAccountName;
+        mCalendarAccountType = other.mCalendarAccountType;
+        mCalendarMaxReminders = other.mCalendarMaxReminders;
+        mCalendarAllowedReminders = other.mCalendarAllowedReminders;
+        mCalendarAllowedAttendeeTypes = other.mCalendarAllowedAttendeeTypes;
+        mCalendarAllowedAvailability = other.mCalendarAllowedAvailability;
+        mCalendarAccessLevel = other.mCalendarAccessLevel;
+        mOwnerAccount = other.mOwnerAccount;
+        mGuestsCanInviteOthers = other.mGuestsCanInviteOthers;
+        mGuestsCanModify = other.mGuestsCanModify;
+        mGuestsCanSeeGuests = other.mGuestsCanSeeGuests;
+        mHasAlarm = other.mHasAlarm;
+        mReminders = new ArrayList<>();
+        for (ReminderEntry entry : other.mReminders) {
+            mReminders.add(ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()));
+        }
+        mDefaultReminders = new ArrayList<>();
+        for (ReminderEntry entry : other.mDefaultReminders) {
+            mDefaultReminders.add(
+                ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()));
+        }
+        mHasAttendeeData = other.mHasAttendeeData;
+        mAttendeesList = new LinkedHashMap<>();
+        for (String key : other.mAttendeesList.keySet()) {
+            Attendee old = other.mAttendeesList.get(key);
+            Attendee value = new Attendee(
+                old.mName, old.mEmail, old.mStatus, old.mType,
+                old.mIdentity, old.mIdNamespace);
+            mAttendeesList.put(key, value);
+        }
+        mIsOrganizer = other.mIsOrganizer;
+        mOrganizer = other.mOrganizer;
+        mOrganizerDisplayName = other.mOrganizerDisplayName;
+        mSelfAttendeeStatus = other.mSelfAttendeeStatus;
+        mOwnerAttendeeId = other.mOwnerAttendeeId;
+        mOrganizerCanRespond = other.mOrganizerCanRespond;
+        mSyncId = other.mSyncId;
+        mOriginalSyncId = other.mOriginalSyncId;
+        mSyncAccountName = other.mSyncAccountName;
+        mSyncAccountType = other.mSyncAccountType;
+        mModelUpdatedWithEventCursor = other.mModelUpdatedWithEventCursor;
     }
 
     public CalendarEventModel(Context context) {
         this();
 
-        mTimezoneStart = Utils.getTimeZone(context, null);
-        SharedPreferences prefs = GeneralPreferences.Companion.getSharedPreferences(context);
+        mTimezoneEnd = mTimezoneStart = Utils.getTimeZone(context, null);
+        SharedPreferences prefs =
+            GeneralPreferences.Companion.getSharedPreferences(context);
 
         String defaultReminder = prefs.getString(
-                GeneralPreferences.KEY_DEFAULT_REMINDER, GeneralPreferences.NO_REMINDER_STRING);
+                GeneralPreferences.KEY_DEFAULT_REMINDER,
+                GeneralPreferences.NO_REMINDER_STRING);
         int defaultReminderMins = Integer.parseInt(defaultReminder);
         if (defaultReminderMins != GeneralPreferences.NO_REMINDER) {
             // Assume all calendars allow at least one reminder.
@@ -164,6 +249,11 @@ public class CalendarEventModel implements Serializable {
 
         if (intent == null) {
             return;
+        }
+
+        String rrule = intent.getStringExtra(Events.RRULE);
+        if (!TextUtils.isEmpty(rrule)) {
+            mRrule = rrule;
         }
 
         String title = intent.getStringExtra(Events.TITLE);
@@ -181,19 +271,28 @@ public class CalendarEventModel implements Serializable {
             mDescription = description;
         }
 
-        int availability = intent.getIntExtra(Events.AVAILABILITY, -1);
-        if (availability != -1) {
-            mAvailability = availability;
-        }
+        mEventColor = intent.getIntExtra(
+            EditEventActivity.EXTRA_EVENT_COLOR, -1);
+        mEventColorInitialized = intent.hasExtra(
+            EditEventActivity.EXTRA_EVENT_COLOR);
 
         int accessLevel = intent.getIntExtra(Events.ACCESS_LEVEL, -1);
         if (accessLevel != -1) {
             mAccessLevel = accessLevel;
         }
 
-        String rrule = intent.getStringExtra(Events.RRULE);
-        if (!TextUtils.isEmpty(rrule)) {
-            mRrule = rrule;
+        int availability = intent.getIntExtra(Events.AVAILABILITY, -1);
+        if (availability != -1) {
+            mAvailability = availability;
+        }
+
+        // Using otherwise unnecessary local variable to suppress warning
+        @SuppressWarnings("unchecked")
+        ArrayList<ReminderEntry> reminders =
+            (ArrayList<ReminderEntry>)intent.getSerializableExtra(
+                EditEventActivity.EXTRA_EVENT_REMINDERS);
+        if (reminders != null) {
+            mReminders = reminders;
         }
 
         String emails = intent.getStringExtra(Intent.EXTRA_EMAIL);
@@ -211,85 +310,72 @@ public class CalendarEventModel implements Serializable {
     }
 
     public boolean isValid() {
-        if (mCalendarId == -1) {
-            return false;
-        }
-        if (TextUtils.isEmpty(mOwnerAccount)) {
-            return false;
-        }
-        return true;
+        return (   (mCalendarId != -1)
+            && !TextUtils.isEmpty(mOwnerAccount));
     }
 
     public boolean isEmpty() {
-        if (mTitle != null && mTitle.trim().length() > 0) {
-            return false;
-        }
-
-        if (mLocation != null && mLocation.trim().length() > 0) {
-            return false;
-        }
-
-        if (mDescription != null && mDescription.trim().length() > 0) {
-            return false;
-        }
-
-        return true;
+        return (   (   (mTitle == null)
+                    || (mTitle.trim().length() == 0))
+                && (   (mLocation == null)
+                    || (mLocation.trim().length() == 0))
+                && (   (mDescription == null)
+                    || (mDescription.trim().length() == 0)));
     }
 
     public void clear() {
         mUri = null;
         mId = -1;
-        mCalendarId = -1;
-        mCalendarColor = -1;
-        mCalendarColorInitialized = false;
-
-        mEventColor = -1;
-        mEventColorInitialized = false;
-
-        mSyncId = null;
-        mSyncAccountName = null;
-        mSyncAccountType = null;
-        mOwnerAccount = null;
-
+        mOriginalId = -1;
+        mUid = null;
+        mStart = -1;
+        mTimezoneStart = null;
+        mOriginalStart = -1;
+        mEnd = -1;
+        mTimezoneEnd = null;
+        mOriginalEnd = -1;
+        mDuration = null;
+        mAllDay = false;
+        mRrule = null;
+        mRdate = null;
+        mExdate = null;
+        mIsFirstEventInSeries = true;
         mTitle = null;
         mLocation = null;
         mDescription = null;
-        mRrule = null;
-        mOrganizer = null;
-        mOrganizerDisplayName = null;
-        mIsOrganizer = true;
-        mIsFirstEventInSeries = true;
-
-        mOriginalStart = -1;
-        mStart = -1;
-        mOriginalEnd = -1;
-        mEnd = -1;
-        mDuration = null;
-        mTimezoneStart = null;
-        mTimezoneEnd = null;
-        mAllDay = false;
-        mHasAlarm = false;
-
-        mHasAttendeeData = true;
-        mSelfAttendeeStatus = -1;
-        mOwnerAttendeeId = -1;
-        mOriginalId = -1;
-        mOriginalSyncId = null;
-
-        mGuestsCanModify = false;
-        mGuestsCanInviteOthers = false;
-        mGuestsCanSeeGuests = false;
-        mAccessLevel = 0;
+        mEventColor = -1;
+        mEventColorInitialized = false;
+        mEventColorCache = null;
+        mAccessLevel = Events.ACCESS_DEFAULT;
+        mAvailability = Events.AVAILABILITY_BUSY;
         mEventStatus = Events.STATUS_CONFIRMED;
-        mOrganizerCanRespond = false;
-        mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
-        mModelUpdatedWithEventCursor = false;
+        mCalendarId = -1;
+        mCalendarDisplayName = "";
+        mCalendarColor = -1;
+        mCalendarColorInitialized = false;
         mCalendarAllowedReminders = null;
         mCalendarAllowedAttendeeTypes = null;
         mCalendarAllowedAvailability = null;
-
-        mReminders = new ArrayList<ReminderEntry>();
+        mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
+        mOwnerAccount = null;
+        mGuestsCanInviteOthers = false;
+        mGuestsCanModify = false;
+        mGuestsCanSeeGuests = false;
+        mHasAlarm = false;
+        mReminders = new ArrayList<>();
+        mHasAttendeeData = true;
         mAttendeesList.clear();
+        mIsOrganizer = true;
+        mOrganizer = null;
+        mOrganizerDisplayName = null;
+        mSelfAttendeeStatus = -1;
+        mOwnerAttendeeId = -1;
+        mOrganizerCanRespond = false;
+        mSyncId = null;
+        mOriginalSyncId = null;
+        mSyncAccountName = null;
+        mSyncAccountType = null;
+        mModelUpdatedWithEventCursor = false;
     }
 
     public void addAttendee(Attendee attendee) {
@@ -310,6 +396,8 @@ public class CalendarEventModel implements Serializable {
         }
     }
 
+    // We should be able to delete an attendee, but there is no UI for it yet
+    @SuppressWarnings("unused")
     public void removeAttendee(Attendee attendee) {
         mAttendeesList.remove(attendee.mEmail);
     }
@@ -453,19 +541,14 @@ public class CalendarEventModel implements Serializable {
         }
 
         if (mRrule == null) {
-            if (other.mRrule != null) {
-                return false;
-            }
-        } else if (!mRrule.equals(other.mRrule)) {
-            return false;
-        }
-        return true;
+            return other.mRrule == null;
+        } else return mRrule.equals(other.mRrule);
     }
 
     /**
      * Whether the event has been modified based on its original model.
      *
-     * @param originalModel
+     * @param originalModel the model to compare with
      * @return true if the model is unchanged, false otherwise
      */
     public boolean isUnchanged(CalendarEventModel originalModel) {
@@ -529,18 +612,14 @@ public class CalendarEventModel implements Serializable {
             // if the rrule is no longer empty check if this is an exception
             if (!TextUtils.isEmpty(originalModel.mRrule)) {
                 boolean syncIdNotReferenced = mOriginalSyncId == null
-                        || !mOriginalSyncId.equals(originalModel.mSyncId);
+                    || !mOriginalSyncId.equals(originalModel.mSyncId);
                 boolean localIdNotReferenced = mOriginalId == -1
-                        || !(mOriginalId == originalModel.mId);
-                if (syncIdNotReferenced && localIdNotReferenced) {
-                    return false;
-                }
+                    || !(mOriginalId == originalModel.mId);
+                return !syncIdNotReferenced || !localIdNotReferenced;
+            } else {
+                return true;
             }
-        } else if (!mRrule.equals(originalModel.mRrule)) {
-            return false;
-        }
-
-        return true;
+        } else return mRrule.equals(originalModel.mRrule);
     }
 
     /**
@@ -549,7 +628,7 @@ public class CalendarEventModel implements Serializable {
      * and the new one if nothing in the event was modified. This is also the
      * portion that overlaps with equality between two event models.
      *
-     * @param originalModel
+     * @param originalModel the model to compare with
      * @return true if these fields are unchanged, false otherwise
      */
     protected boolean checkOriginalModelFields(CalendarEventModel originalModel) {
@@ -698,11 +777,7 @@ public class CalendarEventModel implements Serializable {
             return false;
         }
 
-        if (mEventColorInitialized != originalModel.mEventColorInitialized) {
-            return false;
-        }
-
-        return true;
+        return mEventColorInitialized == originalModel.mEventColorInitialized;
     }
 
     /**
@@ -777,18 +852,34 @@ public class CalendarEventModel implements Serializable {
         public String mName;
         public String mEmail;
         public int mStatus;
+        public int mType;
         public String mIdentity;
         public String mIdNamespace;
 
         public Attendee(String name, String email) {
-            this(name, email, Attendees.ATTENDEE_STATUS_NONE, null, null);
+            this(name, email, Attendees.ATTENDEE_STATUS_NONE,
+                Attendees.TYPE_NONE);
         }
 
-        public Attendee(String name, String email, int status, String identity,
-                        String idNamespace) {
+        public Attendee(String name, String email, int status) {
+            this(name, email, status, Attendees.TYPE_NONE);
+        }
+
+        public Attendee(String name, String email, int status, int type) {
+            this(name, email, status, type, null, null);
+        }
+
+        public Attendee(String name, String email, int status,
+                        String identity, String idNamespace) {
+            this(name, email, status, Attendees.TYPE_NONE, identity, idNamespace);
+        }
+
+        public Attendee(String name, String email, int status, int type,
+                        String identity, String idNamespace) {
             mName = name;
             mEmail = email;
             mStatus = status;
+            mType = type;
             mIdentity = identity;
             mIdNamespace = idNamespace;
         }
@@ -807,10 +898,7 @@ public class CalendarEventModel implements Serializable {
                 return false;
             }
             Attendee other = (Attendee) obj;
-            if (!TextUtils.equals(mEmail, other.mEmail)) {
-                return false;
-            }
-            return true;
+            return TextUtils.equals(mEmail, other.mEmail);
         }
 
         String getDisplayName() {
@@ -824,7 +912,6 @@ public class CalendarEventModel implements Serializable {
 
     /**
      * A single reminder entry.
-     * <p/>
      * Instances of the class are immutable.
      */
     public static class ReminderEntry implements Comparable<ReminderEntry>, Serializable {
@@ -883,17 +970,32 @@ public class CalendarEventModel implements Serializable {
                 return false;
             }
 
-            // Treat ALERT and DEFAULT as equivalent.  This is useful during the "has anything
-            // "changed" test, so that if DEFAULT is present, but we don't change anything,
-            // the internal conversion of DEFAULT to ALERT doesn't force a database update.
-            return re.mMethod == mMethod ||
-                    (re.mMethod == Reminders.METHOD_DEFAULT && mMethod == Reminders.METHOD_ALERT) ||
-                    (re.mMethod == Reminders.METHOD_ALERT && mMethod == Reminders.METHOD_DEFAULT);
+            // Treat ALERT and DEFAULT as equivalent.  This is useful during the
+            // "has anything changed" test, so that if DEFAULT is present,
+            // but we don't change anything, the internal conversion of
+            // DEFAULT to ALERT doesn't force a database update.
+            return    (re.mMethod == mMethod)
+                   || (    (re.mMethod == Reminders.METHOD_DEFAULT)
+                        && (mMethod == Reminders.METHOD_ALERT))
+                   || (    (re.mMethod == Reminders.METHOD_ALERT)
+                        && (mMethod == Reminders.METHOD_DEFAULT));
         }
 
+        @NotNull
         @Override
         public String toString() {
-            return "ReminderEntry min=" + mMinutes + " meth=" + mMethod;
+            Resources r = CalendarApplication.getContext().getResources();
+            int[] reminderMethodValues =
+                r.getIntArray(R.array.reminder_methods_values);
+            String[] reminderMethodLabels =
+                r.getStringArray(R.array.reminder_methods_labels);
+            String method = String.valueOf(mMethod);
+            for (int i = 0; i < reminderMethodValues.length; ++i) {
+                if (reminderMethodValues[i] == mMethod) {
+                    method = reminderMethodLabels[i];
+                }
+            }
+            return "ReminderEntry min=" + mMinutes + " meth=" + method;
         }
 
         /**

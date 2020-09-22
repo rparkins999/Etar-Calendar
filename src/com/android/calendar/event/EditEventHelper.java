@@ -314,7 +314,7 @@ public class EditEventHelper {
         }
         Uri uri = null;
         if (model.mUri != null) {
-            uri = Uri.parse(model.mUri);
+            uri = model.mUri;
         }
 
         // Update the "hasAlarm" field for the event
@@ -782,7 +782,7 @@ public class EditEventHelper {
         updateValues.put(Events.RRULE, origRecurrence.toString());
         updateValues.put(Events.DTSTART, dtstart.normalize(true));
         ContentProviderOperation.Builder b =
-                ContentProviderOperation.newUpdate(Uri.parse(originalModel.mUri))
+                ContentProviderOperation.newUpdate(originalModel.mUri)
                 .withValues(updateValues);
         ops.add(b.build());
 

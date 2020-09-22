@@ -927,9 +927,9 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     EditEventHelper.setModelFromCursor(mModel, cursor);
                     cursor.close();
 
-                    mOriginalModel.mUri = mUri.toString();
+                    mOriginalModel.mUri = mUri;
 
-                    mModel.mUri = mUri.toString();
+                    mModel.mUri = mUri;
                     mModel.mOriginalStart = mBegin;
                     mModel.mOriginalEnd = mEnd;
                     mModel.mIsFirstEventInSeries = mBegin == mOriginalModel.mStart;

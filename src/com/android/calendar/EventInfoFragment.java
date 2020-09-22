@@ -431,9 +431,10 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     };
     private CalendarController mController;
 
+    @SuppressLint("ValidFragment")
     public EventInfoFragment(Context context, Uri uri, long startMillis, long endMillis,
-            int attendeeResponse, boolean isDialog, int windowStyle,
-            ArrayList<ReminderEntry> reminders) {
+                             int attendeeResponse, boolean isDialog, int windowStyle,
+                             ArrayList<ReminderEntry> reminders) {
 
         Resources r = context.getResources();
         if (mScale == 0) {

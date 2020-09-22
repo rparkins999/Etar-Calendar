@@ -17,15 +17,23 @@
 package com.android.calendar;
 
 import android.app.Application;
+import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.ViewDetailsPreferences;
 
 public class CalendarApplication extends Application {
+
+    private static Context mContext;
+    public static Context getContext() {
+        return mContext;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
+        mContext = this;
 
         /*
          * Ensure the default values are set for any receiver, activity,
