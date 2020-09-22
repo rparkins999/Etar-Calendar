@@ -23,17 +23,31 @@ import android.content.SharedPreferences;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.ViewDetailsPreferences;
 
+import java.util.LinkedList;
+
 public class CalendarApplication extends Application {
 
+    // Thanks to stackoverflow.com for this trick to enable access to application context
+    // and resources without having to pass a context around all the time.
     private static Context mContext;
     public static Context getContext() {
         return mContext;
     }
 
+    /*
+     * This is a bit sad: we can't pass all the data needed to create a list of
+     * CalendarEventModel's between Activities in an Intent. We could serialize each
+     * CalendarEventModel out to a file and back in again, but this is horribly
+     * inefficient. Instead we keep this static list around. It is empty when we
+     * aren't using it.
+     */
+    public static LinkedList<CalendarEventModel> mEvents;
+
     @Override
     public void onCreate() {
         super.onCreate();
         mContext = this;
+        mEvents = new LinkedList<CalendarEventModel>();
 
         /*
          * Ensure the default values are set for any receiver, activity,
