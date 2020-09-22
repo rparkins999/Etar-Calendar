@@ -28,8 +28,10 @@ import android.util.Log;
 import android.view.MenuItem;
 
 import com.android.calendar.AbstractCalendarActivity;
+import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarController.EventInfo;
+import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
@@ -54,57 +56,26 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private final DynamicTheme dynamicTheme = new DynamicTheme();
 
-    @Override
-    protected void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
-
-        dynamicTheme.onCreate(this);
-        mIntent = getIntent();
-        setContentView(R.layout.simple_frame_layout_material);
-        Toolbar myToolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(myToolbar);
-        EventInfo eventInfo = getEventInfoFromIntent(icicle);
-
-        if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {
-            getSupportActionBar().setDisplayOptions(
-                    ActionBar.DISPLAY_SHOW_TITLE,
-                    ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
-                            | ActionBar.DISPLAY_SHOW_TITLE);
-            getSupportActionBar().setTitle(
-                    eventInfo.id == -1 ? R.string.event_create : R.string.event_edit);
+    private EventInfo getEventInfoFromModel(CalendarEventModel model) {
+        EventInfo eventInfo = new EventInfo();
+        eventInfo.id = model.mId;
+        eventInfo.startTime = eventInfo.selectedTime;
+        eventInfo.endTime = new Time(Time.TIMEZONE_UTC);
+        eventInfo.endTime.set(model.mEnd);
+        eventInfo.eventTitle = model.mTitle;
+        eventInfo.calendarId = model.mCalendarId;
+        if (model.mAllDay) {
+            eventInfo.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
+        } else {
+            eventInfo.extraLong = 0;
         }
-        else {
-            getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
-                    ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME|
-                    ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
-        }
-
-        EditEventFragment editFragment =
-            (EditEventFragment) getFragmentManager().findFragmentById(R.id.body_frame);
-        if (editFragment == null) {
-
-            ArrayList<ReminderEntry> reminders = getReminderEntriesFromIntent();
-            boolean eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
-            int eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
-            boolean readOnly =
-                   (eventInfo.id == -1)
-                && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
-            editFragment = new EditEventFragment(eventInfo, reminders,
-                eventColorInitialized, eventColor, readOnly, mIntent);
-
-            editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
-                    CalendarController.EVENT_EDIT_ON_LAUNCH, false);
-
-            FragmentTransaction ft = getFragmentManager().beginTransaction();
-            ft.replace(R.id.body_frame, editFragment);
-            ft.show(editFragment);
-            ft.commit();
-        }
+        return eventInfo;
     }
 
     @SuppressWarnings("unchecked")
     private ArrayList<ReminderEntry> getReminderEntriesFromIntent() {
-        return (ArrayList<ReminderEntry>) mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
+        return (ArrayList<ReminderEntry>)
+            mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
     }
 
     private EventInfo getEventInfoFromIntent(Bundle icicle) {
@@ -151,6 +122,67 @@ public class EditEventActivity extends AbstractCalendarActivity {
             info.extraLong = 0;
         }
         return info;
+    }
+
+    @Override
+    protected void onCreate(Bundle icicle) {
+        super.onCreate(icicle);
+
+        dynamicTheme.onCreate(this);
+        mIntent = getIntent();
+        setContentView(R.layout.simple_frame_layout_material);
+        Toolbar myToolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(myToolbar);
+
+        EventInfo eventInfo;
+        ArrayList<ReminderEntry> reminders;
+        int eventColor;
+        boolean eventColorInitialized ;
+        CalendarEventModel model = CalendarApplication.mEvents.peekFirst();
+        if (model == null) {
+            eventInfo = getEventInfoFromIntent(icicle);
+            reminders = getReminderEntriesFromIntent();
+            eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
+            eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
+        } else {
+            eventInfo = getEventInfoFromModel(model);
+            reminders = model.mReminders;
+            eventColor = model.mEventColor;
+            eventColorInitialized = model.mEventColorInitialized;
+        }
+
+        if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {
+            getSupportActionBar().setDisplayOptions(
+                    ActionBar.DISPLAY_SHOW_TITLE,
+                    ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
+                            | ActionBar.DISPLAY_SHOW_TITLE);
+            getSupportActionBar().setTitle(
+                    eventInfo.id == -1 ? R.string.event_create : R.string.event_edit);
+        }
+        else {
+            getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
+                    ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME|
+                    ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
+        }
+
+        EditEventFragment editFragment =
+            (EditEventFragment) getFragmentManager().findFragmentById(R.id.body_frame);
+        if (editFragment == null) {
+
+            boolean readOnly =
+                   (eventInfo.id == -1)
+                && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
+            editFragment = new EditEventFragment(eventInfo, reminders,
+                eventColorInitialized, eventColor, readOnly, mIntent);
+
+            editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
+                    CalendarController.EVENT_EDIT_ON_LAUNCH, false);
+
+            FragmentTransaction ft = getFragmentManager().beginTransaction();
+            ft.replace(R.id.body_frame, editFragment);
+            ft.show(editFragment);
+            ft.commit();
+        }
     }
 
     @Override
