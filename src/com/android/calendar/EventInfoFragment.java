@@ -353,7 +353,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
     private TextView mTitle;
     private TextView mWhenDateTime;
     private TextView mWhere;
-    private ExpandableTextView mDesc;
+    private TextView mDesc;
     private AttendeesView mLongAttendees;
     private Button emailAttendeesButton;
     private Menu mMenu = null;
@@ -777,7 +777,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         mTitle = (TextView) mView.findViewById(R.id.title);
         mWhenDateTime = (TextView) mView.findViewById(R.id.when_datetime);
         mWhere = (TextView) mView.findViewById(R.id.where);
-        mDesc = (ExpandableTextView) mView.findViewById(R.id.description);
+        mDesc = mView.findViewById(R.id.description);
         mHeadlines = mView.findViewById(R.id.event_info_headline);
         mLongAttendees = (AttendeesView) mView.findViewById(R.id.long_attendee_list);
 
@@ -1664,7 +1664,7 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
         addFieldToAccessibilityEvent(text, mTitle, null);
         addFieldToAccessibilityEvent(text, mWhenDateTime, null);
         addFieldToAccessibilityEvent(text, mWhere, null);
-        addFieldToAccessibilityEvent(text, null, mDesc);
+        addFieldToAccessibilityEvent(text, mDesc, null);
 
         if (mResponseRadioGroup.getVisibility() == View.VISIBLE) {
             int id = mResponseRadioGroup.getCheckedRadioButtonId();
