@@ -335,7 +335,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private final Paint mSelectionPaint = new Paint();
     private final DismissPopup mDismissPopup = new DismissPopup();
     private final EventLoader mEventLoader;
-    private final ArrayList<Event> mSelectedEvents = new ArrayList<Event>();
+    private final ArrayList<Event> mSelectedEvents = new ArrayList<>();
     private final DeleteEventHelper mDeleteEventHelper;
 
     // only used when logging selection
@@ -3704,6 +3704,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                            : ((e.title == null ? "null title)"
                                                : "\"" + e.title + "\")"))), 1);
         //*/
+        if ((e == null) || (e != mSelectedEvent)) {
+            CalendarApplication.mEvents.clear();
+        }
         mSelectedEvent = e;
         mSelectedEventForAccessibility = e;
         mClickedEvent = null;

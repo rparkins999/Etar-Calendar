@@ -138,17 +138,19 @@ public class EditEventActivity extends AbstractCalendarActivity {
         ArrayList<ReminderEntry> reminders;
         int eventColor;
         boolean eventColorInitialized ;
-        CalendarEventModel model = CalendarApplication.mEvents.peekFirst();
-        if (model == null) {
-            eventInfo = getEventInfoFromIntent(icicle);
-            reminders = getReminderEntriesFromIntent();
-            eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
-            eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
-        } else {
-            eventInfo = getEventInfoFromModel(model);
-            reminders = model.mReminders;
-            eventColor = model.mEventColor;
-            eventColorInitialized = model.mEventColorInitialized;
+        synchronized (CalendarApplication.mEvents) {
+            try {
+                CalendarEventModel model = CalendarApplication.mEvents.remove(0);
+                eventInfo = getEventInfoFromModel(model);
+                reminders = model.mReminders;
+                eventColor = model.mEventColor;
+                eventColorInitialized = model.mEventColorInitialized;
+            } catch (IndexOutOfBoundsException ignore) {
+                eventInfo = getEventInfoFromIntent(icicle);
+                reminders = getReminderEntriesFromIntent();
+                eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
+                eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
+            }
         }
 
         if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {

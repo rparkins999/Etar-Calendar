@@ -66,6 +66,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
 import com.android.calendar.AsyncQueryService;
+import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarController.EventHandler;
 import com.android.calendar.CalendarController.EventInfo;
@@ -153,9 +154,20 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     private boolean mIsPaused = true;
     private boolean mDismissOnResume = false;
     private boolean mDeleteDialogVisible = false;
-    private final Runnable onDeleteRunnable = new Runnable() {
+    public final Runnable onDeleteRunnable = new Runnable() {
         @Override
         public void run() {
+            synchronized (CalendarApplication.mEvents) {
+                /* If we deleted the event, and we got it from
+                 * CalendarApplication.mEvents, remove it from there.
+                 * In theory this could go wrong if there is an event in
+                 * CalendarApplication.mEvents and we deleted one that we
+                 * got from somewhere else, but this shouldn't happen.
+                 */
+                try {
+                    CalendarApplication.mEvents.remove(0);
+                } catch (IndexOutOfBoundsException ignore) { }
+            }
             if (EditEventFragment.this.mIsPaused) {
                 mDismissOnResume = true;
                 return;
