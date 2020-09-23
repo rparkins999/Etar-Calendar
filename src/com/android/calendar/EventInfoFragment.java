@@ -93,8 +93,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.alerts.QuickResponseActivity;
@@ -2062,11 +2061,11 @@ public class EventInfoFragment extends DialogFragment implements OnCheckedChange
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.EVENTS_CHANGED;
+        return ControllerAction.EVENTS_CHANGED;
     }
 
     @Override
-    public void handleEvent(EventInfo event) {
+    public void handleEvent(CalendarController.ActionInfo event) {
         reloadEvents();
     }
 

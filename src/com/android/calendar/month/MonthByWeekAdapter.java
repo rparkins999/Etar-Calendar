@@ -31,7 +31,7 @@ import android.view.ViewGroup;
 import android.widget.AbsListView.LayoutParams;
 
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.Event;
 import com.android.calendar.Utils;
@@ -318,11 +318,11 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
          if (mShowAgendaWithMonth || mIsMiniMonth) {
             // If agenda view is visible with month view , refresh the views
             // with the selected day's info
-            mController.sendEvent(mContext, EventType.GO_TO, day, day, -1,
+            mController.sendEvent(mContext, ControllerAction.GO_TO, day, day, -1,
                     ViewType.CURRENT, CalendarController.EXTRA_GOTO_DATE, null, null);
         } else {
             // Else , switch to the detailed view
-            mController.sendEvent(mContext, EventType.GO_TO, day, day, -1,
+            mController.sendEvent(mContext, ControllerAction.GO_TO, day, day, -1,
                     ViewType.DETAIL,
                             CalendarController.EXTRA_GOTO_DATE
                             | CalendarController.EXTRA_GOTO_BACK_TO_PREVIOUS, null, null);

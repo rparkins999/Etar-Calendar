@@ -24,7 +24,6 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.provider.CalendarContract.Attendees;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -36,10 +35,9 @@ import android.widget.Adapter;
 import android.widget.HeaderViewListAdapter;
 
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ActionInfo;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
-import com.android.calendar.EventInfoFragment;
 import com.android.calendar.StickyHeaderListView;
 import com.android.calendar.Utils;
 import com.android.calendar.event.EditEventFragment;
@@ -76,7 +74,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     private String mQuery;
     private boolean mUsedForSearch = false;
     private boolean mIsTabletConfig;
-    private EventInfo mOnAttachedInfo = null;
+    private ActionInfo mOnAttachedInfo = null;
     private boolean mOnAttachAllDay = false;
     private AgendaWindowAdapter mAdapter = null;
     private boolean mForceReplace = true;
@@ -297,7 +295,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
         mAgendaListView.onPause();
     }
 
-    private void goTo(EventInfo event, boolean animate) {
+    private void goTo(CalendarController.ActionInfo event, boolean animate) {
         if (event.selectedTime != null) {
             mTime.set(event.selectedTime);
         } else if (event.startTime != null) {
@@ -339,12 +337,12 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.GO_TO | EventType.EVENTS_CHANGED | ((mUsedForSearch)?EventType.SEARCH:0);
+        return ControllerAction.GO_TO | ControllerAction.EVENTS_CHANGED | ((mUsedForSearch)? ControllerAction.SEARCH:0);
     }
 
     @Override
-    public void handleEvent(EventInfo event) {
-        if (event.eventType == EventType.GO_TO) {
+    public void handleEvent(CalendarController.ActionInfo event) {
+        if (event.actionType == CalendarController.ControllerAction.GO_TO) {
             // TODO support a range of time
             // TODO support event_id
             // TODO figure out the animate bit
@@ -352,9 +350,9 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
             mLastHandledEventTime =
                     (event.selectedTime != null) ? event.selectedTime : event.startTime;
             goTo(event, true);
-        } else if (event.eventType == EventType.SEARCH) {
+        } else if (event.actionType == ControllerAction.SEARCH) {
             search(event.query, event.startTime);
-        } else if (event.eventType == EventType.EVENTS_CHANGED) {
+        } else if (event.actionType == ControllerAction.EVENTS_CHANGED) {
             eventsChanged();
         }
     }
@@ -364,7 +362,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     }
 
     // Shows the selected event in the Agenda view
-    private void showEventInfo(EventInfo event, boolean allDay, boolean replaceFragment) {
+    private void showEventInfo(ActionInfo event, boolean allDay, boolean replaceFragment) {
 
         // Ignore unknown events
         if (event.id == -1) {
@@ -442,7 +440,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
                     public void run() {
                         Time t = new Time(mTimeZone);
                         t.setJulianDay(mJulianDayOnTop);
-                        mController.sendEvent(this, EventType.UPDATE_TITLE, t, t, null, -1,
+                        mController.sendEvent(this, ControllerAction.UPDATE_TITLE, t, t, null, -1,
                                 ViewType.CURRENT, 0, null, null);
                     }
                 });

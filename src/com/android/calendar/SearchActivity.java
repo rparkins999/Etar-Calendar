@@ -39,8 +39,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ActionInfo;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.event.EditEventActivity;
@@ -179,7 +179,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         search(query, t);
     }
 
-    private void editEvent(EventInfo event) {
+    private void editEvent(ActionInfo event) {
         if (mShowEventDetailsWithAgenda) {
             FragmentManager fragmentManager = getFragmentManager();
             FragmentTransaction ft = fragmentManager.beginTransaction();
@@ -212,14 +212,14 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         suggestions.saveRecentQuery(searchQuery, null);
 
 
-        EventInfo searchEventInfo = new EventInfo();
-        searchEventInfo.eventType = EventType.SEARCH;
-        searchEventInfo.query = searchQuery;
-        searchEventInfo.viewType = ViewType.AGENDA;
+        ActionInfo searchActionInfo = new ActionInfo();
+        searchActionInfo.actionType = ControllerAction.SEARCH;
+        searchActionInfo.query = searchQuery;
+        searchActionInfo.viewType = ViewType.AGENDA;
         if (goToTime != null) {
-            searchEventInfo.startTime = goToTime;
+            searchActionInfo.startTime = goToTime;
         }
-        mController.sendEvent(this, searchEventInfo);
+        mController.sendEvent(this, searchActionInfo);
         mQuery = searchQuery;
         if (mSearchView != null) {
             mSearchView.setQuery(mQuery, false);
@@ -271,12 +271,12 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         if (itemId == R.id.action_today) {
             t = new Time();
             t.setToNow();
-            mController.sendEvent(this, EventType.GO_TO, t, null, -1, ViewType.CURRENT);
+            mController.sendEvent(this, CalendarController.ControllerAction.GO_TO, t, null, -1, ViewType.CURRENT);
             return true;
         } else if (itemId == R.id.action_search) {
             return false;
         } else if (itemId == R.id.action_settings) {
-            mController.sendEvent(this, EventType.LAUNCH_SETTINGS, null, null, 0, 0);
+            mController.sendEvent(this, ControllerAction.LAUNCH_SETTINGS, null, null, 0, 0);
             return true;
         } else if (itemId == android.R.id.home) {
             Utils.returnToCalendarHome(this);
@@ -338,20 +338,20 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
     @Override
     public void eventsChanged() {
-        mController.sendEvent(this, EventType.EVENTS_CHANGED, null, null, -1, ViewType.CURRENT);
+        mController.sendEvent(this, CalendarController.ControllerAction.EVENTS_CHANGED, null, null, -1, ViewType.CURRENT);
     }
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.EDIT_EVENT | EventType.DELETE_EVENT;
+        return ControllerAction.EDIT_EVENT | CalendarController.ControllerAction.DELETE_EVENT;
     }
 
     @Override
-    public void handleEvent(EventInfo event) {
+    public void handleEvent(ActionInfo event) {
         long endTime = (event.endTime == null) ? -1 : event.endTime.toMillis(false);
-        if (event.eventType == EventType.EDIT_EVENT) {
+        if (event.actionType == CalendarController.ControllerAction.EDIT_EVENT) {
             editEvent(event);
-        } else if (event.eventType == EventType.DELETE_EVENT) {
+        } else if (event.actionType == CalendarController.ControllerAction.DELETE_EVENT) {
             deleteEvent(event.id, event.startTime.toMillis(false), endTime);
         }
     }
@@ -364,7 +364,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
     @Override
     public boolean onQueryTextSubmit(String query) {
         mQuery = query;
-        mController.sendEvent(this, EventType.SEARCH, null, null, -1, ViewType.CURRENT, 0, query,
+        mController.sendEvent(this, CalendarController.ControllerAction.SEARCH, null, null, -1, ViewType.CURRENT, 0, query,
                 getComponentName());
         return false;
     }

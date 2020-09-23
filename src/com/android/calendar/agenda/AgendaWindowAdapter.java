@@ -42,7 +42,7 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.StickyHeaderListView;
 import com.android.calendar.Utils;
@@ -567,9 +567,9 @@ public class AgendaWindowAdapter extends BaseAdapter
             Log.d(TAG, "Sent (AgendaWindowAdapter): VIEW EVENT: " + new Date(startTime));
         }
         CalendarController.getInstance(mContext)
-        .sendEventRelatedEventWithExtra(this, EventType.EDIT_EVENT,
+        .sendEventRelatedEventWithExtra(this, ControllerAction.EDIT_EVENT,
                 item.id, startTime, endTime, 0,
-                0, CalendarController.EventInfo.buildViewExtraLong(
+                0, CalendarController.ActionInfo.buildViewExtraLong(
                         Attendees.ATTENDEE_STATUS_NONE,
                         item.allDay), selectedTime);
     }
@@ -620,7 +620,7 @@ public class AgendaWindowAdapter extends BaseAdapter
 
                 Time actualTime = new Time(mTimeZone);
                 actualTime.set(goToTime);
-                CalendarController.getInstance(mContext).sendEvent(this, EventType.UPDATE_TITLE,
+                CalendarController.getInstance(mContext).sendEvent(this, ControllerAction.UPDATE_TITLE,
                         actualTime, actualTime, -1, ViewType.CURRENT);
             }
             return;
@@ -1123,7 +1123,7 @@ public class AgendaWindowAdapter extends BaseAdapter
                             Log.d(TAG, "onQueryComplete: Updating title...");
                         }
                         CalendarController.getInstance(mContext).sendEvent(this,
-                                EventType.UPDATE_TITLE, actualTime, actualTime, -1,
+                                ControllerAction.UPDATE_TITLE, actualTime, actualTime, -1,
                                 ViewType.CURRENT);
                     }
                     if (DEBUGLOG) {

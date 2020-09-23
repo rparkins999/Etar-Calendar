@@ -30,8 +30,8 @@ import android.widget.ProgressBar;
 import android.widget.ViewSwitcher;
 import android.widget.ViewSwitcher.ViewFactory;
 
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ActionInfo;
+import com.android.calendar.CalendarController.ControllerAction;
 
 import ws.xsoh.etar.R;
 
@@ -240,17 +240,17 @@ public class DayFragment extends Fragment implements CalendarController.EventHan
     }
 
     public long getSupportedEventTypes() {
-        return EventType.GO_TO | EventType.EVENTS_CHANGED;
+        return CalendarController.ControllerAction.GO_TO | ControllerAction.EVENTS_CHANGED;
     }
 
-    public void handleEvent(EventInfo msg) {
-        if (msg.eventType == EventType.GO_TO) {
+    public void handleEvent(ActionInfo msg) {
+        if (msg.actionType == ControllerAction.GO_TO) {
 // TODO support a range of time
 // TODO support event_id
 // TODO support select message
             goTo(msg.selectedTime, (msg.extraLong & CalendarController.EXTRA_GOTO_DATE) != 0,
                     (msg.extraLong & CalendarController.EXTRA_GOTO_TODAY) != 0);
-        } else if (msg.eventType == EventType.EVENTS_CHANGED) {
+        } else if (msg.actionType == ControllerAction.EVENTS_CHANGED) {
             eventsChanged();
         }
     }

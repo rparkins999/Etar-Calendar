@@ -32,8 +32,8 @@ import android.widget.ListView;
 
 import com.android.calendar.AsyncQueryService;
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ActionInfo;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.Utils;
 import com.android.calendar.selectcalendars.CalendarColorCache.OnCalendarColorsLoadedListener;
 
@@ -182,11 +182,11 @@ public class SelectVisibleCalendarsFragment extends Fragment
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.EVENTS_CHANGED;
+        return ControllerAction.EVENTS_CHANGED;
     }
 
     @Override
-    public void handleEvent(EventInfo event) {
+    public void handleEvent(ActionInfo event) {
         eventsChanged();
     }
 

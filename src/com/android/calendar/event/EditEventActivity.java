@@ -30,7 +30,7 @@ import android.view.MenuItem;
 import com.android.calendar.AbstractCalendarActivity;
 import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventInfo;
+import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.DynamicTheme;
@@ -56,20 +56,20 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private final DynamicTheme dynamicTheme = new DynamicTheme();
 
-    private EventInfo getEventInfoFromModel(CalendarEventModel model) {
-        EventInfo eventInfo = new EventInfo();
-        eventInfo.id = model.mId;
-        eventInfo.startTime = eventInfo.selectedTime;
-        eventInfo.endTime = new Time(Time.TIMEZONE_UTC);
-        eventInfo.endTime.set(model.mEnd);
-        eventInfo.eventTitle = model.mTitle;
-        eventInfo.calendarId = model.mCalendarId;
+    private CalendarController.ActionInfo getEventInfoFromModel(CalendarEventModel model) {
+        ActionInfo actionInfo = new CalendarController.ActionInfo();
+        actionInfo.id = model.mId;
+        actionInfo.startTime = actionInfo.selectedTime;
+        actionInfo.endTime = new Time(Time.TIMEZONE_UTC);
+        actionInfo.endTime.set(model.mEnd);
+        actionInfo.eventTitle = model.mTitle;
+        actionInfo.calendarId = model.mCalendarId;
         if (model.mAllDay) {
-            eventInfo.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
+            actionInfo.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
         } else {
-            eventInfo.extraLong = 0;
+            actionInfo.extraLong = 0;
         }
-        return eventInfo;
+        return actionInfo;
     }
 
     @SuppressWarnings("unchecked")
@@ -78,8 +78,8 @@ public class EditEventActivity extends AbstractCalendarActivity {
             mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
     }
 
-    private EventInfo getEventInfoFromIntent(Bundle icicle) {
-        EventInfo info = new EventInfo();
+    private ActionInfo getEventInfoFromIntent(Bundle icicle) {
+        ActionInfo info = new ActionInfo();
         long eventId = -1;
         Uri data = mIntent.getData();
         if (icicle != null && icicle.containsKey(BUNDLE_KEY_EVENT_ID)) {
@@ -134,19 +134,19 @@ public class EditEventActivity extends AbstractCalendarActivity {
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
 
-        EventInfo eventInfo;
+        ActionInfo actionInfo;
         ArrayList<ReminderEntry> reminders;
         int eventColor;
         boolean eventColorInitialized ;
         synchronized (CalendarApplication.mEvents) {
             try {
                 CalendarEventModel model = CalendarApplication.mEvents.remove(0);
-                eventInfo = getEventInfoFromModel(model);
+                actionInfo = getEventInfoFromModel(model);
                 reminders = model.mReminders;
                 eventColor = model.mEventColor;
                 eventColorInitialized = model.mEventColorInitialized;
             } catch (IndexOutOfBoundsException ignore) {
-                eventInfo = getEventInfoFromIntent(icicle);
+                actionInfo = getEventInfoFromIntent(icicle);
                 reminders = getReminderEntriesFromIntent();
                 eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
                 eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
@@ -159,7 +159,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
                             | ActionBar.DISPLAY_SHOW_TITLE);
             getSupportActionBar().setTitle(
-                    eventInfo.id == -1 ? R.string.event_create : R.string.event_edit);
+                    actionInfo.id == -1 ? R.string.event_create : R.string.event_edit);
         }
         else {
             getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
@@ -172,9 +172,9 @@ public class EditEventActivity extends AbstractCalendarActivity {
         if (editFragment == null) {
 
             boolean readOnly =
-                   (eventInfo.id == -1)
+                   (actionInfo.id == -1)
                 && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
-            editFragment = new EditEventFragment(eventInfo, reminders,
+            editFragment = new EditEventFragment(actionInfo, reminders,
                 eventColorInitialized, eventColor, readOnly, mIntent);
 
             editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(

@@ -30,7 +30,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.DeleteEventHelper;
 import com.android.calendar.Utils;
 import com.android.calendar.agenda.AgendaAdapter.ViewHolder;
@@ -170,7 +170,7 @@ public class AgendaListView extends ListView implements OnItemClickListener {
     @Override
     public void onItemClick(AdapterView<?> a, View v, int position, long id) {
         if (id != -1) {
-            // Switch to the EventInfo view
+            // Switch to the ActionInfo view
             AgendaItem item = mWindowAdapter.getAgendaItemByPosition(position);
             long oldInstanceId = mWindowAdapter.getSelectedInstanceId();
             mWindowAdapter.setSelectedView(v);
@@ -197,8 +197,8 @@ public class AgendaListView extends ListView implements OnItemClickListener {
                 }
                 mTime.set(startTime);
                 CalendarController controller = CalendarController.getInstance(mContext);
-                controller.sendEventRelatedEventWithExtra(this, EventType.EDIT_EVENT, item.id,
-                        startTime, endTime, 0, 0, CalendarController.EventInfo.buildViewExtraLong(
+                controller.sendEventRelatedEventWithExtra(this, ControllerAction.EDIT_EVENT, item.id,
+                        startTime, endTime, 0, 0, CalendarController.ActionInfo.buildViewExtraLong(
                                 Attendees.ATTENDEE_STATUS_NONE, item.allDay), holderStartTime);
             }
         }

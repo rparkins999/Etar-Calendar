@@ -58,12 +58,12 @@ public class CalendarController {
     public static final int MIN_CALENDAR_WEEK = 0;
     public static final int MAX_CALENDAR_WEEK = 3497; // weeks between 1/1/1970 and 1/1/2037
     /**
-     * Pass to the ExtraLong parameter for EventType.CREATE_EVENT to create
+     * Pass to the ExtraLong parameter for ControllerAction.CREATE_EVENT to create
      * an all-day event
      */
     public static final long EXTRA_CREATE_ALL_DAY = 0x10;
     /**
-     * Pass to the ExtraLong parameter for EventType.GO_TO to signal the time
+     * Pass to the ExtraLong parameter for ControllerAction.GO_TO to signal the time
      * can be ignored
      */
     public static final long EXTRA_GOTO_DATE = 1;
@@ -145,10 +145,10 @@ public class CalendarController {
                                       long endMillis, int x, int y, long selectedMillis) {
         // TODO: pass the real allDay status or at least a status that says we don't know the
         // status and have the receiver query the data.
-        // The current use of this method for VIEW_EVENT is by the day view to show an EventInfo
+        // The current use of this method for VIEW_EVENT is by the day view to show an ActionInfo
         // so currently the missing allDay status has no effect.
         sendEventRelatedEventWithExtra(sender, eventType, eventId, startMillis, endMillis, x, y,
-                EventInfo.buildViewExtraLong(Attendees.ATTENDEE_STATUS_NONE, false),
+                ActionInfo.buildViewExtraLong(Attendees.ATTENDEE_STATUS_NONE, false),
                 selectedMillis);
     }
 
@@ -156,7 +156,7 @@ public class CalendarController {
      * Helper for sending New/View/Edit/Delete events
      *
      * @param sender object of the caller
-     * @param eventType one of {@link EventType}
+     * @param eventType one of {@link ControllerAction}
      * @param eventId event id
      * @param startMillis start time
      * @param endMillis end time
@@ -176,7 +176,7 @@ public class CalendarController {
      * Helper for sending New/View/Edit/Delete events
      *
      * @param sender object of the caller
-     * @param eventType one of {@link EventType}
+     * @param eventType one of {@link ControllerAction}
      * @param eventId event id
      * @param startMillis start time
      * @param endMillis end time
@@ -191,9 +191,9 @@ public class CalendarController {
     public void sendEventRelatedEventWithExtraWithTitleWithCalendarId(Object sender, long eventType,
                                                                       long eventId, long startMillis, long endMillis, int x, int y, long extraLong,
                                                                       long selectedMillis, String title, long calendarId) {
-        EventInfo info = new EventInfo();
-        info.eventType = eventType;
-        if (eventType == EventType.EDIT_EVENT) {
+        ActionInfo info = new ActionInfo();
+        info.actionType = eventType;
+        if (eventType == ControllerAction.EDIT_EVENT) {
             info.viewType = ViewType.CURRENT;
         }
 
@@ -220,7 +220,7 @@ public class CalendarController {
      * Helper for sending non-calendar-event events
      *
      * @param sender    object of the caller
-     * @param eventType one of {@link EventType}
+     * @param eventType one of {@link ControllerAction}
      * @param start     start time
      * @param end       end time
      * @param eventId   event id
@@ -243,8 +243,8 @@ public class CalendarController {
 
     public void sendEvent(Object sender, long eventType, Time start, Time end, Time selected,
                           long eventId, int viewType, long extraLong, String query, ComponentName componentName) {
-        EventInfo info = new EventInfo();
-        info.eventType = eventType;
+        ActionInfo info = new ActionInfo();
+        info.actionType = eventType;
         info.startTime = start;
         info.selectedTime = selected;
         info.endTime = end;
@@ -256,7 +256,7 @@ public class CalendarController {
         this.sendEvent(sender, info);
     }
 
-    public void sendEvent(Object sender, final EventInfo event) {
+    public void sendEvent(Object sender, final ActionInfo event) {
         // TODO Throw exception on invalid events
 
         if (DEBUG) {
@@ -264,7 +264,7 @@ public class CalendarController {
         }
 
         Long filteredTypes = filters.get(sender);
-        if (filteredTypes != null && (filteredTypes.longValue() & event.eventType) != 0) {
+        if (filteredTypes != null && (filteredTypes.longValue() & event.actionType) != 0) {
             // Suppress event per filter
             if (DEBUG) {
                 Log.d(TAG, "Event suppressed");
@@ -318,7 +318,7 @@ public class CalendarController {
             event.selectedTime = mTime;
         }
         // Store the formatting flags if this is an update to the title
-        if (event.eventType == EventType.UPDATE_TITLE) {
+        if (event.actionType == ControllerAction.UPDATE_TITLE) {
             mDateFlags = event.extraLong;
         }
 
@@ -335,7 +335,7 @@ public class CalendarController {
         }
 
         // Store the eventId if we're entering edit event
-        if ((event.eventType & (EventType.CREATE_EVENT | EventType.EDIT_EVENT)) != 0) {
+        if ((event.actionType & (ControllerAction.CREATE_EVENT | ControllerAction.EDIT_EVENT)) != 0) {
             if (event.id > 0) {
                 mEventId = event.id;
             } else {
@@ -354,7 +354,7 @@ public class CalendarController {
             if (mFirstEventHandler != null) {
                 // Handle the 'first' one before handling the others
                 EventHandler handler = mFirstEventHandler.second;
-                if (handler != null && (handler.getSupportedEventTypes() & event.eventType) != 0
+                if (handler != null && (handler.getSupportedEventTypes() & event.actionType) != 0
                         && !mToBeRemovedEventHandlers.contains(mFirstEventHandler.first)) {
                     handler.handleEvent(event);
                     handled = true;
@@ -370,7 +370,7 @@ public class CalendarController {
                 }
                 EventHandler eventHandler = entry.getValue();
                 if (eventHandler != null
-                        && (eventHandler.getSupportedEventTypes() & event.eventType) != 0) {
+                        && (eventHandler.getSupportedEventTypes() & event.actionType) != 0) {
                     if (mToBeRemovedEventHandlers.contains(key)) {
                         continue;
                     }
@@ -408,25 +408,25 @@ public class CalendarController {
 
         if (!handled) {
             // Launch Settings
-            if (event.eventType == EventType.LAUNCH_SETTINGS) {
+            if (event.actionType == ControllerAction.LAUNCH_SETTINGS) {
                 launchSettings();
                 return;
             }
 
             // Create/View/Edit/Delete Event
             long endTime = (event.endTime == null) ? -1 : event.endTime.toMillis(false);
-            if (event.eventType == EventType.CREATE_EVENT) {
+            if (event.actionType == ControllerAction.CREATE_EVENT) {
                 launchCreateEvent(event.startTime.toMillis(false), endTime,
                         event.extraLong == EXTRA_CREATE_ALL_DAY, event.eventTitle,
                         event.calendarId);
                 return;
-            } else if (event.eventType == EventType.EDIT_EVENT) {
+            } else if (event.actionType == ControllerAction.EDIT_EVENT) {
                 launchEditEvent(event.id, event.startTime.toMillis(false), endTime, true);
                 return;
-            } else if (event.eventType == EventType.DELETE_EVENT) {
+            } else if (event.actionType == ControllerAction.DELETE_EVENT) {
                 launchDeleteEvent(event.id, event.startTime.toMillis(false), endTime);
                 return;
-            } else if (event.eventType == EventType.SEARCH) {
+            } else if (event.actionType == ControllerAction.SEARCH) {
                 launchSearch(event.id, event.query, event.componentName);
                 return;
             }
@@ -510,7 +510,7 @@ public class CalendarController {
 
     /**
      * @return the last set of date flags sent with
-     * {@link EventType#UPDATE_TITLE}
+     * {@link ControllerAction#UPDATE_TITLE}
      */
     public long getDateFlags() {
         return mDateFlags;
@@ -638,51 +638,51 @@ public class CalendarController {
         }
     }
 
-    private String eventInfoToString(EventInfo eventInfo) {
+    private String eventInfoToString(ActionInfo actionInfo) {
         String tmp = "Unknown";
 
         StringBuilder builder = new StringBuilder();
-        if ((eventInfo.eventType & EventType.GO_TO) != 0) {
+        if ((actionInfo.actionType & ControllerAction.GO_TO) != 0) {
             tmp = "Go to time/event";
-        } else if ((eventInfo.eventType & EventType.CREATE_EVENT) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.CREATE_EVENT) != 0) {
             tmp = "New event";
-        } else if ((eventInfo.eventType & EventType.EDIT_EVENT) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.EDIT_EVENT) != 0) {
             tmp = "Edit event";
-        } else if ((eventInfo.eventType & EventType.DELETE_EVENT) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.DELETE_EVENT) != 0) {
             tmp = "Delete event";
-        } else if ((eventInfo.eventType & EventType.LAUNCH_SETTINGS) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.LAUNCH_SETTINGS) != 0) {
             tmp = "Launch settings";
-        } else if ((eventInfo.eventType & EventType.EVENTS_CHANGED) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.EVENTS_CHANGED) != 0) {
             tmp = "Refresh events";
-        } else if ((eventInfo.eventType & EventType.SEARCH) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.SEARCH) != 0) {
             tmp = "Search";
-        } else if ((eventInfo.eventType & EventType.USER_HOME) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.USER_HOME) != 0) {
             tmp = "Gone home";
-        } else if ((eventInfo.eventType & EventType.UPDATE_TITLE) != 0) {
+        } else if ((actionInfo.actionType & ControllerAction.UPDATE_TITLE) != 0) {
             tmp = "Update title";
         }
         builder.append(tmp);
         builder.append(": id=");
-        builder.append(eventInfo.id);
+        builder.append(actionInfo.id);
         builder.append(", selected=");
-        builder.append(eventInfo.selectedTime);
+        builder.append(actionInfo.selectedTime);
         builder.append(", start=");
-        builder.append(eventInfo.startTime);
+        builder.append(actionInfo.startTime);
         builder.append(", end=");
-        builder.append(eventInfo.endTime);
+        builder.append(actionInfo.endTime);
         builder.append(", viewType=");
-        builder.append(eventInfo.viewType);
+        builder.append(actionInfo.viewType);
         builder.append(", x=");
-        builder.append(eventInfo.x);
+        builder.append(actionInfo.x);
         builder.append(", y=");
-        builder.append(eventInfo.y);
+        builder.append(actionInfo.y);
         return builder.toString();
     }
 
     /**
      * One of the event types that are sent to or from the controller
      */
-    public interface EventType {
+    public interface ControllerAction {
         final long CREATE_EVENT = 1L;
 
         // full detail view in edit mode
@@ -722,7 +722,7 @@ public class CalendarController {
     public interface EventHandler {
         long getSupportedEventTypes();
 
-        void handleEvent(EventInfo event);
+        void handleEvent(ActionInfo event);
 
         /**
          * This notifies the handler that the database has changed and it should
@@ -731,16 +731,16 @@ public class CalendarController {
         void eventsChanged();
     }
 
-    public static class EventInfo {
+    public static class ActionInfo {
 
-        private static final long ATTENTEE_STATUS_MASK = 0xFF;
+        private static final long ATTENDEE_STATUS_MASK = 0xFF;
         private static final long ALL_DAY_MASK = 0x100;
         private static final int ATTENDEE_STATUS_NONE_MASK = 0x01;
         private static final int ATTENDEE_STATUS_ACCEPTED_MASK = 0x02;
         private static final int ATTENDEE_STATUS_DECLINED_MASK = 0x04;
         private static final int ATTENDEE_STATUS_TENTATIVE_MASK = 0x08;
 
-        public long eventType; // one of the EventType
+        public long actionType; // one of the ControllerAction's
         public int viewType; // one of the ViewType
         public long id; // event id
         public Time selectedTime; // the selected time in focus
@@ -759,16 +759,16 @@ public class CalendarController {
         public long calendarId;
 
         /**
-         * For EventType.CREATE_EVENT:
+         * For ControllerAction.CREATE_EVENT:
          * Set to {@link #EXTRA_CREATE_ALL_DAY} for creating an all-day event.
          * <p/>
-         * For EventType.GO_TO:
+         * For ControllerAction.GO_TO:
          * Set to {@link #EXTRA_GOTO_TIME} to go to the specified date/time.
          * Set to {@link #EXTRA_GOTO_DATE} to consider the date but ignore the time.
          * Set to {@link #EXTRA_GOTO_BACK_TO_PREVIOUS} if back should bring back previous view.
          * Set to {@link #EXTRA_GOTO_TODAY} if this is a user request to go to the current time.
          * <p/>
-         * For EventType.UPDATE_TITLE:
+         * For ControllerAction.UPDATE_TITLE:
          * Set formatting flags for Utils.formatDateRange
          */
         public long extraLong;

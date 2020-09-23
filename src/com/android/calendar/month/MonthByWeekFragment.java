@@ -46,8 +46,7 @@ import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
@@ -410,12 +409,12 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.GO_TO | EventType.EVENTS_CHANGED;
+        return CalendarController.ControllerAction.GO_TO | CalendarController.ControllerAction.EVENTS_CHANGED;
     }
 
     @Override
-    public void handleEvent(EventInfo event) {
-        if (event.eventType == EventType.GO_TO) {
+    public void handleEvent(CalendarController.ActionInfo event) {
+        if (event.actionType == ControllerAction.GO_TO) {
             boolean animate = true;
             if (mDaysPerWeek * mNumWeeks * 2 < Math.abs(
                     Time.getJulianDay(event.selectedTime.toMillis(true), event.selectedTime.gmtoff)
@@ -438,7 +437,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
                     }
                 }, delayAnimation ? GOTO_SCROLL_DURATION : 0);
             }
-        } else if (event.eventType == EventType.EVENTS_CHANGED) {
+        } else if (event.actionType == CalendarController.ControllerAction.EVENTS_CHANGED) {
             eventsChanged();
         }
     }
@@ -467,7 +466,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
                 long offset = useSelected ? 0 : DateUtils.WEEK_IN_MILLIS * mNumWeeks / 3;
                 controller.setTime(newTime + offset);
             }
-            controller.sendEvent(this, EventType.UPDATE_TITLE, time, time, time, -1,
+            controller.sendEvent(this, CalendarController.ControllerAction.UPDATE_TITLE, time, time, time, -1,
                     ViewType.CURRENT, DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_NO_MONTH_DAY
                             | DateUtils.FORMAT_SHOW_YEAR, null, null);
         }

@@ -69,8 +69,7 @@ import com.android.calendar.AsyncQueryService;
 import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarController.EventHandler;
-import com.android.calendar.CalendarController.EventInfo;
-import com.android.calendar.CalendarController.EventType;
+import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
@@ -119,7 +118,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     private static final int TOKEN_ALL = TOKEN_EVENT | TOKEN_ATTENDEES | TOKEN_REMINDERS
             | TOKEN_CALENDARS | TOKEN_COLORS;
     private static final int TOKEN_UNITIALIZED = 1 << 31;
-    private final EventInfo mEvent;
+    private final CalendarController.ActionInfo mEvent;
     private final Done mOnDone = new Done();
     private final Intent mIntent;
     public boolean mShowModifyDialogOnLaunch = false;
@@ -228,7 +227,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     }
 
     @SuppressLint("ValidFragment")
-    public EditEventFragment(EventInfo event, ArrayList<ReminderEntry> reminders,
+    public EditEventFragment(ActionInfo event, ArrayList<ReminderEntry> reminders,
                              boolean eventColorInitialized, int eventColor,
                              boolean readOnly, Intent intent) {
         mEvent = event;
@@ -869,15 +868,15 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
 
     @Override
     public long getSupportedEventTypes() {
-        return EventType.USER_HOME;
+        return CalendarController.ControllerAction.USER_HOME;
     }
 
     @Override
-    public void handleEvent(EventInfo event) {
+    public void handleEvent(CalendarController.ActionInfo event) {
         // It's currently unclear if we want to save the event or not when home
         // is pressed. When creating a new event we shouldn't save since we
         // can't get the id of the new event easily.
-        if ((false && event.eventType == EventType.USER_HOME) || (event.eventType == EventType.GO_TO
+        if ((false && event.actionType == CalendarController.ControllerAction.USER_HOME) || (event.actionType == CalendarController.ControllerAction.GO_TO
                 && mSaveOnDetach)) {
             if (mView != null && mView.prepareForSave()) {
                 mOnDone.setDoneCode(Utils.DONE_SAVE);

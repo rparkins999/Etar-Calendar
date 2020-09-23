@@ -285,7 +285,7 @@ class CalendarAppWidgetModel {
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
-            builder.append("EventInfo [visibTitle=");
+            builder.append("ActionInfo [visibTitle=");
             builder.append(visibTitle);
             builder.append(", title=");
             builder.append(title);

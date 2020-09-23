@@ -42,7 +42,6 @@ import android.widget.Toast;
 
 import com.android.calendar.AsyncQueryService;
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventType;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.Utils;
 import com.android.calendar.settings.GeneralPreferences;
@@ -146,7 +145,7 @@ public class CreateEventDlgFragment extends DialogFragment implements TextWatche
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             mController.sendEventRelatedEventWithExtraWithTitleWithCalendarId(this,
-                                    EventType.CREATE_EVENT, -1, mDateInMillis,
+                                    CalendarController.ControllerAction.CREATE_EVENT, -1, mDateInMillis,
                                     mDateInMillis + -1, 0, 0,
                                     CalendarController.EXTRA_CREATE_ALL_DAY, -1,
                                     mEventTitle.getText().toString(),
