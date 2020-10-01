@@ -744,18 +744,19 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         CalendarEventModel model = mModel;
         Resources r = mActivity.getResources();
 
-        // Load the labels and corresponding numeric values for the minutes and methods lists
-        // from the assets.  If we're switching calendars, we need to clear and re-populate the
-        // lists (which may have elements added and removed based on calendar properties).  This
-        // is mostly relevant for "methods", since we shouldn't have any "minutes" values in a
-        // new event that aren't in the default set.
+        // Load the labels and corresponding numeric values for the minutes and methods
+        // lists from the assets.  If we're switching calendars, we need to clear and
+        // re-populate the lists (which may have elements added and removed based on
+        // calendar properties). This is mostly relevant for "methods", since we shouldn't
+        // have any "minutes" values in a new event that aren't in the default set.
         mReminderMinuteValues = loadIntegerArray(r, R.array.reminder_minutes_values);
         mReminderMinuteLabels = loadStringArray(r, R.array.reminder_minutes_labels);
         mReminderMethodValues = loadIntegerArray(r, R.array.reminder_methods_values);
         mReminderMethodLabels = loadStringArray(r, R.array.reminder_methods_labels);
 
         // Remove any reminder methods that aren't allowed for this calendar.  If this is
-        // a new event, mCalendarAllowedReminders may not be set the first time we're called.
+        // a new event, mCalendarAllowedReminders may not be set
+        // the first time we're called.
         if (mModel.mCalendarAllowedReminders != null) {
             EventViewUtils.reduceMethodList(mReminderMethodValues, mReminderMethodLabels,
                     mModel.mCalendarAllowedReminders);
@@ -773,9 +774,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 }
             }
 
-            // Create a UI element for each reminder.  We display all of the reminders we get
-            // from the provider, even if the count exceeds the calendar maximum.  (Also, for
-            // a new event, we won't have a maxReminders value available.)
+            // Create a UI element for each reminder.  We display all of the reminders
+            // we get from the provider, even if the count exceeds the calendar maximum.
+            // (Also, for a new event, we won't have a maxReminders value available.)
+            //FIXME Why don't we set up a reminderChangedListener
             mUnsupportedReminders.clear();
             for (ReminderEntry re : reminders) {
                 if (mReminderMethodValues.contains(re.getMethod())
@@ -1481,8 +1483,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         mModel.mCalendarId = calendarId;
         mModel.setCalendarColor(displayColor);
-        mModel.mCalendarAccountName = c.getString(EditEventHelper.CALENDARS_INDEX_ACCOUNT_NAME);
-        mModel.mCalendarAccountType = c.getString(EditEventHelper.CALENDARS_INDEX_ACCOUNT_TYPE);
+        mModel.mCalendarAccountName
+            = c.getString(EditEventHelper.CALENDARS_INDEX_ACCOUNT_NAME);
+        mModel.mCalendarAccountType
+            = c.getString(EditEventHelper.CALENDARS_INDEX_ACCOUNT_TYPE);
         mModel.setEventColor(mModel.getCalendarColor());
 
         setColorPickerButtonStates(mModel.getCalendarEventColors());
@@ -1492,16 +1496,24 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mModel.mCalendarMaxReminders = c.getInt(maxRemindersColumn);
         int allowedRemindersColumn = c.getColumnIndexOrThrow(Calendars.ALLOWED_REMINDERS);
         mModel.mCalendarAllowedReminders = c.getString(allowedRemindersColumn);
-        int allowedAttendeeTypesColumn = c.getColumnIndexOrThrow(Calendars.ALLOWED_ATTENDEE_TYPES);
+        int allowedAttendeeTypesColumn
+            = c.getColumnIndexOrThrow(Calendars.ALLOWED_ATTENDEE_TYPES);
         mModel.mCalendarAllowedAttendeeTypes = c.getString(allowedAttendeeTypesColumn);
-        int allowedAvailabilityColumn = c.getColumnIndexOrThrow(Calendars.ALLOWED_AVAILABILITY);
+        int allowedAvailabilityColumn
+            = c.getColumnIndexOrThrow(Calendars.ALLOWED_AVAILABILITY);
         mModel.mCalendarAllowedAvailability = c.getString(allowedAvailabilityColumn);
 
-        // Discard the current reminders and replace them with the model's default reminder set.
-        // We could attempt to save & restore the reminders that have been added, but that's
-        // probably more trouble than it's worth.
-        mModel.mReminders.clear();
-        mModel.mReminders.addAll(mModel.mDefaultReminders);
+        if (mModel.mReminders.size() == 0) {
+            mModel.mReminders = mModel.cloneReminders(mModel.mDefaultReminders);
+        }
+        for (ReminderEntry entry : mModel.mReminders) {
+            EventViewUtils.addReminder(mActivity, mScrollView,
+                this, mReminderItems,
+                mReminderMinuteValues, mReminderMinuteLabels,
+                mReminderMethodValues, mReminderMethodLabels,
+                ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()),
+                mModel.mCalendarMaxReminders, null);
+        }
         mModel.mHasAlarm = mModel.mReminders.size() != 0;
 
         // Update the UI elements.

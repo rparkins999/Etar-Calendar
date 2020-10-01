@@ -19,10 +19,9 @@ package com.android.calendar.icalendar;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
-import android.provider.CalendarContract;
+import android.os.Build;
 import android.system.ErrnoException;
 import android.system.OsConstants;
-import com.android.calendar.CalendarEventModel;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -45,24 +44,11 @@ public class IcalendarUtils {
 
     private static final String INVITE_FILE_NAME = "invite";
 
-    public static String uncleanseString(CharSequence sequence) {
-        if (sequence == null) return null;
-        String input = sequence.toString();
-
-        // reintroduce new lines with the literal '\n'
-        input = input.replaceAll("\\\\n", "\n");
-        // reintroduce semicolons and commas
-        input = input.replaceAll("\\\\;", ";");
-        input = input.replaceAll("\\\\\\,", ",");
-
-        return input;
-    }
-
     /**
      * Ensure the string conforms to the iCalendar encoding requirements
      * Escape line breaks, commas and semicolons
-     * @param sequence
-     * @return
+     * @param sequence a charsequence to encode
+     * @return the encoded charsequence as a String
      */
     public static String cleanseString(CharSequence sequence) {
         if (sequence == null) return null;
@@ -81,8 +67,8 @@ public class IcalendarUtils {
      * Creates an empty temporary file in the given directory using the given
      * prefix and suffix as part of the file name. If {@code suffix} is null, {@code .tmp} is used.
      *
-     * <p>Note that this method does <i>not</i> call {@link #deleteOnExit}, but see the
-     * documentation for that method before you call it manually.
+     * <p>Note that this method does <i>not</i> call {@link File#deleteOnExit},
+     * but see the documentation for that method before you call it manually.
      *
      * @param prefix
      *            the prefix to the temp file name.
@@ -109,20 +95,17 @@ public class IcalendarUtils {
         if (suffix == null) {
             suffix = ".tmp";
         }
-        File tmpDirFile = directory;
-        if (tmpDirFile == null) {
-            String tmpDir = System.getProperty("java.io.tmpdir", ".");
-            tmpDirFile = new File(tmpDir);
-        }
         File result = null;
         try {
-            result = File.createTempFile(prefix, suffix, tmpDirFile);
+            result = File.createTempFile(prefix, suffix, directory);
         } catch (IOException ioe) {
-            if (ioe.getCause() instanceof ErrnoException) {
-                if (((ErrnoException) ioe.getCause()).errno == OsConstants.ENAMETOOLONG) {
-                    // This is a recoverable error the file name was too long,
-                    // lets go for a smaller file name
-                    result = File.createTempFile(INVITE_FILE_NAME, suffix, tmpDirFile);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                if (ioe.getCause() instanceof ErrnoException) {
+                    if (((ErrnoException) ioe.getCause()).errno == OsConstants.ENAMETOOLONG) {
+                        // This is a recoverable error the file name was too long,
+                        // lets go for a smaller file name
+                        result = File.createTempFile(INVITE_FILE_NAME, suffix, directory);
+                    }
                 }
             }
         }
@@ -161,16 +144,27 @@ public class IcalendarUtils {
             return null;
         }
 
-        ArrayList<String> result = new ArrayList<String>();
+        ArrayList<String> result = new ArrayList<>();
 
         try {
+            // read file, removing RFC5545 line folding
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String previous = null;
             String line;
             while ((line = reader.readLine()) != null) {
-                result.add(line);
+                if (previous == null) {
+                    previous = line;
+                } else if (line.startsWith(" ") || line.startsWith("\t")) {
+                    // line starts with space or tab, fold
+                    previous = previous + line.substring(1);
+                } else {
+                    result.add(previous);
+                    previous = line;
+                }
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            if (previous != null) {
+                result.add(previous);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -179,100 +173,73 @@ public class IcalendarUtils {
 
     /**
      * Stringify VCalendar object and write to file
-     * @param calendar
-     * @param file
+     * @param calendar a VCalendar object
+     * @param file the file to write it to
      * @return success status of the file write operation
      */
     public static boolean writeCalendarToFile(VCalendar calendar, File file) {
         if (calendar == null || file == null) return false;
         String icsFormattedString = calendar.getICalFormattedString();
-        FileOutputStream outStream = null;
+        FileOutputStream outStream;
         try {
             outStream = new FileOutputStream(file);
             outStream.write(icsFormattedString.getBytes());
+            outStream.close();
         } catch (IOException e) {
             return false;
-        } finally {
-            try {
-                if (outStream != null) outStream.close();
-            } catch (IOException ioe) {
-                return false;
-            }
         }
         return true;
     }
 
     /**
-     * Formats the given input to adhere to the iCal line length and formatting requirements
-     * @param input
-     * @return
+     * RFC 5545 limits line length to 75 characters including the newline:
+     * A long content line can be "folded" by inserting a newline followed by
+     * a space (as many times as required). This sequence must be removed
+     * again by any receiving decoder.
+     * Note that this must *not* be called on an already folded text,
+     * since it will treat the inserted newlines and spaces as real.
+     * @param input A StringBuilder containing lines which may be too long
+     * @return A StringBuilder whose content satisfies RFC5545 requirements
      */
     public static StringBuilder enforceICalLineLength(StringBuilder input) {
         final int sPermittedLineLength = 75; // Line length mandated by iCalendar format
 
-        if (input == null) return null;
         StringBuilder output = new StringBuilder();
         int length = input.length();
 
-        // Bail if no work needs to be done
-        if (length <= sPermittedLineLength) {
-            return input;
-        }
-
-        for (int i = 0, currentLineLength = 0; i < length; i++) {
+        boolean justHadNewline = false;
+        int currentLineLength = 0;
+        for (int i = 0; i < length; i++) {
             char currentChar = input.charAt(i);
-            if (currentChar == '\n') {          // New line encountered
+            if (currentChar == '\n') {
+                // A real newline
                 output.append(currentChar);
-                currentLineLength = 0;          // Reset char counter
-
-            } else if (currentChar != '\n' && currentLineLength <= sPermittedLineLength) {
+                currentLineLength = 0; // Reset char counter
+                justHadNewline = true;
+            } else if (   (currentLineLength >= sPermittedLineLength)
+                       || (   justHadNewline
+                           && ((currentChar == ' ') || (currentChar == '\t'))))
+            {
+                // We need to break the line and insert a newline and a space,
+                // either because we've reached the permitted line length
+                // or because we have the tricky case where a real newline
+                // is followed by a space or tab.
+                // Since we don't want the receiving decoder to ignore a real newline,
+                // we need to insert another newline and space to separate
+                // the following space or tab from it.
+                output.append("\n ");
+                output.append(currentChar);
+                currentLineLength = 2; // Already has 2 chars: space and currentChar
+                justHadNewline = false;
+            } else {
                 // A non-newline char that can be part of the current line
                 output.append(currentChar);
                 currentLineLength++;
-
-            } else if (currentLineLength > sPermittedLineLength) {
-                // Need to branch out to a new line
-                // Add a new line and a space - iCal requirement
-                output.append("\n ");
-                output.append(currentChar);
-                currentLineLength = 2;          // Already has 2 chars: space and currentChar
+                justHadNewline = false;
             }
         }
 
         return output;
-    }
-
-    /**
-     * Create an iCal Attendee with properties from CalendarModel attendee
-     *
-     * @param attendee
-     * @param event
-     */
-    public static void addAttendeeToEvent(CalendarEventModel.Attendee attendee, VEvent event) {
-        if (attendee == null || event == null) return;
-        Attendee vAttendee = new Attendee();
-        vAttendee.addProperty(Attendee.CN, attendee.mName);
-
-        String participationStatus;
-        switch (attendee.mStatus) {
-            case CalendarContract.Attendees.ATTENDEE_STATUS_ACCEPTED:
-                participationStatus = "ACCEPTED";
-                break;
-            case CalendarContract.Attendees.ATTENDEE_STATUS_DECLINED:
-                participationStatus = "DECLINED";
-                break;
-            case CalendarContract.Attendees.ATTENDEE_STATUS_TENTATIVE:
-                participationStatus = "TENTATIVE";
-                break;
-            case CalendarContract.Attendees.ATTENDEE_STATUS_NONE:
-            default:
-                participationStatus = "NEEDS-ACTION";
-                break;
-        }
-        vAttendee.addProperty(Attendee.PARTSTAT, participationStatus);
-        vAttendee.mEmail = attendee.mEmail;
-
-        event.addAttendee(vAttendee);
     }
 
     /**
@@ -281,7 +248,7 @@ public class IcalendarUtils {
      *
      * @param millis in epoch time
      * @param timeZone indicates the time zone of the input epoch time
-     * @return
+     * @return String containing iCalendar formatted UTC date-time
      */
     public static String getICalFormattedDateTime(long millis, String timeZone) {
         if (millis < 0) return null;
@@ -292,21 +259,16 @@ public class IcalendarUtils {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         String dateTime = simpleDateFormat.format(calendar.getTime());
-        StringBuilder output = new StringBuilder(16);
 
         // iCal UTC date format: <yyyyMMdd>T<HHmmss>Z
-        return output.append(dateTime.subSequence(0,8))
-                .append("T")
-                .append(dateTime.substring(8))
-                .append("Z")
-                .toString();
+        return dateTime.subSequence(0, 8) + "T" + dateTime.substring(8) + "Z";
     }
 
     /**
      * Converts the time in a local time zone to UTC time
      * @param millis epoch time in the local timezone
      * @param localTimeZone string id of the local time zone
-     * @return
+     * @return UTC time in a long
      */
     public static long convertTimeToUtc(long millis, String localTimeZone) {
         if (millis < 0) return 0;

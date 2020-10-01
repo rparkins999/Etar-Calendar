@@ -76,9 +76,7 @@ import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.DeleteEventHelper;
 import com.android.calendar.Utils;
 import com.android.calendar.icalendar.IcalendarUtils;
-import com.android.calendar.icalendar.Organizer;
 import com.android.calendar.icalendar.VCalendar;
-import com.android.calendar.icalendar.VEvent;
 import com.android.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
 import com.android.colorpicker.HsvColorComparator;
 
@@ -117,7 +115,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
 
     private static final int TOKEN_ALL = TOKEN_EVENT | TOKEN_ATTENDEES | TOKEN_REMINDERS
             | TOKEN_CALENDARS | TOKEN_COLORS;
-    private static final int TOKEN_UNITIALIZED = 1 << 31;
+    private static final int TOKEN_UNINITIALIZED = 1 << 31;
     private final CalendarController.ActionInfo mEvent;
     private final Done mOnDone = new Done();
     private final Intent mIntent;
@@ -134,7 +132,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
      * yet. Once all queries have returned, the model can be applied to the
      * view.
      */
-    private int mOutstandingQueries = TOKEN_UNITIALIZED;
+    private int mOutstandingQueries = TOKEN_UNINITIALIZED;
     private AlertDialog mModifyDialog;
     private EventBundle mEventBundle;
     private ArrayList<ReminderEntry> mReminders;
@@ -156,17 +154,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     public final Runnable onDeleteRunnable = new Runnable() {
         @Override
         public void run() {
-            synchronized (CalendarApplication.mEvents) {
-                /* If we deleted the event, and we got it from
-                 * CalendarApplication.mEvents, remove it from there.
-                 * In theory this could go wrong if there is an event in
-                 * CalendarApplication.mEvents and we deleted one that we
-                 * got from somewhere else, but this shouldn't happen.
-                 */
-                try {
-                    CalendarApplication.mEvents.remove(0);
-                } catch (IndexOutOfBoundsException ignore) { }
-            }
             if (EditEventFragment.this.mIsPaused) {
                 mDismissOnResume = true;
                 return;
@@ -277,38 +264,58 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         mUri = null;
         mBegin = -1;
         mEnd = -1;
-        if (mEvent != null) {
-            if (mEvent.id != -1) {
-                mModel.mId = mEvent.id;
-                mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mEvent.id);
-            } else {
-                // New event. All day?
-                mModel.mAllDay = mEvent.extraLong == CalendarController.EXTRA_CREATE_ALL_DAY;
+        try {
+            mModel = CalendarApplication.mEvents.remove(0);
+            mBegin = mModel.mStart;
+            mEnd = mModel.mEnd;
+            mCalendarId = mModel.mCalendarId;
+            mUri = mModel.mUri;
+        } catch (IndexOutOfBoundsException ignore) {
+            if (mModel == null) {
+                mModel = new CalendarEventModel(getActivity());
             }
-            if (mEvent.startTime != null) {
-                mBegin = mEvent.startTime.toMillis(true);
+            if (mEvent != null) {
+                if (mEvent.startTime != null) {
+                    mBegin = mEvent.startTime.toMillis(true);
+                    mModel.mStart = mBegin;
+                }
+                if (mEvent.endTime != null) {
+                    mEnd = mEvent.endTime.toMillis(true);
+                    mModel.mEnd = mEnd;
+                }
+                if (mEvent.calendarId != -1) {
+                    mCalendarId = mEvent.calendarId;
+                    mModel.mCalendarId = mCalendarId;
+                }
+                if (mEvent.id != -1) {
+                    mModel.mId = mEvent.id;
+                    mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mEvent.id);
+                    mModel.mUri = mUri;
+                } else {
+                    // New event. All day?
+                    mModel.mAllDay =
+                        mEvent.extraLong == CalendarController.EXTRA_CREATE_ALL_DAY;
+                }
+            } else if (mEventBundle != null) {
+                if (mEventBundle.id != -1) {
+                    mModel.mId = mEventBundle.id;
+                    mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventBundle.id);
+                }
+                mBegin = mEventBundle.start;
+                mModel.mStart = mBegin;
+                mEnd = mEventBundle.end;
+                mModel.mEnd = mEnd;
             }
-            if (mEvent.endTime != null) {
-                mEnd = mEvent.endTime.toMillis(true);
+            mModel.mOriginalStart = mBegin;
+            mModel.mOriginalEnd = mEnd;
+            mModel.mCalendarId = mCalendarId;
+            mModel.mSelfAttendeeStatus = Attendees.ATTENDEE_STATUS_ACCEPTED;
+            if (mReminders != null) {
+                mModel.mReminders = mReminders;
             }
-            if (mEvent.calendarId != -1) {
-                mCalendarId = mEvent.calendarId;
+            if (mEventColorInitialized) {
+                mModel.setEventColor(mEventColor);
             }
-        } else if (mEventBundle != null) {
-            if (mEventBundle.id != -1) {
-                mModel.mId = mEventBundle.id;
-                mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventBundle.id);
-            }
-            mBegin = mEventBundle.start;
-            mEnd = mEventBundle.end;
-        }
-
-        if (mReminders != null) {
-            mModel.mReminders = mReminders;
-        }
-
-        if (mEventColorInitialized) {
-            mModel.setEventColor(mEventColor);
         }
 
         if (mBegin <= 0) {
@@ -335,12 +342,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
             if (DEBUG) {
                 Log.d(TAG, "startQuery: Editing a new event.");
             }
-            mModel.mOriginalStart = mBegin;
-            mModel.mOriginalEnd = mEnd;
-            mModel.mStart = mBegin;
-            mModel.mEnd = mEnd;
-            mModel.mCalendarId = mCalendarId;
-            mModel.mSelfAttendeeStatus = Attendees.ATTENDEE_STATUS_ACCEPTED;
 
             // Start a query in the background to read the list of calendars and colors
             mHandler.startQuery(TOKEN_CALENDARS, null, Calendars.CONTENT_URI,
@@ -480,44 +481,12 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         calendar.addProperty(VCalendar.PRODID, VCalendar.PRODUCT_IDENTIFIER);
         calendar.addProperty(VCalendar.CALSCALE, "GREGORIAN");
         calendar.addProperty(VCalendar.METHOD, "REQUEST");
-
-        VEvent event = new VEvent();
-        // Add event start and end datetime
-        if (!mModel.mAllDay) {
-            String eventTimeZone = mModel.mTimezoneStart;
-            event.addEventStart(mBegin, eventTimeZone);
-            event.addEventEnd(mEnd, eventTimeZone);
-        } else {
-            // All-day events' start and end time are stored as UTC.
-            // Treat the event start and end time as being in the local time zone and convert them
-            // to the corresponding UTC datetime. If the UTC time is used as is, the ical recipients
-            // will report the wrong start and end time (+/- 1 day) for the event as they will
-            // convert the UTC time to their respective local time-zones
-            String localTimeZone = Time.getCurrentTimezone();
-            long eventStart = IcalendarUtils.convertTimeToUtc(mBegin, localTimeZone);
-            long eventEnd = IcalendarUtils.convertTimeToUtc(mEnd, localTimeZone);
-            event.addEventStart(eventStart, "UTC");
-            event.addEventEnd(eventEnd, "UTC");
-        }
-
-        event.addProperty(VEvent.LOCATION, mModel.mLocation);
-        event.addProperty(VEvent.DESCRIPTION, mModel.mDescription);
-        event.addProperty(VEvent.SUMMARY, mModel.mTitle);
-        event.addOrganizer(new Organizer(mModel.mOrganizerDisplayName, mModel.mOrganizer));
-
-        // Add Attendees to event
-        for (String key : mModel.mAttendeesList.keySet()) {
-            IcalendarUtils.addAttendeeToEvent(mModel.mAttendeesList.get(key), event);
-        }
-
-        // Compose all of the ICalendar objects
-        calendar.addEvent(event);
-
+        calendar.addEvent(mModel);
         // Create and share ics file
         boolean isShareSuccessful = false;
         try {
             // Event title serves as the file name prefix
-            String filePrefix = event.getProperty(VEvent.SUMMARY);
+            String filePrefix = mModel.mTitle;
             if (filePrefix == null || filePrefix.length() < 3) {
                 // Default to a generic filename if event title doesn't qualify
                 // Prefix length constraint is imposed by File#createTempFile
@@ -586,13 +555,9 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                 }
                 isShareSuccessful = true;
 
-            } else {
-                // Error writing event info to file
-                isShareSuccessful = false;
             }
         } catch (IOException e) {
             e.printStackTrace();
-            isShareSuccessful = false;
         }
 
         if (!isShareSuccessful) {
@@ -615,9 +580,9 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     }
 
     /**
-     * Handles menu item selections, whether they come from our custom action bar buttons or from
-     * the standard menu items. Depends on the menu item ids matching the custom action bar button
-     * ids.
+     * Handles menu item selections, whether they come from our custom action bar buttons
+     * or from the standard menu items. Depends on the menu item ids matching
+     * the custom action bar button ids.
      *
      * @param itemId the button or menu item id
      * @return whether the event was handled here
@@ -684,7 +649,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         }
 
         AsyncQueryService service = new AsyncQueryService(getActivity());
-        service.startBatch(0, null, Calendars.CONTENT_URI.getAuthority(), ops, 0);
+        service.startBatch(
+            0, null, Calendars.CONTENT_URI.getAuthority(), ops, 0);
         // Update the "hasAlarm" field for the event
         Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, mModel.mId);
         int len = mModel.mReminders.size();
@@ -692,7 +658,9 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         if (hasAlarm != mOriginalModel.mHasAlarm) {
             ContentValues values = new ContentValues();
             values.put(Events.HAS_ALARM, hasAlarm ? 1 : 0);
-            service.startUpdate(0, null, uri, values, null, null, 0);
+            service.startUpdate(
+                0, null, uri, values,
+                null, null, 0);
         }
 
         Toast.makeText(mContext, R.string.saving_event, Toast.LENGTH_SHORT).show();
@@ -983,8 +951,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                             Collections.sort(mReminders);
                         }
                         mOriginalModel.mReminders = mReminders;
-                        mModel.mReminders =
-                                (ArrayList<ReminderEntry>) mReminders.clone();
+                        mModel.mReminders = mModel.cloneReminders(mReminders);
                         setModelIfDone(TOKEN_REMINDERS);
                     }
 

@@ -43,7 +43,9 @@ public class EventViewUtils {
     // if the given minutes is 63, then this returns the string "63 minutes".
     // As another example, if the given minutes is 120, then this returns
     // "2 hours".
-    public static String constructReminderLabel(Context context, int minutes, boolean abbrev) {
+    public static String constructReminderLabel(
+        Context context, int minutes, boolean abbrev)
+    {
         Resources resources = context.getResources();
         int value, resId;
 
@@ -117,7 +119,7 @@ public class EventViewUtils {
             ArrayList<LinearLayout> reminderItems, ArrayList<Integer> reminderMinuteValues,
             ArrayList<Integer> reminderMethodValues) {
         int len = reminderItems.size();
-        ArrayList<ReminderEntry> reminders = new ArrayList<ReminderEntry>(len);
+        ArrayList<ReminderEntry> reminders = new ArrayList<>(len);
         for (int index = 0; index < len; index++) {
             LinearLayout layout = reminderItems.get(index);
             Spinner minuteSpinner = (Spinner) layout.findViewById(R.id.reminder_minutes_value);
@@ -206,7 +208,7 @@ public class EventViewUtils {
         Resources res = activity.getResources();
         spinner.setPrompt(res.getString(R.string.reminders_label));
         int resource = android.R.layout.simple_spinner_item;
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(activity, resource, labels);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(activity, resource, labels);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
     }
@@ -221,21 +223,25 @@ public class EventViewUtils {
      * spinners in the reminder. If a listener is set it will store the
      * initial position of the spinner into the spinner's tag for comparison
      * with any new position setting.
+     *
+     * FIXME some calendars can have any integer value for the minutes.
+     *  We should handle this and not force one of a fixed set of values.
      */
-    public static boolean addReminder(Activity activity, View view, View.OnClickListener listener,
-            ArrayList<LinearLayout> items, ArrayList<Integer> minuteValues,
-            ArrayList<String> minuteLabels, ArrayList<Integer> methodValues,
-            ArrayList<String> methodLabels, ReminderEntry newReminder, int maxReminders,
-            OnItemSelectedListener onItemSelected) {
-
+    public static boolean addReminder(
+        Activity activity, View view, View.OnClickListener listener,
+        ArrayList<LinearLayout> items, ArrayList<Integer> minuteValues,
+        ArrayList<String> minuteLabels, ArrayList<Integer> methodValues,
+        ArrayList<String> methodLabels, ReminderEntry newReminder, int maxReminders,
+        OnItemSelectedListener onItemSelected)
+    {
         if (items.size() >= maxReminders) {
             return false;
         }
 
         LayoutInflater inflater = activity.getLayoutInflater();
         LinearLayout parent = (LinearLayout) view.findViewById(R.id.reminder_items_container);
-        LinearLayout reminderItem = (LinearLayout) inflater.inflate(R.layout.edit_reminder_item,
-                null);
+        LinearLayout reminderItem =
+            (LinearLayout) inflater.inflate(R.layout.edit_reminder_item,null);
         parent.addView(reminderItem);
 
         ImageButton reminderRemoveButton;

@@ -78,7 +78,7 @@ public class CalendarController {
     // This uses a LinkedHashMap so that we can replace fragments based on the
     // view id they are being expanded into since we can't guarantee a reference
     // to the handler will be findable
-    private final LinkedHashMap<Integer,EventHandler> eventHandlers =
+    private final LinkedHashMap<Integer,EventHandler> actionHandlers =
             new LinkedHashMap<Integer,EventHandler>(5);
     private final LinkedList<Integer> mToBeRemovedEventHandlers = new LinkedList<Integer>();
     private final LinkedHashMap<Integer, EventHandler> mToBeAddedEventHandlers = new LinkedHashMap<
@@ -348,7 +348,7 @@ public class CalendarController {
             mDispatchInProgressCounter++;
 
             if (DEBUG) {
-                Log.d(TAG, "sendEvent: Dispatching to " + eventHandlers.size() + " handlers");
+                Log.d(TAG, "sendEvent: Dispatching to " + actionHandlers.size() + " handlers");
             }
             // Dispatch to event handler(s)
             if (mFirstEventHandler != null) {
@@ -361,7 +361,7 @@ public class CalendarController {
                 }
             }
             for (Iterator<Entry<Integer, EventHandler>> handlers =
-                 eventHandlers.entrySet().iterator(); handlers.hasNext(); ) {
+                 actionHandlers.entrySet().iterator(); handlers.hasNext(); ) {
                 Entry<Integer, EventHandler> entry = handlers.next();
                 int key = entry.getKey();
                 if (mFirstEventHandler != null && key == mFirstEventHandler.first) {
@@ -386,7 +386,7 @@ public class CalendarController {
                 // Deregister removed handlers
                 if (mToBeRemovedEventHandlers.size() > 0) {
                     for (Integer zombie : mToBeRemovedEventHandlers) {
-                        eventHandlers.remove(zombie);
+                        actionHandlers.remove(zombie);
                         if (mFirstEventHandler != null && zombie.equals(mFirstEventHandler.first)) {
                             mFirstEventHandler = null;
                         }
@@ -400,7 +400,7 @@ public class CalendarController {
                 }
                 if (mToBeAddedEventHandlers.size() > 0) {
                     for (Entry<Integer, EventHandler> food : mToBeAddedEventHandlers.entrySet()) {
-                        eventHandlers.put(food.getKey(), food.getValue());
+                        actionHandlers.put(food.getKey(), food.getValue());
                     }
                 }
             }
@@ -445,7 +445,7 @@ public class CalendarController {
             if (mDispatchInProgressCounter > 0) {
                 mToBeAddedEventHandlers.put(key, eventHandler);
             } else {
-                eventHandlers.put(key, eventHandler);
+                actionHandlers.put(key, eventHandler);
             }
         }
     }
@@ -467,7 +467,7 @@ public class CalendarController {
                 // To avoid ConcurrencyException, stash away the event handler for now.
                 mToBeRemovedEventHandlers.add(key);
             } else {
-                eventHandlers.remove(key);
+                actionHandlers.remove(key);
                 if (mFirstEventHandler != null && mFirstEventHandler.first == key) {
                     mFirstEventHandler = null;
                 }
@@ -479,9 +479,9 @@ public class CalendarController {
         synchronized (this) {
             if (mDispatchInProgressCounter > 0) {
                 // To avoid ConcurrencyException, stash away the event handler for now.
-                mToBeRemovedEventHandlers.addAll(eventHandlers.keySet());
+                mToBeRemovedEventHandlers.addAll(actionHandlers.keySet());
             } else {
-                eventHandlers.clear();
+                actionHandlers.clear();
                 mFirstEventHandler = null;
             }
         }

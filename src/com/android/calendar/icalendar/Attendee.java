@@ -92,9 +92,8 @@ public class Attendee {
     public void populateFromEntries(ListIterator<String> iter) {
         String line = iter.next();
         if (line.startsWith("ATTENDEE")) {
-            String entry = VEvent.parseTillNextAttribute(iter, line);
             // extract the email address at the end
-            String[] split1 = entry.split("(:MAILTO)?:", 2);
+            String[] split1 = line.split("(:MAILTO)?:", 2);
             if (split1.length > 1) {
                 mEmail = split1[1];
             }

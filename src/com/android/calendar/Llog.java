@@ -18,7 +18,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
-public class Llog extends Object {
+public class Llog {
     private static String forceNonEmpty(String s) {
         if ((s == null) || s.isEmpty()) { return " "; } else { return s; }
     }
@@ -38,7 +38,7 @@ public class Llog extends Object {
         StringBuilder sb =
             new StringBuilder(getMethodName(trace))
                 .append((args == null ? "()" : "(" + args + ")"))
-                .append(" line " + trace.getLineNumber());
+                .append(" line ").append(trace.getLineNumber());
         for (int j = 5; j <= n + 4; ++j) {
             if (j >= elements.length) { break; }
             trace = Thread.currentThread().getStackTrace()[j];
@@ -71,20 +71,25 @@ public class Llog extends Object {
     private static void dumpView(View v, String indent) {
         StringBuilder sb = new StringBuilder();
         sb.append(v.getClass().getSimpleName());
+        if (v instanceof TextView && (((TextView) v).getText() != null)) {
+            sb.append("->");
+            sb.append(((TextView) v).getText());
+        } else {
+            CharSequence s = v.getContentDescription();
+            if (s != null) {
+                sb.append(" (").append(s).append(")");
+            }
+        }
         if (v.getVisibility() == View.VISIBLE) {
-            if (v instanceof TextView) {
-                sb.append("->");
-                sb.append(((TextView) v).getText());
-            }
             Log.d(indent, sb.toString());
-            if (v instanceof ViewGroup) {
-                int n = ((ViewGroup) v).getChildCount();
-                for (int i = 0; i < n; ++i) {
-                    dumpView(((ViewGroup) v).getChildAt(i), indent + ">>");
-                }
-            }
         } else {
             Log.d(indent, sb.append(" not visible").toString());
+        }
+        if (v instanceof ViewGroup) {
+            int n = ((ViewGroup) v).getChildCount();
+            for (int i = 0; i < n; ++i) {
+                dumpView(((ViewGroup) v).getChildAt(i), indent + ">>");
+            }
         }
     }
     public static void d(View v) {

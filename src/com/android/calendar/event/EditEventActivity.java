@@ -59,7 +59,8 @@ public class EditEventActivity extends AbstractCalendarActivity {
     private CalendarController.ActionInfo getEventInfoFromModel(CalendarEventModel model) {
         ActionInfo actionInfo = new CalendarController.ActionInfo();
         actionInfo.id = model.mId;
-        actionInfo.startTime = actionInfo.selectedTime;
+        actionInfo.startTime = new Time(Time.TIMEZONE_UTC);
+        actionInfo.startTime.set(model.mStart);
         actionInfo.endTime = new Time(Time.TIMEZONE_UTC);
         actionInfo.endTime.set(model.mEnd);
         actionInfo.eventTitle = model.mTitle;
@@ -95,7 +96,6 @@ public class EditEventActivity extends AbstractCalendarActivity {
         }
 
         boolean allDay = mIntent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
-
         long begin = mIntent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
         long end = mIntent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
         if (end != -1) {
@@ -140,7 +140,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
         boolean eventColorInitialized ;
         synchronized (CalendarApplication.mEvents) {
             try {
-                CalendarEventModel model = CalendarApplication.mEvents.remove(0);
+                CalendarEventModel model = CalendarApplication.mEvents.get(0);
                 actionInfo = getEventInfoFromModel(model);
                 reminders = model.mReminders;
                 eventColor = model.mEventColor;

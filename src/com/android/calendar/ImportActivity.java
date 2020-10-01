@@ -4,12 +4,14 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.CalendarContract;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -31,6 +33,10 @@ import java.util.TimeZone;
 import ws.xsoh.etar.R;
 
 public class ImportActivity extends Activity {
+
+    LinkedList<CalendarEventModel> mEvents;
+    public static final File EXPORT_SDCARD_DIRECTORY = new File(
+        Environment.getExternalStorageDirectory(), "CalendarEvents");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,82 +133,45 @@ public class ImportActivity extends Activity {
     }
 
     private void showErrorToast() {
-        Toast.makeText(this, R.string.cal_import_error_msg, Toast.LENGTH_SHORT).show();
+        Toast.makeText(
+            this, R.string.cal_import_error_msg, Toast.LENGTH_SHORT).show();
         finish();
     }
 
+    //FIXME should really do this in background task
     private void parseCalFile() {
         Uri uri = getIntent().getData();
         VCalendar calendar = IcalendarUtils.readCalendarFromFile(this, uri);
 
         if (calendar == null) {
             showErrorToast();
-            return;
         }
 
-        Intent calIntent = new Intent(Intent.ACTION_INSERT);
-        calIntent.setType("vnd.android.cursor.item/event");
-
-        LinkedList<VEvent> events = calendar.getAllEvents();
-        if (events == null) {
+        mEvents = calendar.getAllEvents();
+        if ((mEvents == null) || (mEvents.size() == 0)) {
             showErrorToast();
-            return;
         }
 
-        VEvent firstEvent = calendar.getAllEvents().getFirst();
-        calIntent.putExtra(CalendarContract.Events.TITLE,
-                IcalendarUtils.uncleanseString(firstEvent.getProperty(VEvent.SUMMARY)));
-        calIntent.putExtra(CalendarContract.Events.EVENT_LOCATION,
-                IcalendarUtils.uncleanseString(firstEvent.getProperty(VEvent.LOCATION)));
-        calIntent.putExtra(CalendarContract.Events.DESCRIPTION,
-                IcalendarUtils.uncleanseString(firstEvent.getProperty(VEvent.DESCRIPTION)));
-        calIntent.putExtra(CalendarContract.Events.ORGANIZER,
-                IcalendarUtils.uncleanseString(firstEvent.getProperty(VEvent.ORGANIZER)));
+        /**
+         * For now we don't do this because {@link EditEventActivity}
+         * can only handle one event.
+         * CalendarApplication.mEvents = mEvents;
+         */ // FIXME temporarily do this isntead
+        CalendarApplication.mEvents.clear();
+        CalendarApplication.mEvents.add(mEvents.get(0));
 
-        if (firstEvent.mAttendees.size() > 0) {
-            StringBuilder builder = new StringBuilder();
-            for (Attendee attendee : firstEvent.mAttendees) {
-                builder.append(attendee.mEmail);
-                builder.append(",");
-            }
-            calIntent.putExtra(Intent.EXTRA_EMAIL, builder.toString());
-        }
+        Intent intent = new Intent(this, EditEventActivity.class);
 
-        String dtStart = firstEvent.getProperty(VEvent.DTSTART);
-        String dtStartParam = firstEvent.getPropertyParameters(VEvent.DTSTART);
-        if (!TextUtils.isEmpty(dtStart)) {
-            calIntent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME,
-                    getLocalTimeFromString(dtStart, dtStartParam));
-        }
-
-        String dtEnd = firstEvent.getProperty(VEvent.DTEND);
-        String dtEndParam = firstEvent.getPropertyParameters(VEvent.DTEND);
-        if (!TextUtils.isEmpty(dtEnd)) {
-            calIntent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME,
-                    getLocalTimeFromString(dtEnd, dtEndParam));
-        }
-
-        boolean isAllDay = getLocalTimeFromString(dtEnd, dtEndParam)
-                - getLocalTimeFromString(dtStart, dtStartParam) == 86400000;
-
-
-        if (isTimeStartOfDay(dtStart, dtStartParam)) {
-            calIntent.putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, isAllDay);
-        }
-        //Check if some special property which say it is a "All-Day" event.
-
-        String microsoft_all_day_event = firstEvent.getProperty("X-MICROSOFT-CDO-ALLDAYEVENT");
-        if(!TextUtils.isEmpty(microsoft_all_day_event) && microsoft_all_day_event.equals("TRUE")){
-            calIntent.putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, true);
-        }
-
-
-        calIntent.putExtra(EditEventActivity.EXTRA_READ_ONLY, true);
+        // FIXME move this to VEVENT decoding
+        /* Check if some special property which say it is a "All-Day" event.
+        String microsoft_all_day_event =
+            firstEvent.getProperty("X-MICROSOFT-CDO-ALLDAYEVENT");
+         */
 
         try {
-            startActivity(calIntent);
+            startActivity(intent);
         } catch (ActivityNotFoundException e) {
-            // Oh well...
+            // This can't really happen
         } finally {
             finish();
         }
@@ -236,11 +205,10 @@ public class ImportActivity extends Activity {
     }
 
     private static class ListFilesTask extends AsyncTask<Void, Void, String[]> {
+        private final Context mContext;
 
-        private final Activity mActivity;
-
-        public ListFilesTask(Activity activity) {
-            mActivity = activity;
+        public ListFilesTask(Context context) {
+            mContext = context;
         }
 
         @Override
@@ -248,7 +216,7 @@ public class ImportActivity extends Activity {
             if (!hasThingsToImport()) {
                 return null;
             }
-            File folder = EventInfoFragment.EXPORT_SDCARD_DIRECTORY;
+            File folder = EXPORT_SDCARD_DIRECTORY;
             String[] result = null;
             if (folder.exists()) {
                 result = folder.list();
@@ -259,34 +227,33 @@ public class ImportActivity extends Activity {
         @Override
         protected void onPostExecute(final String[] files) {
             if (files == null || files.length == 0) {
-                Toast.makeText(mActivity, R.string.cal_nothing_to_import,
+                Toast.makeText(mContext, R.string.cal_nothing_to_import,
                         Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+            AlertDialog.Builder builder =
+                new AlertDialog.Builder(mContext);
             builder.setTitle(R.string.cal_pick_ics)
                     .setItems(files, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
-                            Intent i = new Intent(mActivity, ImportActivity.class);
-                            File f = new File(EventInfoFragment.EXPORT_SDCARD_DIRECTORY,
+                            Intent i = new Intent(mContext, ImportActivity.class);
+                            File f = new File(EXPORT_SDCARD_DIRECTORY,
                                     files[which]);
                             i.setData(Uri.fromFile(f));
-                            mActivity.startActivity(i);
+                            mContext.startActivity(i);
                         }
                     });
             builder.show();
         }
-
     }
 
-    public static void pickImportFile(Activity activity) {
-        new ListFilesTask(activity).execute();
+    public static void pickImportFile(Context context) {
+        new ListFilesTask(context).execute();
     }
 
     public static boolean hasThingsToImport() {
-        File folder = EventInfoFragment.EXPORT_SDCARD_DIRECTORY;
-        File[] files = folder.listFiles();
+        File[] files = EXPORT_SDCARD_DIRECTORY.listFiles();
         return files != null && files.length > 0;
     }
 }

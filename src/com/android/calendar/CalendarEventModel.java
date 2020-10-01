@@ -150,6 +150,15 @@ public class CalendarEventModel implements Serializable {
         mTimezoneStart = TimeZone.getDefault().getID();
     }
 
+    // This little utility gets around the unchecked cast error
+    // produced by using the generic clone().
+    public ArrayList<ReminderEntry> cloneReminders (ArrayList<ReminderEntry> other) {
+        ArrayList<ReminderEntry> result = new ArrayList<>(other.size());
+        for (ReminderEntry entry : other) {
+            result.add(ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()));
+        }
+        return result;
+    }
 
     // copy constructor
     public CalendarEventModel(CalendarEventModel other) {
@@ -194,19 +203,13 @@ public class CalendarEventModel implements Serializable {
         mGuestsCanModify = other.mGuestsCanModify;
         mGuestsCanSeeGuests = other.mGuestsCanSeeGuests;
         mHasAlarm = other.mHasAlarm;
-        mReminders = new ArrayList<>();
-        for (ReminderEntry entry : other.mReminders) {
-            mReminders.add(ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()));
-        }
-        mDefaultReminders = new ArrayList<>();
-        for (ReminderEntry entry : other.mDefaultReminders) {
-            mDefaultReminders.add(
-                ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()));
-        }
+        mReminders = cloneReminders(other.mReminders);
+        mDefaultReminders = cloneReminders(other.mDefaultReminders);
         mHasAttendeeData = other.mHasAttendeeData;
         mAttendeesList = new LinkedHashMap<>();
         for (String key : other.mAttendeesList.keySet()) {
             Attendee old = other.mAttendeesList.get(key);
+            assert old != null;
             Attendee value = new Attendee(
                 old.mName, old.mEmail, old.mStatus, old.mType,
                 old.mIdentity, old.mIdNamespace);

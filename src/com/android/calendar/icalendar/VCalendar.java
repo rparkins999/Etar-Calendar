@@ -16,6 +16,8 @@
 
 package com.android.calendar.icalendar;
 
+import com.android.calendar.CalendarEventModel;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -36,7 +38,7 @@ public class VCalendar {
     public final static String PRODUCT_IDENTIFIER = "-//Etar//ws.xsoh.etar";
 
     // Stores the -arity of the attributes that this component can have
-    private final static HashMap<String, Integer> sPropertyList = new HashMap<String, Integer>();
+    private final static HashMap<String, Integer> sPropertyList = new HashMap<>();
 
     // Initialize approved list of iCal Calendar properties
     static {
@@ -48,67 +50,64 @@ public class VCalendar {
 
     // Stores attributes and their corresponding values belonging to the Calendar object
     public HashMap<String, String> mProperties;
-    public LinkedList<VEvent> mEvents;      // Events that belong to this Calendar object
+    // Events that belong to this Calendar object
+    public LinkedList<CalendarEventModel> mEvents;
 
     /**
      * Constructor
      */
     public VCalendar() {
-        mProperties = new HashMap<String, String>();
-        mEvents = new LinkedList<VEvent>();
+        mProperties = new HashMap<>();
+        mEvents = new LinkedList<>();
     }
 
     /**
      * Add specified property
-     * @param property
-     * @param value
-     * @return
+     * @param property String name of the property to add
+     * @param value String value for the property
      */
-    public boolean addProperty(String property, String value) {
-        // Since all the required mProperties are unary (only one can exist), take a shortcut here
-        // when multiples of a property can exist, enforce that here .. cleverly
+    public void addProperty(String property, String value) {
+        // Since all the required mProperties are unary (only one can exist),
+        // take a shortcut here
         if (sPropertyList.containsKey(property) && value != null) {
             mProperties.put(property, IcalendarUtils.cleanseString(value));
-            return true;
         }
-        return false;
     }
 
     /**
-     * Add Event to calendar
-     * @param event
+     * @param event the CalendarEventModel to add
      */
-    public void addEvent(VEvent event) {
+    public void addEvent(CalendarEventModel event) {
         if (event != null) mEvents.add(event);
     }
 
     /**
-     *
-     * @return
+     * @return the list of events found in this VCALENDAR
      */
-    public LinkedList<VEvent> getAllEvents() {
+    public LinkedList<CalendarEventModel> getAllEvents() {
         return mEvents;
     }
 
     /**
-     * Returns the iCal representation of the calendar and all of its inherent components
-     * @return
+     * @return the iCal representation of the calendar and all of its inherent components
      */
     public String getICalFormattedString() {
         StringBuilder output = new StringBuilder();
 
-        // Add Event properties
+        // Add Calendar properties
         // TODO: add the ability to specify the order in which to compose the properties
         output.append("BEGIN:VCALENDAR\n");
         for (String property : mProperties.keySet() ) {
-            output.append(property + ":" + mProperties.get(property) + "\n");
+            output.append(property).append(":")
+                  .append(mProperties.get(property)).append("\n");
         }
 
         // Enforce line length requirements
         output = IcalendarUtils.enforceICalLineLength(output);
         // Add event
-        for (VEvent event : mEvents) {
-            output.append(event.getICalFormattedString());
+        VEvent v = new VEvent();
+        for (CalendarEventModel event : mEvents) {
+            output.append(v.getICalFormattedString(event));
         }
 
         output.append("END:VCALENDAR\n");
@@ -118,33 +117,16 @@ public class VCalendar {
 
     public void populateFromString(ArrayList<String> input) {
         ListIterator<String> iter = input.listIterator();
-
         while (iter.hasNext()) {
             String line = iter.next();
-            if (line.contains("BEGIN:VEVENT")) {
-                // Go one previous, so VEvent, parses current line
-                iter.previous();
-
+            if (line.toUpperCase().startsWith("BEGIN:VEVENT")) {
                 // Offload to vevent for parsing
-                VEvent event = new VEvent();
-                event.populateFromEntries(iter);
+                CalendarEventModel event = new CalendarEventModel();
+                VEvent.populateFromEntries(event, iter);
                 mEvents.add(event);
-            } else if (line.contains("END:VCALENDAR")) {
+            } else if (line.toUpperCase().startsWith("END:VCALENDAR")) {
                 break;
             }
         }
-    }
-
-    public String getProperty(String key) {
-        return mProperties.get(key);
-    }
-
-    /**
-     * TODO: Aggressive validation of VCalendar and all of its components to ensure they conform
-     * to the ical specification
-     * @return
-     */
-    private boolean validate() {
-        return false;
     }
 }
