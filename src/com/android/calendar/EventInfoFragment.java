@@ -1152,12 +1152,6 @@ public class EventInfoFragment extends DialogFragment
     private void shareEvent(ShareType type) {
         // Create the respective ICalendar objects from the event info
         VCalendar calendar = new VCalendar();
-        // FIXME do these in vCalendar
-        calendar.addProperty(VCalendar.VERSION, "2.0");
-        calendar.addProperty(VCalendar.PRODID, VCalendar.PRODUCT_IDENTIFIER);
-        calendar.addProperty(VCalendar.CALSCALE, "GREGORIAN");
-        calendar.addProperty(VCalendar.METHOD, "REQUEST");
-
         CalendarEventModel event = new CalendarEventModel();
         mEventCursor.moveToFirst();
         event.mUri = mUri;

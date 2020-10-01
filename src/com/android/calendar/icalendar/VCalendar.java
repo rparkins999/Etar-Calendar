@@ -28,28 +28,8 @@ import java.util.ListIterator;
  */
 public class VCalendar {
 
-    // Valid property identifiers of the component
-    // TODO: only a partial list of attributes have been implemented, implement the rest
-    public static String VERSION = "VERSION";
-    public static String PRODID = "PRODID";
-    public static String CALSCALE = "CALSCALE";
-    public static String METHOD = "METHOD";
+    public final static String PRODID = "//github.com/rparkins999/Etar-Calendar";
 
-    public final static String PRODUCT_IDENTIFIER = "-//Etar//ws.xsoh.etar";
-
-    // Stores the -arity of the attributes that this component can have
-    private final static HashMap<String, Integer> sPropertyList = new HashMap<>();
-
-    // Initialize approved list of iCal Calendar properties
-    static {
-        sPropertyList.put(VERSION, 1);
-        sPropertyList.put(PRODID, 1);
-        sPropertyList.put(CALSCALE, 1);
-        sPropertyList.put(METHOD, 1);
-    }
-
-    // Stores attributes and their corresponding values belonging to the Calendar object
-    public HashMap<String, String> mProperties;
     // Events that belong to this Calendar object
     public LinkedList<CalendarEventModel> mEvents;
 
@@ -57,21 +37,7 @@ public class VCalendar {
      * Constructor
      */
     public VCalendar() {
-        mProperties = new HashMap<>();
         mEvents = new LinkedList<>();
-    }
-
-    /**
-     * Add specified property
-     * @param property String name of the property to add
-     * @param value String value for the property
-     */
-    public void addProperty(String property, String value) {
-        // Since all the required mProperties are unary (only one can exist),
-        // take a shortcut here
-        if (sPropertyList.containsKey(property) && value != null) {
-            mProperties.put(property, IcalendarUtils.cleanseString(value));
-        }
     }
 
     /**
@@ -94,13 +60,10 @@ public class VCalendar {
     public String getICalFormattedString() {
         StringBuilder output = new StringBuilder();
 
-        // Add Calendar properties
-        // TODO: add the ability to specify the order in which to compose the properties
-        output.append("BEGIN:VCALENDAR\n");
-        for (String property : mProperties.keySet() ) {
-            output.append(property).append(":")
-                  .append(mProperties.get(property)).append("\n");
-        }
+        output.append("BEGIN:VCALENDAR\n")
+              .append("PRODID:").append(PRODID).append("\n")
+              .append("VERSION:2.0\n")
+              .append("METHOD:PUBLISH\n");
 
         // Enforce line length requirements
         output = IcalendarUtils.enforceICalLineLength(output);
