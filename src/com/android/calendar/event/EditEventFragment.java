@@ -477,7 +477,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     private void shareEvent(ShareType type) {
         // Create the respective ICalendar objects from the event info
         VCalendar calendar = new VCalendar();
-        calendar.addEvent(mModel);
+        CalendarApplication.mEvents.add(mModel);
         // Create and share ics file
         boolean isShareSuccessful = false;
         try {

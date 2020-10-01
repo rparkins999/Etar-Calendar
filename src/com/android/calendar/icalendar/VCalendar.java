@@ -16,6 +16,7 @@
 
 package com.android.calendar.icalendar;
 
+import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarEventModel;
 
 import java.util.ArrayList;
@@ -30,28 +31,11 @@ public class VCalendar {
 
     public final static String PRODID = "//github.com/rparkins999/Etar-Calendar";
 
-    // Events that belong to this Calendar object
-    public LinkedList<CalendarEventModel> mEvents;
-
     /**
      * Constructor
      */
     public VCalendar() {
-        mEvents = new LinkedList<>();
-    }
-
-    /**
-     * @param event the CalendarEventModel to add
-     */
-    public void addEvent(CalendarEventModel event) {
-        if (event != null) mEvents.add(event);
-    }
-
-    /**
-     * @return the list of events found in this VCALENDAR
-     */
-    public LinkedList<CalendarEventModel> getAllEvents() {
-        return mEvents;
+        CalendarApplication.mEvents.clear();
     }
 
     /**
@@ -69,7 +53,7 @@ public class VCalendar {
         output = IcalendarUtils.enforceICalLineLength(output);
         // Add event
         VEvent v = new VEvent();
-        for (CalendarEventModel event : mEvents) {
+        for (CalendarEventModel event : CalendarApplication.mEvents) {
             output.append(v.getICalFormattedString(event));
         }
 
@@ -86,7 +70,7 @@ public class VCalendar {
                 // Offload to vevent for parsing
                 CalendarEventModel event = new CalendarEventModel();
                 VEvent.populateFromEntries(event, iter);
-                mEvents.add(event);
+                CalendarApplication.mEvents.add(event);
             } else if (line.toUpperCase().startsWith("END:VCALENDAR")) {
                 break;
             }

@@ -1185,7 +1185,7 @@ public class EventInfoFragment extends DialogFragment
         }
 
         // Compose all of the ICalendar objects
-        calendar.addEvent(event);
+        CalendarApplication.mEvents.add(event);
 
         // Create and share ics file
         boolean isShareSuccessful = false;

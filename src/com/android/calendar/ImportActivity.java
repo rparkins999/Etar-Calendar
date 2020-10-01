@@ -147,18 +147,14 @@ public class ImportActivity extends Activity {
             showErrorToast();
         }
 
-        mEvents = calendar.getAllEvents();
-        if ((mEvents == null) || (mEvents.size() == 0)) {
+        if (CalendarApplication.mEvents.size() == 0) {
             showErrorToast();
         }
 
-        /**
-         * For now we don't do this because {@link EditEventActivity}
-         * can only handle one event.
-         * CalendarApplication.mEvents = mEvents;
-         */ // FIXME temporarily do this isntead
-        CalendarApplication.mEvents.clear();
-        CalendarApplication.mEvents.add(mEvents.get(0));
+        if (CalendarApplication.mEvents.size() > 1) {
+            // For the time being we don't handle more than one VEVENT
+            showErrorToast();
+        }
 
         Intent intent = new Intent(this, EditEventActivity.class);
 
