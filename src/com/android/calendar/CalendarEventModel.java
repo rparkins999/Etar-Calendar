@@ -950,7 +950,8 @@ public class CalendarEventModel implements Serializable {
         /**
          * Constructs a new ReminderEntry.
          *
-         * @param minutes Number of minutes before the start of the event that the alert will fire.
+         * @param minutes Number of minutes before the start of the event
+         *                that the alert will fire.
          * @param method Type of alert ({@link Reminders#METHOD_ALERT}, etc).
          */
         private ReminderEntry(int minutes, int method) {
@@ -962,7 +963,8 @@ public class CalendarEventModel implements Serializable {
         /**
          * Returns a new ReminderEntry, with the specified minutes and method.
          *
-         * @param minutes Number of minutes before the start of the event that the alert will fire.
+         * @param minutes Number of minutes before the start of the event
+         *                that the alert will fire.
          * @param method Type of alert ({@link Reminders#METHOD_ALERT}, etc).
          */
         public static ReminderEntry valueOf(int minutes, int method) {
@@ -971,9 +973,11 @@ public class CalendarEventModel implements Serializable {
         }
 
         /**
-         * Returns a ReminderEntry, with the specified number of minutes and a default alert method.
+         * Returns a ReminderEntry,
+         * with the specified number of minutes and a default alert method.
          *
-         * @param minutes Number of minutes before the start of the event that the alert will fire.
+         * @param minutes Number of minutes before the start of the event
+         *                that the alert will fire.
          */
         public static ReminderEntry valueOf(int minutes) {
             return valueOf(minutes, Reminders.METHOD_DEFAULT);
@@ -1008,6 +1012,24 @@ public class CalendarEventModel implements Serializable {
                         && (mMethod == Reminders.METHOD_ALERT))
                    || (    (re.mMethod == Reminders.METHOD_ALERT)
                         && (mMethod == Reminders.METHOD_DEFAULT));
+        }
+
+        /**
+         * See if another ReminderEntry is the same as this one
+         * apart from the time being later.
+         *
+         * @param other the ReminderEntry to compare with
+         * @return -1 or the number of minutes that "other" is after "this"
+         */
+        public int offsetTo(ReminderEntry other) {
+            // mMinutes is the time before the event.
+            int offset = mMinutes - other.mMinutes;
+            if (   (other.mMethod != mMethod)
+                || (offset <= 0)) {
+                return -1;
+            } else {
+                return offset;
+            }
         }
 
         @NotNull

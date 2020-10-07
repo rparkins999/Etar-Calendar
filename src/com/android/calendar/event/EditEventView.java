@@ -706,7 +706,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     /*
-     * Prepares the Attendeee UI elements.
+     * Prepares the Attendee UI elements.
      */
     private void prepareAttendees() {
         mAttendeesContainer.clearAttendees();

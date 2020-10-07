@@ -145,7 +145,9 @@ public class VEvent {
                 break;
         }
         // Add event reminders
-        for (CalendarEventModel.ReminderEntry entry : event.mReminders) {
+        int n = event.mReminders.size();
+        for (int i = 0; i < n; ++i) {
+            CalendarEventModel.ReminderEntry entry = event.mReminders.get(i);
             sb.append("BEGIN:VALARM\n");
             sb.append("TRIGGER;VALUE=DURATION:-PT");
             int minutes = entry.getMinutes();
@@ -199,6 +201,25 @@ public class VEvent {
                     // We don't have a way of passing a sound file so any device
                     // which reads this ical will just play its default reminder sound.
                     break;
+            }
+            int repeats = 0;
+            int offsetSoFar = -1;
+            while (i < n - 1) {
+                // check next entry for repeat
+                CalendarEventModel.ReminderEntry next =  event.mReminders.get(i + 1);
+                int offset = entry.offsetTo(next);
+                if ((offset > 0 && ((offsetSoFar == -1) || offsetSoFar == offset))) {
+                    offsetSoFar = offset;
+                    ++i;
+                    ++repeats;
+                    entry = next;
+                } else {
+                    break;
+                }
+            }
+            if (repeats > 0) {
+                sb.append("REPEAT:").append(repeats).append("\n");
+                sb.append("DURATION:PT").append(offsetSoFar).append("M\n");
             }
             sb.append("END:VALARM\n");
         }
@@ -401,8 +422,8 @@ public class VEvent {
                 // before the start of the event, so we ignore anything else
                 boolean validAlarm = true;
                 int method = Reminders.METHOD_DEFAULT;
-                // FIXME Android doesn't handle repeating alarms but we can
-                //  convert them into multiple alarms which it can handle.
+                int duration = -1;
+                int repeat = 0;
                 while (iter.hasNext()) {
                     String line1 = iter.next();
                     if (line1.toUpperCase().startsWith("END:VALARM")) {
@@ -421,6 +442,8 @@ public class VEvent {
                                                 .equalsIgnoreCase("START"))
                                             {
                                                 // Androis can't do reminder at end
+                                                //FIXME offer to create a dummy
+                                                // event to hold the alarm
                                                 validAlarm = false;
                                             }
                                             break;
@@ -429,6 +452,8 @@ public class VEvent {
                                                 .equalsIgnoreCase("DURATION"))
                                             {
                                                 // Android can't do fixed time reminder
+                                                //FIXME offer to create a dummy
+                                                // event to hold the alarm
                                                 validAlarm = false;
                                             }
                                             break;
@@ -443,6 +468,8 @@ public class VEvent {
                                     // Android offset are always positive and always before
                                     // So we throw away any VALARM with a positive DURATION
                                     // and throw away the - sign for a negative one.
+                                    //FIXME if the alarm is after the start of the event
+                                    // offer to create a dummy event to hold the alarm
                                     if (offset.startsWith("-")) {
                                         minutes = parseDuration(
                                             offset.replaceFirst("-", ""));
@@ -467,15 +494,36 @@ public class VEvent {
                                         validAlarm = false;
                                 }
                                 break;
-                            // ignore REPEAT or DURATION because Android
-                            // can't handle them.
+                            case "REPEAT":
+                                try {
+                                    repeat = Integer.parseInt(split1[1]);
+                                } catch (NumberFormatException ignore) {}
+                            break;
+                            case "DURATION":
+                                duration = parseDuration(split1[1]);
                         }
                     }
                 }
                 if ((minutes >= 0) && validAlarm) {
-                    event.mReminders.add(CalendarEventModel.ReminderEntry.valueOf(
-                        minutes, method));
+                    event.mReminders.add(
+                        CalendarEventModel.ReminderEntry.valueOf(minutes, method));
                     event.mHasAlarm = true;
+                    // Android can't do repeating reminders.
+                    // So we translate a repeating alarm into multiple reminders.
+                    if (duration > 0) {
+                        while (repeat > 0) {
+                            --repeat;
+                            minutes -= duration;
+                            if (minutes < 0) {
+                                // Oops, this repetition is now after the start of the event:
+                                // Android can'ty do that. We could offer to make a dummy
+                                // event to hold the alarm, but currently we don't do that.
+                                break;
+                            }
+                            event.mReminders.add(
+                                CalendarEventModel.ReminderEntry.valueOf(minutes, method));
+                        }
+                    }
                 }
             } else {
                 String[] split1 = line.split(":", 2);
