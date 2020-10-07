@@ -578,8 +578,13 @@ public class VEvent {
                                             case "OPT-PARTICIPANT":
                                                 attendee.mType = Attendees.TYPE_OPTIONAL;
                                                 break;
+                                            default:
+                                            case "CHAIR": // Don't assume CHAIR is organizer
                                             case "REQ-PARTICIPANT":
                                                 attendee.mType = Attendees.TYPE_REQUIRED;
+                                                break;
+                                            case "NON-PARTICIPANT":
+                                                attendee.mType = Attendees.TYPE_NONE;
                                         }
                                     }
                             }

@@ -1986,6 +1986,34 @@ public class EventInfoFragment extends DialogFragment
         }
     }
 
+    public void initAttendees(View view) {
+        LinearLayout parent = (LinearLayout) mScrollView
+            .findViewById(R.id.attendees);
+        if (parent != null) {
+            parent.removeAllViews();
+            for (Attendee attendee : mDeclinedAttendees) {
+                TextView tv = new TextView(mActivity);
+                tv.setText(attendee.getDisplayName());
+                parent.addView(tv);
+            }
+            for (Attendee attendee : mTentativeAttendees) {
+                TextView tv = new TextView(mActivity);
+                tv.setText(attendee.getDisplayName());
+                parent.addView(tv);
+            }
+            for (Attendee attendee : mAcceptedAttendees) {
+                TextView tv = new TextView(mActivity);
+                tv.setText(attendee.getDisplayName());
+                parent.addView(tv);
+            }
+            for (Attendee attendee : mNoResponseAttendees) {
+                TextView tv = new TextView(mActivity);
+                tv.setText(attendee.getDisplayName());
+                parent.addView(tv);
+            }
+        }
+    }
+
     void updateResponse(View view) {
         // we only let the user accept/reject/etc. a meeting if:
         // a) you can edit the event's containing calendar AND

@@ -34,7 +34,6 @@ package com.android.calendar.event;
  import android.provider.ContactsContract.Data;
  import android.provider.ContactsContract.RawContacts;
  import android.text.TextUtils;
- import android.text.util.Rfc822Token;
  import android.util.AttributeSet;
  import android.util.Log;
  import android.view.LayoutInflater;
@@ -48,17 +47,18 @@ package com.android.calendar.event;
  import com.android.calendar.ContactsAsyncHelper;
  import com.android.calendar.Utils;
  import com.android.calendar.event.EditEventHelper.AttendeeItem;
- import com.android.calendar.fromcommon.Rfc822Validator;
 
  import java.util.ArrayList;
  import java.util.HashMap;
- import java.util.LinkedHashSet;
 
  import ws.xsoh.etar.R;
 
 public class AttendeesView extends LinearLayout implements View.OnClickListener {
     private static final String TAG = "AttendeesView";
     private static final boolean DEBUG = false;
+
+    // This doesn't really belong in a view, but we'll put it somewhere sensible later.
+    public ArrayList<Attendee> mAttendeesList = new ArrayList<>();
 
     private static final int EMAIL_PROJECTION_CONTACT_ID_INDEX = 0;
     private static final int EMAIL_PROJECTION_CONTACT_LOOKUP_INDEX = 1;
@@ -91,7 +91,6 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
     private final int mDefaultPhotoAlpha;
     // Cache for loaded photos
     HashMap<String, Drawable> mRecycledPhotos;
-    private Rfc822Validator mValidator;
     // Number of attendees responding or not responding.
     private int mYes;
     private int mNo;
@@ -124,7 +123,7 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
 
     }
 
-    // Disable/enable removal of attendings
+    // Disable/enable removal of attendees
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
@@ -137,10 +136,6 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
                 minusButton.setVisibility(visibility);
             }
         }
-    }
-
-    public void setRfc822Validator(Rfc822Validator validator) {
-        mValidator = validator;
     }
 
     private View constructDividerView(CharSequence label) {
@@ -164,8 +159,9 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
 
 
     /**
-     * Inflates a layout for a given attendee view and set up each element in it, and returns
-     * the constructed View object. The object is also stored in {@link AttendeeItem#mView}.
+     * Inflates a layout for a given attendee view and set up each element in it,
+     * and returns the constructed View object.
+     * The object is also stored in {@link AttendeeItem#mView}.
      */
     private View constructAttendeeView(AttendeeItem item) {
         item.mView = mInflater.inflate(R.layout.contact_item, null);
@@ -184,7 +180,11 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
         if (item.mRemoved) {
             nameView.setPaintFlags(Paint.STRIKE_THRU_TEXT_FLAG | nameView.getPaintFlags());
         } else {
-            nameView.setPaintFlags((~Paint.STRIKE_THRU_TEXT_FLAG) & nameView.getPaintFlags());
+            nameView.setPaintFlags(
+                (~Paint.STRIKE_THRU_TEXT_FLAG) & nameView.getPaintFlags());
+            if (!mAttendeesList.contains(attendee)) {
+                mAttendeesList.add(attendee);
+            }
         }
 
         // Set up the Image button even if the view is disabled
@@ -225,9 +225,10 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
             item.mBadge.setColorFilter(null);
         }
 
-        // If we know the lookup-uri of the contact, it is a good idea to set this here. This
-        // allows QuickContact to be started without an extra database lookup. If we don't know
-        // the lookup uri (yet), we can set Email and QuickContact will lookup once tapped.
+        // If we know the lookup-uri of the contact, it is a good idea to set this here.
+        // This allows QuickContact to be started without an extra database lookup.
+        // If we don't know the lookup uri (yet), we can set Email and QuickContact
+        // will lookup once tapped.
         if (item.mContactLookupUri != null) {
             badgeView.assignContactUri(item.mContactLookupUri);
         } else {
@@ -239,24 +240,14 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
     }
 
     public boolean contains(Attendee attendee) {
-        final int size = getChildCount();
-        for (int i = 0; i < size; i++) {
-            final View view = getChildAt(i);
-            if (view instanceof TextView) { // divider
-                continue;
-            }
-            AttendeeItem attendeeItem = (AttendeeItem) view.getTag();
-            if (TextUtils.equals(attendee.mEmail, attendeeItem.mAttendee.mEmail)) {
-                return true;
-            }
-        }
-        return false;
+        return mAttendeesList.contains(attendee);
     }
 
     public void clearAttendees() {
 
-        // Before clearing the views, save all the badges. The updateAtendeeView will use the saved
-        // photo instead of the default badge thus prevent switching between the two while the
+        // Before clearing the views, save all the badges.
+        // The updateAtendeeView will use the saved photo instead of the default badg
+        // thus prevent switching between the two while the
         // most current photo is loaded in the background.
         mRecycledPhotos = new HashMap<String, Drawable>  ();
         final int size = getChildCount();
@@ -270,16 +261,18 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
         }
 
         removeAllViews();
+        mAttendeesList.clear();
         mYes = 0;
         mNo = 0;
         mMaybe = 0;
         mNoResponse = 0;
     }
 
-    private void addOneAttendee(Attendee attendee) {
-        if (contains(attendee)) {
+    public void addOneAttendee(Attendee attendee) {
+        if (mAttendeesList.contains(attendee)) {
             return;
         }
+        mAttendeesList.add(attendee);
         final AttendeeItem item = new AttendeeItem(attendee, mDefaultBadge);
         final int status = attendee.mStatus;
         final int index;
@@ -371,48 +364,6 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
                 addOneAttendee(attendee);
             }
         }
-    }
-
-    public void addAttendees(HashMap<String, Attendee> attendees) {
-        synchronized (this) {
-            for (final Attendee attendee : attendees.values()) {
-                addOneAttendee(attendee);
-            }
-        }
-    }
-
-    public void addAttendees(String attendees) {
-        final LinkedHashSet<Rfc822Token> addresses =
-                EditEventHelper.getAddressesFromList(attendees, mValidator);
-        synchronized (this) {
-            for (final Rfc822Token address : addresses) {
-                final Attendee attendee = new Attendee(address.getName(), address.getAddress());
-                if (TextUtils.isEmpty(attendee.mName)) {
-                    attendee.mName = attendee.mEmail;
-                }
-                addOneAttendee(attendee);
-            }
-        }
-    }
-
-    /**
-     * Returns true when the attendee at that index is marked as "removed" (the name of
-     * the attendee is shown with a strike through line).
-     */
-    public boolean isMarkAsRemoved(int index) {
-        final View view = getChildAt(index);
-        if (view instanceof TextView) { // divider
-            return false;
-        }
-        return ((AttendeeItem) view.getTag()).mRemoved;
-    }
-
-    public Attendee getItem(int index) {
-        final View view = getChildAt(index);
-        if (view instanceof TextView) { // divider
-            return null;
-        }
-        return ((AttendeeItem) view.getTag()).mAttendee;
     }
 
     @Override

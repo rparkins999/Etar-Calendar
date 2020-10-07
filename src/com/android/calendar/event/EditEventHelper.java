@@ -92,7 +92,8 @@ public class EditEventHelper {
             Events.EVENT_COLOR, // 23
             Events.EVENT_COLOR_KEY, // 24
             Events.ACCOUNT_NAME, // 25
-            Events.ACCOUNT_TYPE // 26
+            Events.ACCOUNT_TYPE, // 26
+            Events.UID_2445 // 27
     };
     protected static final int EVENT_INDEX_ID = 0;
     protected static final int EVENT_INDEX_TITLE = 1;
@@ -121,6 +122,7 @@ public class EditEventHelper {
     protected static final int EVENT_INDEX_EVENT_COLOR_KEY = 24;
     protected static final int EVENT_INDEX_ACCOUNT_NAME = 25;
     protected static final int EVENT_INDEX_ACCOUNT_TYPE = 26;
+    protected static final int EVENT_INDEX_UID = 27;
 
     public static final String[] REMINDERS_PROJECTION = new String[] {
             Reminders._ID, // 0
@@ -303,7 +305,7 @@ public class EditEventHelper {
             return false;
         }
 
-        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        ArrayList<ContentProviderOperation> ops = new ArrayList<>();
         int eventIdIndex = -1;
 
         ContentValues values = getContentValuesFromModel(model);
@@ -321,6 +323,10 @@ public class EditEventHelper {
         ArrayList<ReminderEntry> reminders = model.mReminders;
         int len = reminders.size();
         values.put(Events.HAS_ALARM, (len > 0) ? 1 : 0);
+
+        if ((model.mUid != null ) && !model.mUid.isEmpty()) {
+            values.put(Events.UID_2445, model.mUid);
+        }
 
         if (uri == null) {
             // Add hasAttendeeData for a new event
@@ -493,12 +499,15 @@ public class EditEventHelper {
             }
             // Hit the content provider only if this is a new event or the user
             // has changed it
-            if (newEvent || !TextUtils.equals(originalAttendeesString, attendees)) {
+            if (   newEvent
+                || (originalModel == null)
+                || !model.sameAttendees(originalModel))
+            {
                 // figure out which attendees need to be added and which ones
                 // need to be deleted. use a linked hash set, so we maintain
                 // order (but also remove duplicates).
                 HashMap<String, Attendee> newAttendees = model.mAttendeesList;
-                LinkedList<String> removedAttendees = new LinkedList<String>();
+                LinkedList<String> removedAttendees = new LinkedList<>();
 
                 // the eventId is only used if eventIdIndex is -1.
                 // TODO: clean up this code.
@@ -509,7 +518,8 @@ public class EditEventHelper {
                 // have any existing attendees.
                 if (!newEvent) {
                     removedAttendees.clear();
-                    HashMap<String, Attendee> originalAttendees = originalModel.mAttendeesList;
+                    HashMap<String, Attendee> originalAttendees
+                        = originalModel.mAttendeesList;
                     for (String originalEmail : originalAttendees.keySet()) {
                         if (newAttendees.containsKey(originalEmail)) {
                             // existing attendee. remove from new attendees set.
@@ -549,8 +559,10 @@ public class EditEventHelper {
                         values.put(Attendees.ATTENDEE_EMAIL, attendee.mEmail);
                         values.put(Attendees.ATTENDEE_RELATIONSHIP,
                                 Attendees.RELATIONSHIP_ATTENDEE);
-                        values.put(Attendees.ATTENDEE_TYPE, Attendees.TYPE_REQUIRED);
-                        values.put(Attendees.ATTENDEE_STATUS, Attendees.ATTENDEE_STATUS_NONE);
+                        values.put(Attendees.ATTENDEE_TYPE, attendee.mType);
+                        values.put(Attendees.ATTENDEE_STATUS, attendee.mStatus);
+                        values.put(Attendees.ATTENDEE_IDENTITY, attendee.mIdentity);
+                        values.put(Attendees.ATTENDEE_ID_NAMESPACE, attendee.mIdNamespace);
 
                         if (newEvent) {
                             b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
@@ -1052,6 +1064,7 @@ public class EditEventHelper {
         cursor.moveToFirst();
 
         model.mId = cursor.getInt(EVENT_INDEX_ID);
+        model.mUid = cursor.getString(EVENT_INDEX_UID);
         model.mTitle = cursor.getString(EVENT_INDEX_TITLE);
         model.mDescription = cursor.getString(EVENT_INDEX_DESCRIPTION);
         model.mLocation = cursor.getString(EVENT_INDEX_EVENT_LOCATION);

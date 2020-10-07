@@ -405,6 +405,32 @@ public class CalendarEventModel implements Serializable {
         mAttendeesList.remove(attendee.mEmail);
     }
 
+    public boolean sameAttendees(CalendarEventModel other) {
+        for (String key : mAttendeesList.keySet()) {
+            if (other.mAttendeesList.containsKey(key)) {
+                Attendee mine = mAttendeesList.get(key);
+                Attendee theirs = other.mAttendeesList.get(key);
+                if (   (!Utils.equals(mine.mName, theirs.mName))
+                    || (!Utils.equals(mine.mEmail, theirs.mEmail))
+                    || (mine.mStatus != theirs.mStatus)
+                    || (mine.mType != theirs.mType)
+                    || (!Utils.equals(mine.mIdentity, theirs.mIdentity))
+                    || (!Utils.equals(mine.mIdNamespace, theirs.mIdNamespace)))
+                {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        for (String key : other.mAttendeesList.keySet()) {
+            if (!mAttendeesList.containsKey(key)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public String getAttendeesString() {
         StringBuilder b = new StringBuilder();
         for (Attendee attendee : mAttendeesList.values()) {
@@ -642,7 +668,7 @@ public class CalendarEventModel implements Serializable {
             if (originalModel.mAttendeesList != null) {
                 return false;
             }
-        } else if (!mAttendeesList.equals(originalModel.mAttendeesList)) {
+        } else if (!sameAttendees(originalModel)) {
             return false;
         }
 
