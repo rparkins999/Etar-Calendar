@@ -54,6 +54,8 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private Intent mIntent;
 
+    public CalendarEventModel mModel;
+
     private final DynamicTheme dynamicTheme = new DynamicTheme();
 
     private CalendarController.ActionInfo getEventInfoFromModel(CalendarEventModel model) {
@@ -75,8 +77,9 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     @SuppressWarnings("unchecked")
     private ArrayList<ReminderEntry> getReminderEntriesFromIntent() {
-        return (ArrayList<ReminderEntry>)
+        ArrayList<ReminderEntry> reminders = (ArrayList<ReminderEntry>)
             mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
+        return (reminders == null) ? new ArrayList<ReminderEntry>() : reminders;
     }
 
     private ActionInfo getEventInfoFromIntent(Bundle icicle) {
@@ -152,14 +155,13 @@ public class EditEventActivity extends AbstractCalendarActivity {
                 eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
             }
         }
-
         if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {
             getSupportActionBar().setDisplayOptions(
                     ActionBar.DISPLAY_SHOW_TITLE,
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
                             | ActionBar.DISPLAY_SHOW_TITLE);
             getSupportActionBar().setTitle(
-                    actionInfo.id == -1 ? R.string.event_create : R.string.event_edit);
+                actionInfo.id == -1 ? R.string.event_create : R.string.event_edit);
         }
         else {
             getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,

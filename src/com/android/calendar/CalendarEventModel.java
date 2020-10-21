@@ -98,9 +98,7 @@ public class CalendarEventModel implements Serializable {
     public int mEventColor = -1;
     public boolean mEventColorInitialized = false;
     public EventColorCache mEventColorCache;
-    // android.provider.CalendarContract.EventsColumns.ACCESS_DEFAULT is 0,
-    // but we can't import it because it's in a protected interface.
-    public int mAccessLevel = 0;
+    public int mAccessLevel = Events.ACCESS_DEFAULT;
     public int mAvailability = Events.AVAILABILITY_BUSY;
     public int mEventStatus = Events.STATUS_CONFIRMED;
     public long mCalendarId = -1;
@@ -141,7 +139,7 @@ public class CalendarEventModel implements Serializable {
     public String mSyncAccountType = null;
     // The model can't be updated with a calendar cursor until it has been
     // updated with an event cursor.
-    public boolean mModelUpdatedWithEventCursor;
+    public boolean mModelUpdatedWithEventCursor = false;
 
     public CalendarEventModel() {
         mReminders = new ArrayList<>();
@@ -289,6 +287,7 @@ public class CalendarEventModel implements Serializable {
             mAvailability = availability;
         }
 
+        // Combine duplicated code with EditEventActivity::getReminderEntriesFromIntent()
         // Using otherwise unnecessary local variable to suppress warning
         @SuppressWarnings("unchecked")
         ArrayList<ReminderEntry> reminders =
