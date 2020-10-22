@@ -356,7 +356,7 @@ public class CalendarController {
                 EventHandler handler = mFirstEventHandler.second;
                 if (handler != null && (handler.getSupportedEventTypes() & event.actionType) != 0
                         && !mToBeRemovedEventHandlers.contains(mFirstEventHandler.first)) {
-                    handler.handleEvent(event);
+                    handler.handleAction(event);
                     handled = true;
                 }
             }
@@ -374,7 +374,7 @@ public class CalendarController {
                     if (mToBeRemovedEventHandlers.contains(key)) {
                         continue;
                     }
-                    eventHandler.handleEvent(event);
+                    eventHandler.handleAction(event);
                     handled = true;
                 }
             }
@@ -722,7 +722,7 @@ public class CalendarController {
     public interface EventHandler {
         long getSupportedEventTypes();
 
-        void handleEvent(ActionInfo event);
+        void handleAction(ActionInfo actionInfo);
 
         /**
          * This notifies the handler that the database has changed and it should

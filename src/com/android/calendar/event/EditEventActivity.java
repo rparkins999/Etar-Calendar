@@ -18,7 +18,6 @@ package com.android.calendar.event;
 
 import android.app.FragmentTransaction;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CalendarContract.Events;
 import androidx.appcompat.app.ActionBar;
@@ -58,75 +57,12 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private final DynamicTheme dynamicTheme = new DynamicTheme();
 
-    private CalendarController.ActionInfo getEventInfoFromModel(CalendarEventModel model) {
-        ActionInfo actionInfo = new CalendarController.ActionInfo();
-        actionInfo.id = model.mId;
-        actionInfo.startTime = new Time(Time.TIMEZONE_UTC);
-        actionInfo.startTime.set(model.mStart);
-        actionInfo.endTime = new Time(Time.TIMEZONE_UTC);
-        actionInfo.endTime.set(model.mEnd);
-        actionInfo.eventTitle = model.mTitle;
-        actionInfo.calendarId = model.mCalendarId;
-        if (model.mAllDay) {
-            actionInfo.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
-        } else {
-            actionInfo.extraLong = 0;
-        }
-        return actionInfo;
-    }
-
     @SuppressWarnings("unchecked")
     private ArrayList<ReminderEntry> getReminderEntriesFromIntent() {
         ArrayList<ReminderEntry> reminders = (ArrayList<ReminderEntry>)
             mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
         return (reminders == null) ? new ArrayList<ReminderEntry>() : reminders;
     }
-
-    private ActionInfo getEventInfoFromIntent(Bundle icicle) {
-        ActionInfo info = new ActionInfo();
-        long eventId = -1;
-        Uri data = mIntent.getData();
-        if (icicle != null && icicle.containsKey(BUNDLE_KEY_EVENT_ID)) {
-            eventId = icicle.getLong(BUNDLE_KEY_EVENT_ID);
-        } else if (data != null) {
-            try {
-                eventId = Long.parseLong(data.getLastPathSegment());
-            } catch (NumberFormatException e) {
-                if (DEBUG) {
-                    Log.d(TAG, "Create new event");
-                }
-            }
-        }
-
-        boolean allDay = mIntent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
-        long begin = mIntent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
-        long end = mIntent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
-        if (end != -1) {
-            info.endTime = new Time();
-            if (allDay) {
-                info.endTime.timezone = Time.TIMEZONE_UTC;
-            }
-            info.endTime.set(end);
-        }
-        if (begin != -1) {
-            info.startTime = new Time();
-            if (allDay) {
-                info.startTime.timezone = Time.TIMEZONE_UTC;
-            }
-            info.startTime.set(begin);
-        }
-        info.id = eventId;
-        info.eventTitle = mIntent.getStringExtra(Events.TITLE);
-        info.calendarId = mIntent.getLongExtra(Events.CALENDAR_ID, -1);
-
-        if (allDay) {
-            info.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
-        } else {
-            info.extraLong = 0;
-        }
-        return info;
-    }
-
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -137,31 +73,63 @@ public class EditEventActivity extends AbstractCalendarActivity {
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
 
-        ActionInfo actionInfo;
-        ArrayList<ReminderEntry> reminders;
-        int eventColor;
-        boolean eventColorInitialized ;
         synchronized (CalendarApplication.mEvents) {
             try {
-                CalendarEventModel model = CalendarApplication.mEvents.get(0);
-                actionInfo = getEventInfoFromModel(model);
-                reminders = model.mReminders;
-                eventColor = model.mEventColor;
-                eventColorInitialized = model.mEventColorInitialized;
+                mModel = CalendarApplication.mEvents.remove(0);
             } catch (IndexOutOfBoundsException ignore) {
-                actionInfo = getEventInfoFromIntent(icicle);
-                reminders = getReminderEntriesFromIntent();
-                eventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
-                eventColorInitialized = getIntent().hasExtra(EXTRA_EVENT_COLOR);
+                mModel = null;
             }
         }
+        if (mModel == null) {
+            mModel = new CalendarEventModel(this);
+            mModel.mUri = mIntent.getData();
+            if (icicle != null) {
+                mModel.mId = icicle.getLong(BUNDLE_KEY_EVENT_ID, -1);
+            } else {
+                try {
+                    mModel.mId = Long.parseLong(mModel.mUri.getLastPathSegment());
+                } catch (NullPointerException | NumberFormatException e) {
+                    if (DEBUG) {
+                        Log.d(TAG, "Create new event");
+                    }
+                    mModel.mId = -1;
+                }
+            }
+
+            mModel.mAllDay =
+                mIntent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
+            mModel.mStart = mIntent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
+            mModel.mEnd = mIntent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
+            mModel.mTitle = mIntent.getStringExtra(Events.TITLE);
+            mModel.mCalendarId = mIntent.getLongExtra(
+                Events.CALENDAR_ID, -1);
+
+            mModel.mReminders = getReminderEntriesFromIntent();
+            mModel.mHasAlarm = mModel.mReminders.size() > 0;
+            mModel.mEventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
+            mModel.mEventColorInitialized = mIntent.hasExtra(EXTRA_EVENT_COLOR);
+        }
+        ActionInfo actionInfo = new ActionInfo();
+        actionInfo.id = mModel.mId;
+        actionInfo.startTime = new Time(Time.TIMEZONE_UTC);
+        actionInfo.startTime.set(mModel.mStart);
+        actionInfo.endTime = new Time(Time.TIMEZONE_UTC);
+        actionInfo.endTime.set(mModel.mEnd);
+        actionInfo.eventTitle = mModel.mTitle;
+        actionInfo.calendarId = mModel.mCalendarId;
+        if (mModel.mAllDay) {
+            actionInfo.extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
+        } else {
+            actionInfo.extraLong = 0;
+        }
+
         if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {
             getSupportActionBar().setDisplayOptions(
                     ActionBar.DISPLAY_SHOW_TITLE,
                     ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
                             | ActionBar.DISPLAY_SHOW_TITLE);
             getSupportActionBar().setTitle(
-                actionInfo.id == -1 ? R.string.event_create : R.string.event_edit);
+                mModel.mId == -1 ? R.string.event_create : R.string.event_edit);
         }
         else {
             getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
@@ -176,9 +144,9 @@ public class EditEventActivity extends AbstractCalendarActivity {
             boolean readOnly =
                    (actionInfo.id == -1)
                 && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
-            editFragment = new EditEventFragment(actionInfo, reminders,
-                eventColorInitialized, eventColor, readOnly, mIntent);
-
+            editFragment = new EditEventFragment(actionInfo, mModel.mReminders,
+                mModel.mEventColorInitialized, mModel.mEventColor, readOnly, mIntent);
+            editFragment.setModel(mModel);
             editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
                     CalendarController.EVENT_EDIT_ON_LAUNCH, false);
 

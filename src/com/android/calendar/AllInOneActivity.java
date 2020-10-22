@@ -1202,26 +1202,26 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     }
 
     @Override
-    public void handleEvent(ActionInfo event) {
+    public void handleAction(ActionInfo actionInfo) {
         long displayTime = -1;
-        if (event.actionType == ControllerAction.GO_TO) {
-            if ((event.extraLong & CalendarController.EXTRA_GOTO_BACK_TO_PREVIOUS) != 0) {
+        if (actionInfo.actionType == ControllerAction.GO_TO) {
+            if ((actionInfo.extraLong & CalendarController.EXTRA_GOTO_BACK_TO_PREVIOUS) != 0) {
                 mBackToPreviousView = true;
-            } else if (event.viewType != mController.getPreviousViewType()
-                    && event.viewType != ViewType.EDIT) {
+            } else if (actionInfo.viewType != mController.getPreviousViewType()
+                    && actionInfo.viewType != ViewType.EDIT) {
                 // Clear the flag is change to a different view type
                 mBackToPreviousView = false;
             }
 
             setMainPane(
-                    null, R.id.main_pane, event.viewType, event.startTime.toMillis(false), false);
+                    null, R.id.main_pane, actionInfo.viewType, actionInfo.startTime.toMillis(false), false);
             if (mSearchView != null) {
                 mSearchView.clearFocus();
             }
             if (mShowCalendarControls) {
                 int animationSize = (mOrientation == Configuration.ORIENTATION_LANDSCAPE) ?
                         mControlsAnimateWidth : mControlsAnimateHeight;
-                boolean noControlsView = event.viewType == ViewType.MONTH || event.viewType == ViewType.AGENDA;
+                boolean noControlsView = actionInfo.viewType == ViewType.MONTH || actionInfo.viewType == ViewType.AGENDA;
                 if (mControlsMenu != null) {
                     mControlsMenu.setVisible(!noControlsView);
                     mControlsMenu.setEnabled(!noControlsView);
@@ -1259,13 +1259,13 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 }
             }
             updateViewSettingsVisiblility();
-            displayTime = event.selectedTime != null ? event.selectedTime.toMillis(true)
-                    : event.startTime.toMillis(true);
+            displayTime = actionInfo.selectedTime != null ? actionInfo.selectedTime.toMillis(true)
+                    : actionInfo.startTime.toMillis(true);
             if (!mIsTabletConfig) {
                 refreshActionbarTitle(displayTime);
             }
-        } else if (event.actionType == CalendarController.ControllerAction.UPDATE_TITLE) {
-            setTitleInActionBar(event);
+        } else if (actionInfo.actionType == CalendarController.ControllerAction.UPDATE_TITLE) {
+            setTitleInActionBar(actionInfo);
             if (!mIsTabletConfig) {
                 refreshActionbarTitle(mController.getTime());
             }

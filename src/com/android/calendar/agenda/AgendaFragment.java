@@ -341,18 +341,18 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     }
 
     @Override
-    public void handleEvent(CalendarController.ActionInfo event) {
-        if (event.actionType == CalendarController.ControllerAction.GO_TO) {
+    public void handleAction(CalendarController.ActionInfo actionInfo) {
+        if (actionInfo.actionType == CalendarController.ControllerAction.GO_TO) {
             // TODO support a range of time
             // TODO support event_id
             // TODO figure out the animate bit
-            mLastHandledEventId = event.id;
+            mLastHandledEventId = actionInfo.id;
             mLastHandledEventTime =
-                    (event.selectedTime != null) ? event.selectedTime : event.startTime;
-            goTo(event, true);
-        } else if (event.actionType == ControllerAction.SEARCH) {
-            search(event.query, event.startTime);
-        } else if (event.actionType == ControllerAction.EVENTS_CHANGED) {
+                    (actionInfo.selectedTime != null) ? actionInfo.selectedTime : actionInfo.startTime;
+            goTo(actionInfo, true);
+        } else if (actionInfo.actionType == ControllerAction.SEARCH) {
+            search(actionInfo.query, actionInfo.startTime);
+        } else if (actionInfo.actionType == ControllerAction.EVENTS_CHANGED) {
             eventsChanged();
         }
     }
@@ -362,15 +362,15 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     }
 
     // Shows the selected event in the Agenda view
-    private void showEventInfo(ActionInfo event, boolean allDay, boolean replaceFragment) {
+    private void showEventInfo(ActionInfo actionInfo, boolean allDay, boolean replaceFragment) {
 
         // Ignore unknown events
-        if (event.id == -1) {
-            Log.e(TAG, "showEventInfo, event ID = " + event.id);
+        if (actionInfo.id == -1) {
+            Log.e(TAG, "showEventInfo, event ID = " + actionInfo.id);
             return;
         }
 
-        mLastShownEventId = event.id;
+        mLastShownEventId = actionInfo.id;
 
         // Create a fragment to show the event to the side of the agenda list
         if (mShowEventDetailsWithAgenda) {
@@ -378,27 +378,27 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
             if (fragmentManager == null) {
                 // Got a goto event before the fragment finished attaching,
                 // stash the event and handle it later.
-                mOnAttachedInfo = event;
+                mOnAttachedInfo = actionInfo;
                 mOnAttachAllDay = allDay;
                 return;
             }
             FragmentTransaction ft = fragmentManager.beginTransaction();
 
             if (allDay) {
-                event.startTime.timezone = Time.TIMEZONE_UTC;
-                event.endTime.timezone = Time.TIMEZONE_UTC;
+                actionInfo.startTime.timezone = Time.TIMEZONE_UTC;
+                actionInfo.endTime.timezone = Time.TIMEZONE_UTC;
             }
 
             if (DEBUG) {
                 Log.d(TAG, "***");
-                Log.d(TAG, "showEventInfo: start: " + new Date(event.startTime.toMillis(true)));
-                Log.d(TAG, "showEventInfo: end: " + new Date(event.endTime.toMillis(true)));
+                Log.d(TAG, "showEventInfo: start: " + new Date(actionInfo.startTime.toMillis(true)));
+                Log.d(TAG, "showEventInfo: end: " + new Date(actionInfo.endTime.toMillis(true)));
                 Log.d(TAG, "showEventInfo: all day: " + allDay);
                 Log.d(TAG, "***");
             }
 
             ft.replace(R.id.agenda_event_info, new EditEventFragment(
-                    event, null, false, 0,
+                actionInfo, null, false, 0,
                     false, getActivity().getIntent()));
             ft.commit();
         }

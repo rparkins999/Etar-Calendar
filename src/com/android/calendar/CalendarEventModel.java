@@ -325,8 +325,11 @@ public class CalendarEventModel implements Serializable {
                     || (mDescription.trim().length() == 0)));
     }
 
+    // This is called to initialise everything except the Uri
+    // before filling the model with data from the CalendarProvider.
+    // The Uri must be valid because we used it to access the CalendarProvider.
     public void clear() {
-        mUri = null;
+        // DOn't throw away the Uri
         mId = -1;
         mOriginalId = -1;
         mUid = null;

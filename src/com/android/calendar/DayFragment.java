@@ -243,14 +243,14 @@ public class DayFragment extends Fragment implements CalendarController.EventHan
         return CalendarController.ControllerAction.GO_TO | ControllerAction.EVENTS_CHANGED;
     }
 
-    public void handleEvent(ActionInfo msg) {
-        if (msg.actionType == ControllerAction.GO_TO) {
+    public void handleAction(ActionInfo actionInfo) {
+        if (actionInfo.actionType == ControllerAction.GO_TO) {
 // TODO support a range of time
 // TODO support event_id
 // TODO support select message
-            goTo(msg.selectedTime, (msg.extraLong & CalendarController.EXTRA_GOTO_DATE) != 0,
-                    (msg.extraLong & CalendarController.EXTRA_GOTO_TODAY) != 0);
-        } else if (msg.actionType == ControllerAction.EVENTS_CHANGED) {
+            goTo(actionInfo.selectedTime, (actionInfo.extraLong & CalendarController.EXTRA_GOTO_DATE) != 0,
+                    (actionInfo.extraLong & CalendarController.EXTRA_GOTO_TODAY) != 0);
+        } else if (actionInfo.actionType == ControllerAction.EVENTS_CHANGED) {
             eventsChanged();
         }
     }

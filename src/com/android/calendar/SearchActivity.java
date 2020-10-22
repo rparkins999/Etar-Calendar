@@ -179,11 +179,11 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         search(query, t);
     }
 
-    private void editEvent(ActionInfo event) {
+    private void editEvent(ActionInfo actionInfo) {
         if (mShowEventDetailsWithAgenda) {
             FragmentManager fragmentManager = getFragmentManager();
             FragmentTransaction ft = fragmentManager.beginTransaction();
-            EditEventFragment mEditEventFragment = new EditEventFragment(event,
+            EditEventFragment mEditEventFragment = new EditEventFragment(actionInfo,
                 null, false, 0,
                 false, getIntent());
 
@@ -192,16 +192,16 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
             ft.commit();
         } else {
             Intent intent = new Intent(Intent.ACTION_EDIT);
-            Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, event.id);
+            Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, actionInfo.id);
             intent.setData(eventUri);
             intent.setClass(this, EditEventActivity.class);
             intent.putExtra(EXTRA_EVENT_BEGIN_TIME,
-                    event.startTime != null ? event.startTime.toMillis(true) : -1);
+                    actionInfo.startTime != null ? actionInfo.startTime.toMillis(true) : -1);
             intent.putExtra(
-                    EXTRA_EVENT_END_TIME, event.endTime != null ? event.endTime.toMillis(true) : -1);
+                    EXTRA_EVENT_END_TIME, actionInfo.endTime != null ? actionInfo.endTime.toMillis(true) : -1);
             startActivity(intent);
         }
-        mCurrentEventId = event.id;
+        mCurrentEventId = actionInfo.id;
     }
 
     private void search(String searchQuery, Time goToTime) {
@@ -347,12 +347,12 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
     }
 
     @Override
-    public void handleEvent(ActionInfo event) {
-        long endTime = (event.endTime == null) ? -1 : event.endTime.toMillis(false);
-        if (event.actionType == CalendarController.ControllerAction.EDIT_EVENT) {
-            editEvent(event);
-        } else if (event.actionType == CalendarController.ControllerAction.DELETE_EVENT) {
-            deleteEvent(event.id, event.startTime.toMillis(false), endTime);
+    public void handleAction(ActionInfo actionInfo) {
+        long endTime = (actionInfo.endTime == null) ? -1 : actionInfo.endTime.toMillis(false);
+        if (actionInfo.actionType == CalendarController.ControllerAction.EDIT_EVENT) {
+            editEvent(actionInfo);
+        } else if (actionInfo.actionType == CalendarController.ControllerAction.DELETE_EVENT) {
+            deleteEvent(actionInfo.id, actionInfo.startTime.toMillis(false), endTime);
         }
     }
 

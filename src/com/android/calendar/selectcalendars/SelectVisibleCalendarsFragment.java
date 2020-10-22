@@ -186,7 +186,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
     }
 
     @Override
-    public void handleEvent(ActionInfo event) {
+    public void handleAction(ActionInfo actionInfo) {
         eventsChanged();
     }
 

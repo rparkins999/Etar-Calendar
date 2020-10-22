@@ -124,12 +124,10 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
      */
     private int mOutstandingQueries = TOKEN_UNINITIALIZED;
     private final ActionInfo mActionInfo;
-    private final Intent mIntent;
     public boolean mShowModifyDialogOnLaunch = false;
     private EditEventHelper mHelper;
     private CalendarEventModel mModel;
     private CalendarEventModel mOriginalModel;
-    private CalendarEventModel mRestoreModel;
     private EditEventView mView;
     private QueryHandler mHandler;
     private int mModification = Utils.MODIFY_UNINITIALIZED;
@@ -138,10 +136,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     private ArrayList<ReminderEntry> mReminders;
     private int mEventColor;
     private boolean mEventColorInitialized = false;
-    private Uri mUri;
-    private long mBegin;
-    private long mEnd;
-    private long mCalendarId = -1;
     private EventColorPickerDialog mColorPickerDialog;
     private AppCompatActivity mActivity;
     private boolean mSaveOnDetach = true;
@@ -302,19 +296,15 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     }
 
     public long getEventId() {
-        return mActionInfo.id;
+        return mModel.mId;
     }
 
     public long getStartMillis() {
-        return mBegin;
+        return mModel.mStart;
     }
 
     public long getEndMillis() {
-        return mEnd;
-    }
-
-    public void setModel(CalendarEventModel model) {
-        mModel = model;
+        return mModel.mEnd;
     }
 
     public EditEventFragment() {
@@ -328,8 +318,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                              boolean readOnly, Intent intent) {
         mActionInfo = actionInfo;
         mIsReadOnly = readOnly;
-        mIntent = intent;
-
         mReminders = reminders;
         mEventColorInitialized = eventColorInitialized;
         if (eventColorInitialized) {
@@ -338,13 +326,18 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         setHasOptionsMenu(true);
     }
 
+    // This gets called immediately after creating the fragment
+    public void setModel(CalendarEventModel model)
+    {
+        mModel = model;
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         mActivity = (AppCompatActivity) activity;
         mHelper = new EditEventHelper(activity, null);
         mHandler = new QueryHandler(activity.getContentResolver());
-        mModel = new CalendarEventModel(activity, mIntent);
         mInputMethodManager = (InputMethodManager)
             activity.getSystemService(Context.INPUT_METHOD_SERVICE);
     }
@@ -360,16 +353,21 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         if (!havePermission(Manifest.permission.READ_CONTACTS)) {
             ActivityCompat.requestPermissions(
                 mActivity,
                 new String[] { Manifest.permission.READ_CONTACTS }, 0);
         }
+    }
 
+    // This is called after onCreate().
+    @SuppressLint("InflateParams")
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         if (savedInstanceState != null) {
             if (savedInstanceState.containsKey(BUNDLE_KEY_MODEL)) {
-                mRestoreModel = (CalendarEventModel)
+                mModel = (CalendarEventModel)
                     savedInstanceState.getSerializable(BUNDLE_KEY_MODEL);
             }
             if (savedInstanceState.containsKey(BUNDLE_KEY_EDIT_STATE)) {
@@ -390,15 +388,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                 mShowColorPalette =
                     savedInstanceState.getBoolean(BUNDLE_KEY_SHOW_COLOR_PALETTE);
             }
-        }
-    }
-
-    // This is called after onCreate().
-    @SuppressLint("InflateParams")
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
             mDeleteDialogVisible =
                 savedInstanceState.getBoolean(
                     BUNDLE_KEY_DELETE_DIALOG_VISIBLE,false);
@@ -414,37 +403,23 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         mView = new EditEventView(mActivity, view, mOnDone);
 
         if (havePermission(Manifest.permission.READ_CALENDAR)) {
-            mUri = null;
-            mBegin = -1;
-            mEnd = -1;
-            try {
-                mModel = CalendarApplication.mEvents.remove(0);
-                mBegin = mModel.mStart;
-                mEnd = mModel.mEnd;
-                mCalendarId = mModel.mCalendarId;
-                mUri = mModel.mUri;
-            } catch (IndexOutOfBoundsException ignore) {
-                if (mModel == null) {
-                    mModel = new CalendarEventModel(getActivity());
-                }
+            if (mModel == null) {
+                mModel = new CalendarEventModel();
                 if (mActionInfo != null) {
                     if (mActionInfo.startTime != null) {
-                        mBegin = mActionInfo.startTime.toMillis(true);
-                        mModel.mStart = mBegin;
+                        mModel.mStart = mActionInfo.startTime.toMillis(true);
+                        mModel.mEnd = mModel.mStart;
                     }
                     if (mActionInfo.endTime != null) {
-                        mEnd = mActionInfo.endTime.toMillis(true);
-                        mModel.mEnd = mEnd;
+                        mModel.mEnd = mActionInfo.endTime.toMillis(true);
                     }
                     if (mActionInfo.calendarId != -1) {
-                        mCalendarId = mActionInfo.calendarId;
-                        mModel.mCalendarId = mCalendarId;
+                        mModel.mCalendarId = mActionInfo.calendarId;
                     }
                     if (mActionInfo.id != -1) {
                         mModel.mId = mActionInfo.id;
-                        mUri = ContentUris.withAppendedId(
+                        mModel.mUri = ContentUris.withAppendedId(
                             Events.CONTENT_URI, mActionInfo.id);
-                        mModel.mUri = mUri;
                     } else {
                         // New event. All day?
                         mModel.mAllDay =
@@ -454,17 +429,14 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                 } else if (mEventBundle != null) {
                     if (mEventBundle.id != -1) {
                         mModel.mId = mEventBundle.id;
-                        mUri = ContentUris.withAppendedId(
+                        mModel.mUri = ContentUris.withAppendedId(
                             Events.CONTENT_URI, mEventBundle.id);
                     }
-                    mBegin = mEventBundle.start;
-                    mModel.mStart = mBegin;
-                    mEnd = mEventBundle.end;
-                    mModel.mEnd = mEnd;
+                    mModel.mStart = mEventBundle.start;
+                    mModel.mEnd = mEventBundle.end;
                 }
-                mModel.mOriginalStart = mBegin;
-                mModel.mOriginalEnd = mEnd;
-                mModel.mCalendarId = mCalendarId;
+                mModel.mOriginalStart = mModel.mStart;
+                mModel.mOriginalEnd = mModel.mEnd;
                 mModel.mSelfAttendeeStatus = Attendees.ATTENDEE_STATUS_ACCEPTED;
                 if (mReminders != null) {
                     mModel.mReminders = mReminders;
@@ -474,25 +446,27 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                 }
             }
 
-            if (mBegin <= 0) {
+            if (mModel.mStart <= 0) {
                 // use a default value instead
-                mBegin = mHelper.constructDefaultStartTime(System.currentTimeMillis());
+                mModel.mStart =
+                    mHelper.constructDefaultStartTime(System.currentTimeMillis());
             }
-            if (mEnd < mBegin) {
+            if (mModel.mEnd < mModel.mStart) {
                 // use a default value instead
-                mEnd = mHelper.constructDefaultEndTime(mBegin, mActivity);
+                mModel.mEnd = mHelper.constructDefaultEndTime(mModel.mStart, mActivity);
             }
 
             // Kick off the query for the event
-            boolean newEvent = mUri == null;
+            boolean newEvent = mModel.mUri == null;
             if (!newEvent) {
                 mModel.mCalendarAccessLevel = Calendars.CAL_ACCESS_NONE;
                 mOutstandingQueries = TOKEN_ALL;
                 if (DEBUG) {
-                    Log.d(TAG, "startQuery: uri for event is " + mUri.toString());
+                    Log.d(TAG, "startQuery: uri for event is "
+                        + mModel.mUri.toString());
                 }
                 mHandler.startQuery(
-                    TOKEN_EVENT, null, mUri,
+                    TOKEN_EVENT, null, mModel.mUri,
                     EditEventHelper.EVENT_PROJECTION,
                     null, null, null);
             } else {
@@ -760,7 +734,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
             if (   EditEventHelper.canModifyEvent(mModel)
                 || EditEventHelper.canRespond(mModel))
             {
-                if (mView != null && mView.prepareForSave()) {
+                if ((mView != null) && mView.prepareForSave()) {
                     if (mModification == Utils.MODIFY_UNINITIALIZED) {
                         mModification = Utils.MODIFY_ALL;
                     }
@@ -994,11 +968,11 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     }
 
     @Override
-    public void handleEvent(CalendarController.ActionInfo event) {
+    public void handleAction(CalendarController.ActionInfo actionInfo) {
         // It's currently unclear if we want to save the event or not when home
         // is pressed. When creating a new event we shouldn't save since we
         // can't get the id of the new event easily.
-        if (   (event.actionType == CalendarController.ControllerAction.GO_TO)
+        if (   (actionInfo.actionType == CalendarController.ControllerAction.GO_TO)
             && mSaveOnDetach)
         {
             if (mView != null && mView.prepareForSave()) {
@@ -1029,9 +1003,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         synchronized (this) {
             mOutstandingQueries &= ~queryType;
             if (mOutstandingQueries == 0) {
-                if (mRestoreModel != null) {
-                    mModel = mRestoreModel;
-                }
                 if (   mShowModifyDialogOnLaunch
                     && (mModification == Utils.MODIFY_UNINITIALIZED))
                 {
@@ -1082,9 +1053,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     }
                     EditEventHelper.setModelFromCursor(mModel, cursor);
                     cursor.close();
-                    mModel.mStart = mBegin;
-                    mModel.mEnd = mEnd;
-                    mModel.mUri = mUri;
                     mOriginalModel = new CalendarEventModel(mModel);
                     if (mModel.mId == mModel.mOriginalId) {
                         mModel.mIsFirstEventInSeries = true;
@@ -1129,7 +1097,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     } else {
                         if (mReminders == null) {
                             // mReminders should not be null.
-                            mReminders = new ArrayList<ReminderEntry>();
+                            mReminders = new ArrayList<>();
                         } else {
                             Collections.sort(mReminders);
                         }
@@ -1248,7 +1216,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                             }
                             mView.setCalendarsCursor(
                                 matrixCursor, isAdded() && isResumed(),
-                                mCalendarId);
+                                mModel.mCalendarId);
                         } else {
                             // Populate model for an existing event
                             EditEventHelper.setModelFromCalendarCursor(
@@ -1305,5 +1273,4 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
             }
         }
     }
-
 }

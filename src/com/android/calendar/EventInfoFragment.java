@@ -2115,7 +2115,7 @@ public class EventInfoFragment extends DialogFragment
     }
 
     @Override
-    public void handleEvent(CalendarController.ActionInfo event) {
+    public void handleAction(CalendarController.ActionInfo actionInfo) {
         reloadEvents();
     }
 

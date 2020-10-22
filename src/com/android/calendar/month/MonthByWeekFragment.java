@@ -413,19 +413,19 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
     }
 
     @Override
-    public void handleEvent(CalendarController.ActionInfo event) {
-        if (event.actionType == ControllerAction.GO_TO) {
+    public void handleAction(CalendarController.ActionInfo actionInfo) {
+        if (actionInfo.actionType == ControllerAction.GO_TO) {
             boolean animate = true;
             if (mDaysPerWeek * mNumWeeks * 2 < Math.abs(
-                    Time.getJulianDay(event.selectedTime.toMillis(true), event.selectedTime.gmtoff)
+                    Time.getJulianDay(actionInfo.selectedTime.toMillis(true), actionInfo.selectedTime.gmtoff)
                     - Time.getJulianDay(mFirstVisibleDay.toMillis(true), mFirstVisibleDay.gmtoff)
                     - mDaysPerWeek * mNumWeeks / 2)) {
                 animate = false;
             }
-            mDesiredDay.set(event.selectedTime);
+            mDesiredDay.set(actionInfo.selectedTime);
             mDesiredDay.normalize(true);
-            boolean animateToday = (event.extraLong & CalendarController.EXTRA_GOTO_TODAY) != 0;
-            boolean delayAnimation = goTo(event.selectedTime.toMillis(true), animate, true, false);
+            boolean animateToday = (actionInfo.extraLong & CalendarController.EXTRA_GOTO_TODAY) != 0;
+            boolean delayAnimation = goTo(actionInfo.selectedTime.toMillis(true), animate, true, false);
             if (animateToday) {
                 // If we need to flash today start the animation after any
                 // movement from listView has ended.
@@ -437,7 +437,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
                     }
                 }, delayAnimation ? GOTO_SCROLL_DURATION : 0);
             }
-        } else if (event.actionType == CalendarController.ControllerAction.EVENTS_CHANGED) {
+        } else if (actionInfo.actionType == CalendarController.ControllerAction.EVENTS_CHANGED) {
             eventsChanged();
         }
     }
