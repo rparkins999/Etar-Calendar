@@ -47,10 +47,10 @@ import android.provider.CalendarContract.Colors;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
 import android.text.TextUtils;
@@ -124,7 +124,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
      */
     private int mOutstandingQueries = TOKEN_UNINITIALIZED;
     private final ActionInfo mActionInfo;
-    private final Done mOnDone = new Done();
     private final Intent mIntent;
     public boolean mShowModifyDialogOnLaunch = false;
     private EditEventHelper mHelper;
@@ -153,18 +152,123 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     private boolean mDismissOnResume = false;
     private boolean mDeleteDialogVisible = false;
     private InputMethodManager mInputMethodManager;
-    public final Runnable onDeleteRunnable = new Runnable() {
+    class Done implements EditEventHelper.EditDoneRunnable {
+        private int mCode = -1;
+
+        @Override
+        public void setDoneCode(int code) {
+            mCode = code;
+        }
+
         @Override
         public void run() {
-            if (EditEventFragment.this.mIsPaused) {
-                mDismissOnResume = true;
-                return;
+            // We only want this to get called once, either because the user
+            // pressed back/home or one of the buttons on screen
+            mSaveOnDetach = false;
+            if (mModification == Utils.MODIFY_UNINITIALIZED) {
+                // If this is uninitialized the user hit back, the only
+                // changeable item is response to default to all events.
+                mModification = Utils.MODIFY_ALL;
             }
-            if (EditEventFragment.this.isVisible()) {
-                EditEventFragment.this.dismiss();
+
+            if (   ((mCode & Utils.DONE_SAVE) != 0)
+                && (mModel != null)
+                && (   EditEventHelper.canRespond(mModel)
+                    || EditEventHelper.canModifyEvent(mModel))
+                && (!isEmptyNewEvent())
+                && mModel.normalizeReminders()
+                && mHelper.saveEvent(mModel, mOriginalModel, mModification))
+            {
+                int stringResource;
+                if (!mModel.mAttendeesList.isEmpty()) {
+                    if (mModel.mUri != null) {
+                        stringResource = R.string.saving_event_with_guest;
+                    } else {
+                        stringResource = R.string.creating_event_with_guest;
+                    }
+                } else {
+                    if (mModel.mUri != null) {
+                        stringResource = R.string.saving_event;
+                    } else {
+                        stringResource = R.string.creating_event;
+                        // FIXME arrange to select the event
+                    }
+                }
+                Toast.makeText(mActivity, stringResource, Toast.LENGTH_SHORT).show();
+            } else if (   ((mCode & Utils.DONE_SAVE) != 0)
+                       && (mModel != null)
+                       && isEmptyNewEvent())
+            {
+                Toast.makeText(
+                    mActivity, R.string.empty_event, Toast.LENGTH_SHORT).show();
+            }
+
+            if (   ((mCode & Utils.DONE_DELETE) != 0)
+                && (mOriginalModel != null)
+                && EditEventHelper.canModifyCalendar(mOriginalModel))
+            {
+                assert mModel != null; // ignored in release build
+                long begin = mModel.mStart;
+                long end = mModel.mEnd;
+                int which = -1;
+                switch (mModification) {
+                    case Utils.MODIFY_SELECTED:
+                        which = DeleteEventHelper.DELETE_SELECTED;
+                        break;
+                    case Utils.MODIFY_ALL_FOLLOWING:
+                        which = DeleteEventHelper.DELETE_ALL_FOLLOWING;
+                        break;
+                    case Utils.MODIFY_ALL:
+                        which = DeleteEventHelper.DELETE_ALL;
+                        break;
+                }
+                DeleteEventHelper deleteHelper = new DeleteEventHelper(
+                    mActivity, mActivity, !mIsReadOnly /* exitWhenDone */);
+                deleteHelper.delete(begin, end, mOriginalModel, which);
+            }
+
+            if ((mCode & Utils.DONE_EXIT) != 0) {
+                // This will exit the edit event screen, should be called
+                // when we want to return to the main calendar views
+                if ((mCode & Utils.DONE_SAVE) != 0) {
+                    if (mActivity != null) {
+                        assert mModel != null; // ignored in release build
+                        long start = mModel.mStart;
+                        long end = mModel.mEnd;
+                        if (mModel.mAllDay) {
+                            // For allday events we want to go to the day in the
+                            // user's current tz
+                            String tz = Utils.getTimeZone(mActivity, null);
+                            Time t = new Time(Time.TIMEZONE_UTC);
+                            t.set(start);
+                            t.timezone = tz;
+                            start = t.toMillis(true);
+
+                            t.timezone = Time.TIMEZONE_UTC;
+                            t.set(end);
+                            t.timezone = tz;
+                            end = t.toMillis(true);
+                        }
+                        CalendarController.getInstance(mActivity).launchViewEvent
+                            (-1, start, end, Attendees.ATTENDEE_STATUS_NONE);
+                    }
+                }
+                Activity a = EditEventFragment.this.getActivity();
+                if (a != null) {
+                    a.finish();
+                }
+            }
+
+            // Hide a software keyboard so that user won't see it
+            // even after this Fragment's disappearing.
+            final View focusedView = mActivity.getCurrentFocus();
+            if (focusedView != null) {
+                mInputMethodManager.hideSoftInputFromWindow(
+                    focusedView.getWindowToken(), 0);
             }
         }
-    };
+    }
+    private final Done mOnDone = new Done();
     private final View.OnClickListener mActionBarListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -172,7 +276,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         }
     };
     private View.OnClickListener mOnColorPickerClicked = new View.OnClickListener() {
-
         @Override
         public void onClick(View v) {
             int[] colors = mModel.getCalendarEventColors();
@@ -239,7 +342,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         mActivity = (AppCompatActivity) activity;
-
         mHelper = new EditEventHelper(activity, null);
         mHandler = new QueryHandler(activity.getContentResolver());
         mModel = new CalendarEventModel(activity, mIntent);
@@ -261,7 +363,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
 
         if (!havePermission(Manifest.permission.READ_CONTACTS)) {
             ActivityCompat.requestPermissions(
-                mActivity, new String[]{Manifest.permission.READ_CONTACTS}, 0);
+                mActivity,
+                new String[] { Manifest.permission.READ_CONTACTS }, 0);
         }
 
         if (savedInstanceState != null) {
@@ -277,8 +380,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     .getBoolean(BUNDLE_KEY_EDIT_ON_LAUNCH);
             }
             if (savedInstanceState.containsKey(BUNDLE_KEY_EVENT)) {
-                mEventBundle = (EventBundle)
-                    savedInstanceState.getSerializable(BUNDLE_KEY_EVENT);
+                mEventBundle =
+                    (EventBundle) savedInstanceState.getSerializable(BUNDLE_KEY_EVENT);
             }
             if (savedInstanceState.containsKey(BUNDLE_KEY_READ_ONLY)) {
                 mIsReadOnly = savedInstanceState.getBoolean(BUNDLE_KEY_READ_ONLY);
@@ -287,7 +390,6 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                 mShowColorPalette =
                     savedInstanceState.getBoolean(BUNDLE_KEY_SHOW_COLOR_PALETTE);
             }
-
         }
     }
 
@@ -302,6 +404,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     BUNDLE_KEY_DELETE_DIALOG_VISIBLE,false);
         }
         View view;
+        // "InflateParams": root needs to be null to prevent
+        // IllegalStateException: The specified child already has a parent.
         if (mIsReadOnly) {
             view = inflater.inflate(R.layout.edit_event_single_column, null);
         } else {
@@ -309,14 +413,115 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         }
         mView = new EditEventView(mActivity, view, mOnDone);
 
-        if (!havePermission(Manifest.permission.READ_CALENDAR)) {
-            //If permission is not granted
+        if (havePermission(Manifest.permission.READ_CALENDAR)) {
+            mUri = null;
+            mBegin = -1;
+            mEnd = -1;
+            try {
+                mModel = CalendarApplication.mEvents.remove(0);
+                mBegin = mModel.mStart;
+                mEnd = mModel.mEnd;
+                mCalendarId = mModel.mCalendarId;
+                mUri = mModel.mUri;
+            } catch (IndexOutOfBoundsException ignore) {
+                if (mModel == null) {
+                    mModel = new CalendarEventModel(getActivity());
+                }
+                if (mActionInfo != null) {
+                    if (mActionInfo.startTime != null) {
+                        mBegin = mActionInfo.startTime.toMillis(true);
+                        mModel.mStart = mBegin;
+                    }
+                    if (mActionInfo.endTime != null) {
+                        mEnd = mActionInfo.endTime.toMillis(true);
+                        mModel.mEnd = mEnd;
+                    }
+                    if (mActionInfo.calendarId != -1) {
+                        mCalendarId = mActionInfo.calendarId;
+                        mModel.mCalendarId = mCalendarId;
+                    }
+                    if (mActionInfo.id != -1) {
+                        mModel.mId = mActionInfo.id;
+                        mUri = ContentUris.withAppendedId(
+                            Events.CONTENT_URI, mActionInfo.id);
+                        mModel.mUri = mUri;
+                    } else {
+                        // New event. All day?
+                        mModel.mAllDay =
+                            mActionInfo.extraLong ==
+                                CalendarController.EXTRA_CREATE_ALL_DAY;
+                    }
+                } else if (mEventBundle != null) {
+                    if (mEventBundle.id != -1) {
+                        mModel.mId = mEventBundle.id;
+                        mUri = ContentUris.withAppendedId(
+                            Events.CONTENT_URI, mEventBundle.id);
+                    }
+                    mBegin = mEventBundle.start;
+                    mModel.mStart = mBegin;
+                    mEnd = mEventBundle.end;
+                    mModel.mEnd = mEnd;
+                }
+                mModel.mOriginalStart = mBegin;
+                mModel.mOriginalEnd = mEnd;
+                mModel.mCalendarId = mCalendarId;
+                mModel.mSelfAttendeeStatus = Attendees.ATTENDEE_STATUS_ACCEPTED;
+                if (mReminders != null) {
+                    mModel.mReminders = mReminders;
+                }
+                if (mEventColorInitialized) {
+                    mModel.setEventColor(mEventColor);
+                }
+            }
+
+            if (mBegin <= 0) {
+                // use a default value instead
+                mBegin = mHelper.constructDefaultStartTime(System.currentTimeMillis());
+            }
+            if (mEnd < mBegin) {
+                // use a default value instead
+                mEnd = mHelper.constructDefaultEndTime(mBegin, mActivity);
+            }
+
+            // Kick off the query for the event
+            boolean newEvent = mUri == null;
+            if (!newEvent) {
+                mModel.mCalendarAccessLevel = Calendars.CAL_ACCESS_NONE;
+                mOutstandingQueries = TOKEN_ALL;
+                if (DEBUG) {
+                    Log.d(TAG, "startQuery: uri for event is " + mUri.toString());
+                }
+                mHandler.startQuery(
+                    TOKEN_EVENT, null, mUri,
+                    EditEventHelper.EVENT_PROJECTION,
+                    null, null, null);
+            } else {
+                mOutstandingQueries = TOKEN_CALENDARS | TOKEN_COLORS;
+                if (DEBUG) {
+                    Log.d(TAG, "startQuery: Editing a new event.");
+                }
+
+                // Start a query in the background to read the list of calendars and colors
+                mHandler.startQuery(TOKEN_CALENDARS, null, Calendars.CONTENT_URI,
+                    EditEventHelper.CALENDARS_PROJECTION,
+                    EditEventHelper.CALENDARS_WHERE_WRITEABLE_VISIBLE,
+                    null /* selection args */,
+                    null /* sort order */);
+                // mHandler.onQueryComplete will be called when a query completes.
+
+                mHandler.startQuery(TOKEN_COLORS, null, Colors.CONTENT_URI,
+                    EditEventHelper.COLORS_PROJECTION,
+                    Colors.COLOR_TYPE + "=" + Colors.TYPE_EVENT,
+                    null, null);
+                // mHandler.onQueryComplete will be called when a query completes.
+
+                mModification = Utils.MODIFY_ALL;
+                mView.setModification(mModification);
+            }
+        } else {
             Toast.makeText(mActivity, R.string.calendar_permission_not_granted,
                 Toast.LENGTH_LONG).show();
-        } else {
-            startQuery();
         }
-
         return view;
     }
 
@@ -331,104 +536,30 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         }
     }
 
-    private void startQuery() {
-        mUri = null;
-        mBegin = -1;
-        mEnd = -1;
-        try {
-            mModel = CalendarApplication.mEvents.remove(0);
-            mBegin = mModel.mStart;
-            mEnd = mModel.mEnd;
-            mCalendarId = mModel.mCalendarId;
-            mUri = mModel.mUri;
-        } catch (IndexOutOfBoundsException ignore) {
-            if (mModel == null) {
-                mModel = new CalendarEventModel(getActivity());
+    public final Runnable onDeleteRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (EditEventFragment.this.mIsPaused) {
+                mDismissOnResume = true;
+                return;
             }
-            if (mActionInfo != null) {
-                if (mActionInfo.startTime != null) {
-                    mBegin = mActionInfo.startTime.toMillis(true);
-                    mModel.mStart = mBegin;
-                }
-                if (mActionInfo.endTime != null) {
-                    mEnd = mActionInfo.endTime.toMillis(true);
-                    mModel.mEnd = mEnd;
-                }
-                if (mActionInfo.calendarId != -1) {
-                    mCalendarId = mActionInfo.calendarId;
-                    mModel.mCalendarId = mCalendarId;
-                }
-                if (mActionInfo.id != -1) {
-                    mModel.mId = mActionInfo.id;
-                    mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mActionInfo.id);
-                    mModel.mUri = mUri;
-                } else {
-                    // New event. All day?
-                    mModel.mAllDay =
-                        mActionInfo.extraLong == CalendarController.EXTRA_CREATE_ALL_DAY;
-                }
-            } else if (mEventBundle != null) {
-                if (mEventBundle.id != -1) {
-                    mModel.mId = mEventBundle.id;
-                    mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventBundle.id);
-                }
-                mBegin = mEventBundle.start;
-                mModel.mStart = mBegin;
-                mEnd = mEventBundle.end;
-                mModel.mEnd = mEnd;
-            }
-            mModel.mOriginalStart = mBegin;
-            mModel.mOriginalEnd = mEnd;
-            mModel.mCalendarId = mCalendarId;
-            mModel.mSelfAttendeeStatus = Attendees.ATTENDEE_STATUS_ACCEPTED;
-            if (mReminders != null) {
-                mModel.mReminders = mReminders;
-            }
-            if (mEventColorInitialized) {
-                mModel.setEventColor(mEventColor);
+            if (EditEventFragment.this.isVisible()) {
+                EditEventFragment.this.dismiss();
             }
         }
+    };
 
-        if (mBegin <= 0) {
-            // use a default value instead
-            mBegin = mHelper.constructDefaultStartTime(System.currentTimeMillis());
-        }
-        if (mEnd < mBegin) {
-            // use a default value instead
-            mEnd = mHelper.constructDefaultEndTime(mBegin, mActivity);
-        }
-
-        // Kick off the query for the event
-        boolean newEvent = mUri == null;
-        if (!newEvent) {
-            mModel.mCalendarAccessLevel = Calendars.CAL_ACCESS_NONE;
-            mOutstandingQueries = TOKEN_ALL;
-            if (DEBUG) {
-                Log.d(TAG, "startQuery: uri for event is " + mUri.toString());
-            }
-            mHandler.startQuery(TOKEN_EVENT, null, mUri, EditEventHelper.EVENT_PROJECTION,
-                    null /* selection */, null /* selection args */, null /* sort order */);
-        } else {
-            mOutstandingQueries = TOKEN_CALENDARS | TOKEN_COLORS;
-            if (DEBUG) {
-                Log.d(TAG, "startQuery: Editing a new event.");
-            }
-
-            // Start a query in the background to read the list of calendars and colors
-            mHandler.startQuery(TOKEN_CALENDARS, null, Calendars.CONTENT_URI,
-                    EditEventHelper.CALENDARS_PROJECTION,
-                    EditEventHelper.CALENDARS_WHERE_WRITEABLE_VISIBLE, null /* selection args */,
-                    null /* sort order */);
-
-            mHandler.startQuery(TOKEN_COLORS, null, Colors.CONTENT_URI,
-                    EditEventHelper.COLORS_PROJECTION,
-                    Colors.COLOR_TYPE + "=" + Colors.TYPE_EVENT, null, null);
-
-            mModification = Utils.MODIFY_ALL;
-            mView.setModification(mModification);
-        }
+    private void startDeleteHelper() {
+        mDeleteHelper = new DeleteEventHelper(
+            mActivity, mActivity, !mIsReadOnly /* exitWhenDone */);
+        mDeleteHelper.setDeleteNotificationListener(this);
+        mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
+        mDeleteHelper.delete(
+            mModel.mStart, mModel.mEnd, mModel.mId, -1, onDeleteRunnable);
     }
 
+    // onViewStateRestored and onStart are not overridden.
+    // This is called after onActivityCreated().
     @Override
     public void onResume() {
         super.onResume();
@@ -438,11 +569,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         }
         // Display the "delete confirmation" or "edit response helper" dialog if needed
         if (mDeleteDialogVisible) {
-            mDeleteHelper = new DeleteEventHelper(
-                mActivity, mActivity, !mIsReadOnly /* exitWhenDone */);
-            mDeleteHelper.setDeleteNotificationListener(EditEventFragment.this);
-            mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
-            mDeleteHelper.delete(mBegin, mEnd, mActionInfo.id, -1, onDeleteRunnable);
+            startDeleteHelper();
         }
     }
 
@@ -658,12 +785,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         } else if (   (itemId == R.id.info_action_delete)
                    || (itemId == R.id.info_action_delete_menu))
         {
-                mDeleteHelper = new DeleteEventHelper(
-                    mActivity, mActivity, !mIsReadOnly /* exitWhenDone */);
-                mDeleteHelper.setDeleteNotificationListener(EditEventFragment.this);
-                mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
-                mDeleteDialogVisible = true;
-                mDeleteHelper.delete(mBegin, mEnd, mActionInfo.id, -1, onDeleteRunnable);
+            startDeleteHelper();
         } else if (   (itemId == R.id.info_action_export)
                    || (itemId == R.id.info_action_export_menu))
         {
@@ -758,8 +880,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                 }
                             } else if (which == 1) {
                                 mModification = notSynced
-                                    ? Utils.MODIFY_ALL_FOLLOWING
-                                    : Utils.MODIFY_ALL;
+                                    ? Utils.MODIFY_ALL_FOLLOWING : Utils.MODIFY_ALL;
                             } else if (which == 2) {
                                 mModification = Utils.MODIFY_ALL_FOLLOWING;
                             }
@@ -810,15 +931,15 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
             mOnDone.setDoneCode(Utils.DONE_SAVE);
             mOnDone.run();
         }
-        if (   (mActivity !=null)
+        if (   (mActivity != null)
             && (havePermission(Manifest.permission.READ_CONTACTS)))
         {
             mActivity.finish();
         }
         mIsPaused = true;
-        // Remove event deletion alert box since it is being rebuild in the OnResume
+        // Remove event deletion alert box since it is being rebuild in OnResume.
         // This is done to get the same behavior on OnResume since the AlertDialog
-        // is gone on rotation but not if you press the HOME key
+        // is gone on rotation but not if you press the HOME key.
         if (mDeleteDialogVisible && mDeleteHelper != null) {
             mDeleteHelper.dismissAlertDialog();
             mDeleteHelper = null;
@@ -889,7 +1010,9 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
 
     @Override
     public void onColorSelected(int color) {
-        if ((!mModel.isEventColorInitialized()) || (mModel.getEventColor() != color)) {
+        if (   (!mModel.isEventColorInitialized())
+            || (mModel.getEventColor() != color))
+        {
             mModel.setEventColor(color);
             mView.updateHeadlineColor(mModel, color);
         }
@@ -910,7 +1033,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     mModel = mRestoreModel;
                 }
                 if (   mShowModifyDialogOnLaunch
-                    && mModification == Utils.MODIFY_UNINITIALIZED)
+                    && (mModification == Utils.MODIFY_UNINITIALIZED))
                 {
                     if (!TextUtils.isEmpty(mModel.mRrule)) {
                         displayEditWhichDialog();
@@ -957,19 +1080,21 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                         mOnDone.run();
                         return;
                     }
-                    mOriginalModel = new CalendarEventModel();
-                    EditEventHelper.setModelFromCursor(mOriginalModel, cursor);
                     EditEventHelper.setModelFromCursor(mModel, cursor);
                     cursor.close();
-
-                    mOriginalModel.mUri = mUri;
-
-                    mModel.mUri = mUri;
-                    mModel.mOriginalStart = mBegin;
-                    mModel.mOriginalEnd = mEnd;
-                    mModel.mIsFirstEventInSeries = mBegin == mOriginalModel.mStart;
                     mModel.mStart = mBegin;
                     mModel.mEnd = mEnd;
+                    mModel.mUri = mUri;
+                    mOriginalModel = new CalendarEventModel(mModel);
+                    if (mModel.mId == mModel.mOriginalId) {
+                        mModel.mIsFirstEventInSeries = true;
+                        mModel.mOriginalStart = mModel.mStart;
+                        mModel.mOriginalEnd = mModel.mEnd;
+                    } else {
+                        // We probably shouldn't set mModel.mOriginalStart
+                        // or mModel.mOriginalStart here.
+                        mModel.mIsFirstEventInSeries = false;
+                    }
                     if (mEventColorInitialized) {
                         mModel.setEventColor(mEventColor);
                     }
@@ -982,9 +1107,10 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                 Long.toString(eventId)
                         };
                         mHandler.startQuery(TOKEN_ATTENDEES, null, attUri,
-                                EditEventHelper.ATTENDEES_PROJECTION,
-                                EditEventHelper.ATTENDEES_WHERE /* selection */,
-                                whereArgs /* selection args */, null /* sort order */);
+                            EditEventHelper.ATTENDEES_PROJECTION,
+                            EditEventHelper.ATTENDEES_WHERE /* selection */,
+                            whereArgs /* selection args */,
+                            null /* sort order */);
                     } else {
                         setModelIfDone(TOKEN_ATTENDEES);
                     }
@@ -996,10 +1122,10 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                 Long.toString(eventId)
                         };
                         mHandler.startQuery(TOKEN_REMINDERS, null, rUri,
-                                EditEventHelper.REMINDERS_PROJECTION,
-                                EditEventHelper.REMINDERS_WHERE /* selection */,
-                                remArgs /* selection args */,
-                                null /* sort order */);
+                            EditEventHelper.REMINDERS_PROJECTION,
+                            EditEventHelper.REMINDERS_WHERE /* selection */,
+                            remArgs /* selection args */,
+                            null /* sort order */);
                     } else {
                         if (mReminders == null) {
                             // mReminders should not be null.
@@ -1044,7 +1170,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                             if (relationship == Attendees.RELATIONSHIP_ORGANIZER) {
                                 if (email != null) {
                                     mModel.mOrganizer = email;
-                                    mModel.mIsOrganizer = mModel.mOwnerAccount
+                                    mModel.mIsOrganizer =
+                                        mModel.mOwnerAccount
                                             .equalsIgnoreCase(email);
                                     mOriginalModel.mOrganizer = email;
                                     mOriginalModel.mIsOrganizer =
@@ -1053,9 +1180,10 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                 }
 
                                 if (TextUtils.isEmpty(name)) {
-                                    mModel.mOrganizerDisplayName = mModel.mOrganizer;
+                                    mModel.mOrganizerDisplayName =
+                                        mModel.mOrganizer;
                                     mOriginalModel.mOrganizerDisplayName =
-                                            mOriginalModel.mOrganizer;
+                                        mOriginalModel.mOrganizer;
                                 } else {
                                     mModel.mOrganizerDisplayName = name;
                                     mOriginalModel.mOrganizerDisplayName = name;
@@ -1123,7 +1251,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                 mCalendarId);
                         } else {
                             // Populate model for an existing event
-                            EditEventHelper.setModelFromCalendarCursor(mModel, cursor);
+                            EditEventHelper.setModelFromCalendarCursor(
+                                mModel, cursor);
                             EditEventHelper.setModelFromCalendarCursor(
                                 mOriginalModel, cursor);
                         }
@@ -1160,8 +1289,9 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
 
                     // If the account name/type is null, the calendar event colors cannot
                     // be determined, so take the default/savedInstanceState value.
-                    if (mModel.mCalendarAccountName == null
-                            || mModel.mCalendarAccountType == null) {
+                    if (   (mModel.mCalendarAccountName == null)
+                        || (mModel.mCalendarAccountType == null))
+                    {
                         mView.setColorPickerButtonStates(mShowColorPalette);
                     } else {
                         mView.setColorPickerButtonStates(mModel.getCalendarEventColors());
@@ -1176,114 +1306,4 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         }
     }
 
-    class Done implements EditEventHelper.EditDoneRunnable {
-        private int mCode = -1;
-
-        @Override
-        public void setDoneCode(int code) {
-            mCode = code;
-        }
-
-        @Override
-        public void run() {
-            // We only want this to get called once, either because the user
-            // pressed back/home or one of the buttons on screen
-            mSaveOnDetach = false;
-            if (mModification == Utils.MODIFY_UNINITIALIZED) {
-                // If this is uninitialized the user hit back, the only
-                // changeable item is response to default to all events.
-                mModification = Utils.MODIFY_ALL;
-            }
-
-            if (   ((mCode & Utils.DONE_SAVE) != 0)
-                && (mModel != null)
-                && (   EditEventHelper.canRespond(mModel)
-                    || EditEventHelper.canModifyEvent(mModel))
-                && mView.prepareForSave()
-                && (!isEmptyNewEvent())
-                && mModel.normalizeReminders()
-                && mHelper.saveEvent(mModel, mOriginalModel, mModification))
-            {
-                int stringResource;
-                if (!mModel.mAttendeesList.isEmpty()) {
-                    if (mModel.mUri != null) {
-                        stringResource = R.string.saving_event_with_guest;
-                    } else {
-                        stringResource = R.string.creating_event_with_guest;
-                    }
-                } else {
-                    if (mModel.mUri != null) {
-                        stringResource = R.string.saving_event;
-                    } else {
-                        stringResource = R.string.creating_event;
-                        // FIXME arrange to select the event
-                    }
-                }
-                Toast.makeText(mActivity, stringResource, Toast.LENGTH_SHORT).show();
-            } else if (   ((mCode & Utils.DONE_SAVE) != 0)
-                       && (mModel != null)
-                       && isEmptyNewEvent()) {
-                Toast.makeText(mActivity, R.string.empty_event, Toast.LENGTH_SHORT).show();
-            }
-
-            if ((mCode & Utils.DONE_DELETE) != 0 && mOriginalModel != null
-                    && EditEventHelper.canModifyCalendar(mOriginalModel)) {
-                long begin = mModel.mStart;
-                long end = mModel.mEnd;
-                int which = -1;
-                switch (mModification) {
-                    case Utils.MODIFY_SELECTED:
-                        which = DeleteEventHelper.DELETE_SELECTED;
-                        break;
-                    case Utils.MODIFY_ALL_FOLLOWING:
-                        which = DeleteEventHelper.DELETE_ALL_FOLLOWING;
-                        break;
-                    case Utils.MODIFY_ALL:
-                        which = DeleteEventHelper.DELETE_ALL;
-                        break;
-                }
-                DeleteEventHelper deleteHelper = new DeleteEventHelper(
-                    mActivity, mActivity, !mIsReadOnly /* exitWhenDone */);
-                deleteHelper.delete(begin, end, mOriginalModel, which);
-            }
-
-            if ((mCode & Utils.DONE_EXIT) != 0) {
-                // This will exit the edit event screen, should be called
-                // when we want to return to the main calendar views
-                if ((mCode & Utils.DONE_SAVE) != 0) {
-                    if (mActivity != null) {
-                        long start = mModel.mStart;
-                        long end = mModel.mEnd;
-                        if (mModel.mAllDay) {
-                            // For allday events we want to go to the day in the
-                            // user's current tz
-                            String tz = Utils.getTimeZone(mActivity, null);
-                            Time t = new Time(Time.TIMEZONE_UTC);
-                            t.set(start);
-                            t.timezone = tz;
-                            start = t.toMillis(true);
-
-                            t.timezone = Time.TIMEZONE_UTC;
-                            t.set(end);
-                            t.timezone = tz;
-                            end = t.toMillis(true);
-                        }
-                        CalendarController.getInstance(mActivity).launchViewEvent
-                            (-1, start, end, Attendees.ATTENDEE_STATUS_NONE);
-                    }
-                }
-                Activity a = EditEventFragment.this.getActivity();
-                if (a != null) {
-                    a.finish();
-                }
-            }
-
-            // Hide a software keyboard so that user won't see it even after this Fragment's
-            // disappearing.
-            final View focusedView = mActivity.getCurrentFocus();
-            if (focusedView != null) {
-                mInputMethodManager.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
-            }
-        }
-    }
 }
