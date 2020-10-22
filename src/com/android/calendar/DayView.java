@@ -3474,14 +3474,17 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 canvas.drawLine(midX, mRect.top + verticalPadding, midX,
                     mRect.bottom - verticalPadding, p);
             } else {
+                // Put New Event label at bottom right corner
+                // to reduce overlap when on top of an existing event.
                 p.setStyle(Paint.Style.FILL);
                 p.setTextSize(NEW_EVENT_HINT_FONT_SIZE);
-                p.setTextAlign(Paint.Align.LEFT);
+                p.setTextAlign(Paint.Align.RIGHT);
                 p.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
                 canvas.drawText(
                     mSelectionAllday ? mNewAllDayEventHintString : mNewEventHintString,
-                    mRect.left + EVENT_TEXT_LEFT_MARGIN,
-                    mRect.top + Math.abs(p.getFontMetrics().ascent) + EVENT_TEXT_TOP_MARGIN, p);
+                    mRect.right - EVENT_TEXT_RIGHT_MARGIN,
+                    mRect.bottom - Math.abs(p.getFontMetrics().bottom)
+                        - EVENT_TEXT_BOTTOM_MARGIN, p);
             }
             p.setAlpha(alpha); // cheaper to just do it even if we don't need to
         }
