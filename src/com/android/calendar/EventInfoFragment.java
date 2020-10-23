@@ -1465,7 +1465,7 @@ public class EventInfoFragment extends DialogFragment
             intent.putExtra(EXTRA_EVENT_BEGIN_TIME, mStartMillis);
             intent.putExtra(EXTRA_EVENT_END_TIME, mEndMillis);
             intent.putExtra(EXTRA_EVENT_ALL_DAY, mAllDay);
-            intent.putExtra(EditEventActivity.EXTRA_EVENT_COLOR, mCurrentColor);
+            intent.putExtra(Events.EVENT_COLOR, mCurrentColor);
             intent.putExtra(EditEventActivity.EXTRA_EVENT_REMINDERS, EventViewUtils
                     .reminderItemsToReminders(mReminderViews, mReminderMinuteValues,
                     mReminderMethodValues));

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
@@ -21,17 +23,15 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 import android.text.TextUtils;
-import android.text.util.Rfc822Token;
 
 import com.android.calendar.event.EditEventActivity;
-import com.android.calendar.event.EditEventHelper;
 import com.android.calendar.event.EventColorCache;
-import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendar.settings.GeneralPreferences;
 
 import org.jetbrains.annotations.NotNull;
@@ -40,15 +40,19 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.TimeZone;
 
 import ws.xsoh.etar.R;
 
+import static android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY;
+import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
+import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
+import static com.android.calendar.event.EditEventActivity.EXTRA_EVENT_REMINDERS;
+
 /**
- * Stores all the information needed to fill out an entry in the events table.
- * This is a convenient way for storing information needed by the UI to write to
- * the events table.
+* Stores all the information that we can ever want about a calendar event.
+ * Most of it gets into the database, but some is only needed while we are
+ * creating or editing the event.
  */
 public class CalendarEventModel implements Serializable {
     /**
@@ -75,7 +79,7 @@ public class CalendarEventModel implements Serializable {
     public long mOriginalStart = -1; // UTC milliseconds since the epoch
     public long mEnd = -1; // UTC milliseconds since the epoch
     // Displayed timezone for end
-    // Can be different from mTimezoneStart, for example for a flight between time zones
+    // Can be different from mTimezoneStart, for example for a flight between time zones.
     public String mTimezoneEnd;
     // This should be set the same as mEnd when created and is used
     // for making changes to recurring events.
@@ -92,7 +96,7 @@ public class CalendarEventModel implements Serializable {
     public String mRdate = null; // list of extra dates or datetimes
     public String mExdate = null; // list of excluded dates or datetimes
     public boolean mIsFirstEventInSeries = true;
-    public String mTitle = null;
+    public String mTitle = null;  // Summary in the ical file
     public String mLocation = null;
     public String mDescription = null;
     public int mEventColor = -1;
@@ -245,68 +249,43 @@ public class CalendarEventModel implements Serializable {
         }
     }
 
+    //FIXME check which of tehse things can actually be put inti an intent
     public CalendarEventModel(Context context, Intent intent) {
         this(context);
-
         if (intent == null) {
             return;
         }
-
-        String rrule = intent.getStringExtra(Events.RRULE);
-        if (!TextUtils.isEmpty(rrule)) {
-            mRrule = rrule;
-        }
-
-        String title = intent.getStringExtra(Events.TITLE);
-        if (title != null) {
-            mTitle = title;
-        }
-
-        String location = intent.getStringExtra(Events.EVENT_LOCATION);
-        if (location != null) {
-            mLocation = location;
-        }
-
-        String description = intent.getStringExtra(Events.DESCRIPTION);
-        if (description != null) {
-            mDescription = description;
-        }
-
-        mEventColor = intent.getIntExtra(
-            EditEventActivity.EXTRA_EVENT_COLOR, -1);
-        mEventColorInitialized = intent.hasExtra(
-            EditEventActivity.EXTRA_EVENT_COLOR);
-
-        int accessLevel = intent.getIntExtra(Events.ACCESS_LEVEL, -1);
-        if (accessLevel != -1) {
-            mAccessLevel = accessLevel;
-        }
-
-        int availability = intent.getIntExtra(Events.AVAILABILITY, -1);
-        if (availability != -1) {
-            mAvailability = availability;
-        }
-
-        // Combine duplicated code with EditEventActivity::getReminderEntriesFromIntent()
-        // Using otherwise unnecessary local variable to suppress warning
-        @SuppressWarnings("unchecked")
-        ArrayList<ReminderEntry> reminders =
-            (ArrayList<ReminderEntry>)intent.getSerializableExtra(
-                EditEventActivity.EXTRA_EVENT_REMINDERS);
-        if (reminders != null) {
-            mReminders = reminders;
-        }
-
-        String emails = intent.getStringExtra(Intent.EXTRA_EMAIL);
-        if (!TextUtils.isEmpty(emails)) {
-            String[] emailArray = emails.split("[ ,;]");
-            for (String email : emailArray) {
-                if (!TextUtils.isEmpty(email) && email.contains("@")) {
-                    email = email.trim();
-                    if (!mAttendeesList.containsKey(email)) {
-                        mAttendeesList.put(email, new Attendee("", email));
-                    }
-                }
+        Uri uri = intent.getData();
+        if (uri != null) { mUri = uri; }
+        long value = -1;
+        try {
+            value = Long.parseLong(mUri.getLastPathSegment());
+        } catch (NullPointerException | NumberFormatException ignored) { }
+        if (value >= 0) {
+            // Not a new event, we only need the Uri
+            // since we get everything else from the database
+            mId = value;
+        } else {
+            // Get everything that can be sent for a new event (and nothing else).
+            value = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
+            if (value >= 0) { mStart = value; }
+            value = intent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
+            if (value >= 0) { mEnd = value; }
+            mAllDay = intent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
+            String title = intent.getStringExtra(Events.TITLE);
+            if (title != null) { mTitle = title; }
+            value = intent.getLongExtra(Events.CALENDAR_ID, -1);
+            if (value >= 0) { mCalendarId = value; }
+            // These can only be sent by EventInfoFragment
+            // which we intend to remove
+            @SuppressWarnings("unchecked")
+            ArrayList<ReminderEntry> reminders = (ArrayList<ReminderEntry>)
+                intent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
+            if (reminders != null) { mReminders = reminders; }
+            int color = intent.getIntExtra(Events.EVENT_COLOR, -1);
+            if (color >= 0) {
+                mEventColor = color;
+                mEventColorInitialized = true;
             }
         }
     }
@@ -385,20 +364,6 @@ public class CalendarEventModel implements Serializable {
 
     public void addAttendee(Attendee attendee) {
         mAttendeesList.put(attendee.mEmail, attendee);
-    }
-
-    public void addAttendees(String attendees, Rfc822Validator validator) {
-        final LinkedHashSet<Rfc822Token> addresses = EditEventHelper.getAddressesFromList(
-                attendees, validator);
-        synchronized (this) {
-            for (final Rfc822Token address : addresses) {
-                final Attendee attendee = new Attendee(address.getName(), address.getAddress());
-                if (TextUtils.isEmpty(attendee.mName)) {
-                    attendee.mName = attendee.mEmail;
-                }
-                addAttendee(attendee);
-            }
-        }
     }
 
     // We should be able to delete an attendee, but there is no UI for it yet

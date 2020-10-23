@@ -361,7 +361,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         if (tzpd != null) {
             tzpd.setOnTimeZoneSetListener(this);
         }
-
     }
 
     /**

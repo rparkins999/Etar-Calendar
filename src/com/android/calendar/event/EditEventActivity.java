@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,16 +37,9 @@ import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 
-import java.util.ArrayList;
-
 import ws.xsoh.etar.R;
 
-import static android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY;
-import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
-import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
-
 public class EditEventActivity extends AbstractCalendarActivity {
-    public static final String EXTRA_EVENT_COLOR = "event_color";
     public static final String EXTRA_EVENT_REMINDERS = "reminders";
     public static final String EXTRA_READ_ONLY = "read_only";
     private static final String TAG = "EditEventActivity";
@@ -57,13 +52,6 @@ public class EditEventActivity extends AbstractCalendarActivity {
 
     private final DynamicTheme dynamicTheme = new DynamicTheme();
 
-    @SuppressWarnings("unchecked")
-    private ArrayList<ReminderEntry> getReminderEntriesFromIntent() {
-        ArrayList<ReminderEntry> reminders = (ArrayList<ReminderEntry>)
-            mIntent.getSerializableExtra(EXTRA_EVENT_REMINDERS);
-        return (reminders == null) ? new ArrayList<ReminderEntry>() : reminders;
-    }
-    @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
@@ -81,33 +69,10 @@ public class EditEventActivity extends AbstractCalendarActivity {
             }
         }
         if (mModel == null) {
-            mModel = new CalendarEventModel(this);
-            mModel.mUri = mIntent.getData();
-            if (icicle != null) {
-                mModel.mId = icicle.getLong(BUNDLE_KEY_EVENT_ID, -1);
-            } else {
-                try {
-                    mModel.mId = Long.parseLong(mModel.mUri.getLastPathSegment());
-                } catch (NullPointerException | NumberFormatException e) {
-                    if (DEBUG) {
-                        Log.d(TAG, "Create new event");
-                    }
-                    mModel.mId = -1;
-                }
-            }
-
-            mModel.mAllDay =
-                mIntent.getBooleanExtra(EXTRA_EVENT_ALL_DAY, false);
-            mModel.mStart = mIntent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
-            mModel.mEnd = mIntent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
-            mModel.mTitle = mIntent.getStringExtra(Events.TITLE);
-            mModel.mCalendarId = mIntent.getLongExtra(
-                Events.CALENDAR_ID, -1);
-
-            mModel.mReminders = getReminderEntriesFromIntent();
-            mModel.mHasAlarm = mModel.mReminders.size() > 0;
-            mModel.mEventColor = mIntent.getIntExtra(EXTRA_EVENT_COLOR, -1);
-            mModel.mEventColorInitialized = mIntent.hasExtra(EXTRA_EVENT_COLOR);
+            long id = (icicle == null)
+                ? -1 : icicle.getLong(BUNDLE_KEY_EVENT_ID, -1);
+            mModel = new CalendarEventModel(this, mIntent);
+            if (id >= 0) { mModel.mId = id; }
         }
         ActionInfo actionInfo = new ActionInfo();
         actionInfo.id = mModel.mId;
