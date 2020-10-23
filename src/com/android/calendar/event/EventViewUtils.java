@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,6 +38,7 @@ import ws.xsoh.etar.R;
 public class EventViewUtils {
     private static final String TAG = "EventViewUtils";
 
+    // This class is never instantiated: it's just a wrapper for soem static methods.
     private EventViewUtils() {
     }
 

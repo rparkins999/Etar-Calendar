@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -734,13 +736,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mReminderMethodValues = loadIntegerArray(r, R.array.reminder_methods_values);
         mReminderMethodLabels = loadStringArray(r, R.array.reminder_methods_labels);
 
+        /* Don't do this. We want to display the reminders even if Android can't do
+          them. TODO maybe in a different colour or something like that
+
         // Remove any reminder methods that aren't allowed for this calendar.  If this is
         // a new event, mCalendarAllowedReminders may not be set
         // the first time we're called.
         if (mModel.mCalendarAllowedReminders != null) {
             EventViewUtils.reduceMethodList(mReminderMethodValues, mReminderMethodLabels,
                     mModel.mCalendarAllowedReminders);
-        }
+        } */
 
         int numReminders = 0;
         if (model.mHasAlarm) {

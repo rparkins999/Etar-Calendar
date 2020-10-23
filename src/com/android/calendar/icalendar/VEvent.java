@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2014-2016 The CyanogenMod Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,8 +23,12 @@ import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 import android.text.format.Time;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.android.calendar.CalendarEventModel;
 
+import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.UUID;
 
@@ -44,11 +50,114 @@ public class VEvent {
                 .replace("\n", "\\n");
     }
 
-    private static String unEscaoe(String s) {
+    // We leave an (i;;egal) unescaped backslash as a backslash.
+    private static String unEscape(String s) {
         return s.replace("\\n", "\n")
                 .replace("\\,", ",")
                 .replace("\\;", ";")
                 .replace("\\\\", "\\");
+    }
+
+    // This splits a property into name, possible parameters, and value
+    // allowing for Unicode code points and quoted strings.
+    // The property name is forced to upper case to be on the safe side:
+    // RFC5545 allows mixed case although nobody uses it.
+    // Line unfolding must already have been done.
+    // It allows some illegal things:
+    //     quoted-strings concatenated with other quoted strings or characters
+    //     invalid characters in property names
+    //     no property value
+    // RFC 5545 does not provide a way to include a " in a parameter value.
+    private static String[] splitProperty(@NonNull String s) {
+        String[] result = new String[] {"", null, ""};
+        boolean inQuotedString = false;
+        boolean seencolon = false;
+        boolean seensemicolon = false;
+        StringBuilder sb = new StringBuilder();
+        int n = s.codePointCount(0, s.length());
+        for (int i = 0; i < n; ++i) {
+            int code = s.codePointAt(s.offsetByCodePoints(0, i));
+            if (seencolon) {
+                sb.appendCodePoint(code);
+            } else if (code == '"') {
+                inQuotedString = !inQuotedString;
+                sb.appendCodePoint(code);
+            } else if (inQuotedString) {
+                sb.appendCodePoint(code);
+            } else if (code == ':') {
+                if (seensemicolon) {
+                    result[1] = sb.toString();
+                } else {
+                    result[0] = sb.toString().toUpperCase();
+                }
+                sb.setLength(0);
+                seencolon = true;
+            } else if (seensemicolon || (code != ';')) {
+                sb.appendCodePoint(code);
+            } else {
+                result[0] = sb.toString().toUpperCase();
+                seensemicolon = true;
+                sb.setLength(0);
+            }
+        }
+        if (seencolon) { result[2] = sb.toString(); }
+        return result;
+    }
+
+    // This splits a parameter string into a list of parameter names and
+    // values allowing for Unicode code points and quoted strings.
+    // Parameter names are forced to upper case to be on the safe side:
+    // RFC5545 allows mixed case although nobody uses it.
+    // The line must have been unfolded and the initial semicolon removed.
+    // If the argument is null, this returns an empty ArrayList.
+    // Otherwise pairs of elements in the returned ArrYList
+    // are a parameter name and its value.
+    // It allows some illegal things:
+    //     quoted-strings concatenated with other quoted strings or characters
+    //     invalid characters in parameter names
+    //     last parameter not having a value
+    // RFC 5545 does not provide a way to include a " in a parameter value.
+    private static ArrayList<String> splitParameters(@Nullable String s) {
+        ArrayList<String> result = new ArrayList<>();
+        if (s != null ) {
+            boolean inQuotedString = false;
+            boolean inValue = false;
+            StringBuilder sb = new StringBuilder();
+            int n = s.codePointCount(0, s.length());
+            for (int i = 0; i < n; ++i) {
+                int code = s.codePointAt(s.offsetByCodePoints(0, i));
+                if (inValue) {
+                    if (code == '"') {
+                        inQuotedString = !inQuotedString;
+                    } else if ((code == ';') && !inQuotedString) {
+                        result.add(sb.toString());
+                        sb.setLength(0);
+                        inValue = false;
+                    } else {
+                        sb.appendCodePoint(code);
+                    }
+                } else if (code == '=') {
+                    result.add(sb.toString().toUpperCase());
+                    sb.setLength(0);
+                    inValue = true;
+                } else {
+                    sb.appendCodePoint(code);
+                }
+            }
+            if (inValue || (sb.length() > 0)) {
+                result.add(sb.toString());
+            }
+        }
+        return result;
+    }
+
+    // This quote a parameter value if it contains ";" or ":" or ","
+    public String quote(String s) {
+        if ((s.contains(";")) || (s.contains(":")) || (s.contains(","))) {
+            return ("\"" + s + "\"");
+        } else {
+            return s;
+        }
     }
 
     /**
@@ -144,7 +253,85 @@ public class VEvent {
                 // do nothing: this is the default for RFC5545
                 break;
         }
+        if ((event.mOrganizer != null) || (event.mOrganizerDisplayName != null)) {
+            sb.append("ORGANIZER");
+            if (event.mOrganizerDisplayName != null) {
+                sb.append(";CN=")
+                    .append(quote(event.mOrganizerDisplayName));
+            }
+            if (event.mOrganizer != null) {
+                sb.append(":mailto:").append(event.mOrganizer);
+            } else {
+                sb.append(":UNKNOWN");
+            }
+            sb.append("\n");
+        }
+        // Android doesn't preserve email addresses for email reminders: we try to send
+        // to any attendees of the event who haven't declined if they have email addresses
+        // or the Organizer if there are no such attendees.
+        ArrayList<String> emails = new ArrayList<>();
+        // Add event Attendees
+        for (CalendarEventModel.Attendee attendee : event.mAttendeesList.values()) {
+            StringBuilder asb = new StringBuilder();
+            boolean emailIt = true;
+            asb.append("ATTENDEE;RSVP=TRUE");
+            if (attendee.mName != null) {
+                asb.append(";CN=").append(quote(attendee.mName));
+            }
+            switch(attendee.mStatus) {
+                default:
+                case Attendees.ATTENDEE_STATUS_NONE:
+                    break;
+                case Attendees.ATTENDEE_STATUS_ACCEPTED:
+                    asb.append(";PARTSTAT=ACCEPTED");
+                    break;
+                case Attendees.ATTENDEE_STATUS_DECLINED:
+                    asb.append(";PARTSTAT=DECLINED");
+                    emailIt = false;
+                    break;
+                case Attendees.ATTENDEE_STATUS_INVITED:
+                    asb.append(";PARTSTAT=NEEDS-ACTION");
+                    break;
+                case Attendees.ATTENDEE_STATUS_TENTATIVE:
+                    asb.append(";PARTSTAT=TENTATIVE");
+                    break;
+            }
+            switch(attendee.mType) {
+                default:
+                case Attendees.TYPE_NONE:
+                    asb.append(";CUTYPE=INDIVIDUAL;ROLE=NON-PARTICIPANT");
+                    break;
+                case Attendees.TYPE_REQUIRED:
+                    asb.append(";CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT");
+                    break;
+                case Attendees.TYPE_OPTIONAL:
+                    asb.append(";CUTYPE=INDIVIDUAL;ROLE=OPT-PARTICIPANT");
+                    break;
+                case Attendees.TYPE_RESOURCE:
+                    asb.append(";CUTYPE=RESOURCE;ROLE=REQ-PARTICIPANT");
+                    emailIt = false;
+                    break;
+            }
+            if (attendee.mEmail == null) {
+                asb.append(":UNKNOWN\n");
+            } else {
+                // I don't check that the email addresses are valid.
+                // I've been bitten too many times by web sites which try to,
+                // and reject valid email addresses. The only valid decision
+                // procedure is to try and send the email, and that isn't
+                // happening here.
+                asb.append(":MAILTO:").append(attendee.mEmail).append("\n");
+                if (emailIt) {
+                    emails.add(asb.toString());
+                }
+            }
+            sb.append(asb);
+        }
         // Add event reminders
+        if (emails.isEmpty() && (event.mOrganizer != null)) {
+            // If we don't have any attendees, send email reminders to the organizer.
+            emails.add("ATTENDEE:MAILTO:" + event.mOrganizer + "\n");
+        }
         int n = event.mReminders.size();
         for (int i = 0; i < n; ++i) {
             CalendarEventModel.ReminderEntry entry = event.mReminders.get(i);
@@ -160,8 +347,10 @@ public class VEvent {
                 case Reminders.METHOD_ALERT:
                     sb.append("ACTION:DISPLAY\n");
                     sb.append("DESCRIPTION:");
-                    if (event.mTitle != null) { sb.append(event.mTitle); }
-                    else if (event.mLocation != null) { sb.append(event.mLocation); }
+                    if (event.mTitle != null) { sb.append(escape(event.mTitle)); }
+                    else if (event.mLocation != null) {
+                        sb.append(escape(event.mLocation));
+                    }
                     else if (event.mDescription != null) {
                         sb.append(escape(event.mDescription));
                     } else {
@@ -174,26 +363,18 @@ public class VEvent {
                 case Reminders.METHOD_SMS:
                     // RFC5545 doesn't know about SMS, treat as email
                     sb.append("ACTION:EMAIL\n");
-                    if (event.mTitle == null) {
+                    if (event.mTitle != null) {
                         sb.append("SUMMARY:").append(event.mTitle).append("\n");
                     } else {
                         sb.append("SUMMARY:Event Reminder\n");
                     }
-                    if (event.mDescription == null) {
+                    if (event.mDescription != null) {
                         sb.append("DESCRIPTION:").append(event.mDescription).append("\n");
                     } else {
                         sb.append("DESCRIPTION:Event Reminder\n");
                     }
-                    for (CalendarEventModel.Attendee attendee
-                        : event.mAttendeesList.values())
-                    {
-                        if (   (attendee.mStatus == Attendees.ATTENDEE_STATUS_ACCEPTED)
-                            && (attendee.mType != Attendees.TYPE_RESOURCE)
-                            && (attendee.mEmail != null))
-                        {
-                            sb.append("ATTENDEE:MAILTO:")
-                                .append(attendee.mEmail).append("\n");
-                        }
+                    for (String mail : emails) {
+                        sb.append(mail);
                     }
                     break;
                 case Reminders.METHOD_ALARM:
@@ -223,64 +404,6 @@ public class VEvent {
             }
             sb.append("END:VALARM\n");
         }
-        // Add event Attendees
-        for (CalendarEventModel.Attendee attendee : event.mAttendeesList.values()) {
-            sb.append("ATTENDEE;RSVP=TRUE");
-            if (attendee.mName != null) {
-                sb.append(";CN=").append(attendee.mName);
-            }
-            switch(attendee.mStatus) {
-                default:
-                case Attendees.ATTENDEE_STATUS_NONE:
-                    break;
-                case Attendees.ATTENDEE_STATUS_ACCEPTED:
-                    sb.append(";PARTSTAT=ACCEPTED");
-                    break;
-                case Attendees.ATTENDEE_STATUS_DECLINED:
-                    sb.append(";PARTSTAT=DECLINED");
-                    break;
-                case Attendees.ATTENDEE_STATUS_INVITED:
-                    sb.append(";PARTSTAT=NEEDS-ACTION");
-                    break;
-                case Attendees.ATTENDEE_STATUS_TENTATIVE:
-                    sb.append(";PARTSTAT=TENTATIVE");
-                    break;
-            }
-            switch(attendee.mType) {
-                default:
-                case Attendees.TYPE_NONE:
-                    sb.append(";CUTYPE=INDIVIDUAL;ROLE=NON-PARTICIPANT");
-                    break;
-                case Attendees.TYPE_REQUIRED:
-                    sb.append(";CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT");
-                    break;
-                case Attendees.TYPE_OPTIONAL:
-                    sb.append(";CUTYPE=INDIVIDUAL;ROLE=OPT-PARTICIPANT");
-                    break;
-                case Attendees.TYPE_RESOURCE:
-                    sb.append(";CUTYPE=RESOURCE;ROLE=REQ-PARTICIPANT");
-                    break;
-            }
-            if (attendee.mEmail == null) {
-                sb.append(":UNKNOWN\n");
-            } else {
-                sb.append(":MAILTO:").append(attendee.mEmail).append("\n");
-            }
-        }
-        if ((event.mOrganizer != null) || (event.mOrganizerDisplayName != null)) {
-            sb.append("ORGANIZER");
-            if (event.mOrganizerDisplayName != null) {
-                sb.append(";CN=")
-                    .append(escape(event.mOrganizerDisplayName));
-            }
-            if (event.mOrganizer != null) {
-                sb.append(":mailto:").append(event.mOrganizer);
-            } else {
-                sb.append("UNKNOWN");
-            }
-            sb.append("\n");
-        }
-
         sb.append("END:VEVENT\n");
 
         // Enforce line length requirements
@@ -337,34 +460,32 @@ public class VEvent {
 
     // This is an ugly hack: some icals have timezones prefixed by
     // /freeassociation.sourceforge.net/ which Android doesn't understand
+    //FIXME What we really ought to do here is decode the timezone
+    // declarations in the VCALENDAR.
     private static final String chop = "/freeassociation.sourceforge.net/";
 
-    private static final int which_DTSTART = 0;
-    private static final int which_DTEND = 1;
-    private static void parseDateTime(String[] split1, CalendarEventModel event, int which)
+    private static void parseDateTime(String[] splitLine, CalendarEventModel event)
     {
-        if (!split1[0].isEmpty()) {
-            String tz = Time.getCurrentTimezone();
-            String[] split2 = split1[0].split("[=;]");
-            int n = split2.length / 2;
-            for (int i = 0; i < n; ++i) {
-                if (split2[2 * i + 1].equalsIgnoreCase("TZID")) {
-                    tz = split2[2 * i + 2].replace(chop, "");
-                }
+        String tz = Time.getCurrentTimezone();
+        ArrayList<String> params = splitParameters(splitLine[1]);
+        int n = params.size();
+        for (int i = 0; i < n; i += 2) {
+            if (params.get(i).compareTo("TZID") == 0) {
+                tz = params.get(i + 1).replace(chop, "");
             }
-            Time t = new Time(tz);
-            if (t.parse(split1[1])) { tz = "UTC"; }
-            switch (which) {
-                case which_DTSTART:
-                    event.mOriginalStart = event.mStart = t.normalize(false);
-                    event.mTimezoneStart = tz;
-                    event.mAllDay = t.allDay;
-                    break;
-                case which_DTEND:
-                    event.mOriginalEnd = event.mEnd = t.normalize(false);
-                    event.mTimezoneEnd = tz;
-                    break;
-            }
+        }
+        Time t = new Time(tz);
+        if (t.parse(splitLine[2])) { tz = "UTC"; }
+        switch (splitLine[0]) {
+            case "DTSTART":
+                event.mOriginalStart = event.mStart = t.normalize(false);
+                event.mTimezoneStart = tz;
+                event.mAllDay = t.allDay;
+                break;
+            case "DTEND":
+                event.mOriginalEnd = event.mEnd = t.normalize(false);
+                event.mTimezoneEnd = tz;
+                break;
         }
     }
 
@@ -373,21 +494,21 @@ public class VEvent {
     // and each one can have a comma-separated list of dates.
     // Android can only have a single comma-separated list,
     // So we pass the old list and append any valid dates we find to it.
-    static private String parseDateList(String[] split1, String old)
+    static private String parseDateList(String[] splitLine, String old)
     {
-        String[] split2 = split1[0].split("[=;]");
         String tz = null;
-        int n = split2.length;
-        for (int i = 1; i < n; i += 2) {
-            if (split2[i].equalsIgnoreCase("TZID")) {
-                tz = split2[i + 1].replace(chop, "");
+        ArrayList<String> params = splitParameters(splitLine[1]);
+        int n = params.size();
+        for (int i = 0; i < n; i += 2) {
+            if (params.get(i).compareTo("TZID") == 0) {
+                tz = params.get(i + 1).replace(chop, "");
             }
         }
-        split2 = split1[1].split(",");
-        n = split2.length;
+        String[] dates = splitLine[2].split(",");
+        n = dates.length;
         StringBuilder sb = new StringBuilder(old);
         for (int i = 0; i < n; ++i) {
-            String s = split2[i];
+            String s = dates[i];
             if (tz != null) {
                 // A timezone was specified
                 // Android doesn't understand this, so we switch to UTC
@@ -405,241 +526,299 @@ public class VEvent {
     static public void populateFromEntries(
         CalendarEventModel event, ListIterator<String> iter)
     {
+        ArrayList<String> params;
+        int n;
         while (iter.hasNext()) {
             String line = iter.next();
-            // RFC 5545 specifies that property names are case-insensitive: in practice
-            // everyone uses upper case, but just to be on the safe side we use a
-            // forced to upper case version of the line to test for property names.
-            String uLine = line.toUpperCase();
-            if (uLine.startsWith("END:VEVENT")) {
-                break;
-            }
-            if (uLine.startsWith("BEGIN:VALARM")) {
-                // Start with an invalid minutes value: if we don't see
-                // a valid TRIGGER property, we'll throw the whole reminder away.
-                int minutes = -1;
-                // Android only understands notification reminders some minutes
-                // before the start of the event, so we ignore anything else
-                boolean validAlarm = true;
-                int method = Reminders.METHOD_DEFAULT;
-                int duration = -1;
-                int repeat = 0;
-                while (iter.hasNext()) {
-                    String line1 = iter.next();
-                    if (line1.toUpperCase().startsWith("END:VALARM")) {
-                        break;
+            if ((line == null) || line.isEmpty()) { continue; }
+            String[] splitLine = splitProperty(line);
+            switch (splitLine[0]) {
+                case "END":
+                    if (splitLine[2].toUpperCase().compareTo("VEVENT") == 0) {
+                        return; // finished this VEVENT
+                    } else {
+                        continue;
                     }
-                    String[] split1 = line1.split(":", 2);
-                    if (split1.length > 1) {
-                        String[] split2 = split1[0].split("[=;]");
-                        int n = split2.length / 2;
-                        switch (split2[0].toUpperCase()) {
-                            case "TRIGGER":
-                                for (int i = 0; i < n; ++i) {
-                                    switch (split2[2 * i + 1].toUpperCase()) {
-                                        case "RELATED":
-                                            if (!split2[2 * i + 2]
-                                                .equalsIgnoreCase("START"))
-                                            {
-                                                // Androis can't do reminder at end
+                    // DTSTAMP is ignored because Android doesn't handle it
+                case "UID":
+                    event.mUid = splitLine[2];
+                    continue;
+                case "DTSTART":
+                    parseDateTime(splitLine, event);
+                    continue;
+                case "CLASS":
+                    switch (splitLine[2].toUpperCase()) {
+                        case "CONFIDENTIAL":
+                            event.mAccessLevel = Events.ACCESS_CONFIDENTIAL;
+                            break;
+                        case "PRIVATE":
+                            event.mAccessLevel = Events.ACCESS_PRIVATE;
+                            break;
+                        case "PUBLIC":
+                            event.mAccessLevel = Events.ACCESS_PUBLIC;
+                            break;
+                    }
+                    continue;
+                    // CREATED is ignored because Android doesn't handle it
+                case "DESCRIPTION":
+                    event.mDescription = unEscape(splitLine[2]);
+                    continue;
+                    // GEO is ignored because Android doesn't handle it
+                    // LAST-MODIFIED is ignored because Android doesn't handle it
+                case "LOCATION":
+                    event.mLocation = unEscape(splitLine[2]);
+                    continue;
+                case "ORGANIZER":
+                    event.mOrganizerDisplayName = null;
+                    event.mOrganizer = splitLine[2].replaceFirst(
+                        "[mM][aA][iI][lL][tT][oO]:", "");
+                    params = splitParameters(splitLine[1]);
+                    n = params.size();
+                    for (int i = 0; i < n; i += 2) {
+                        if (params.get(i).compareTo("CN") == 0) {
+                            event.mOrganizerDisplayName = params.get(i + 1);
+                        }
+                    }
+                    continue;
+                    // PRIORITY is ignored because Android doesn't handle it
+                    // SEQUENCE is ignored because Android doesn't handle it
+                case "STATUS":
+                    switch (splitLine[2].toUpperCase()) {
+                        case "TENTATIVE":
+                            event.mEventStatus = Events.STATUS_TENTATIVE;
+                            break;
+                        case "CANCELED":
+                            event.mEventStatus = Events.STATUS_CANCELED;
+                            break;
+                        case "CONFIRMED":
+                            event.mEventStatus = Events.STATUS_CONFIRMED;
+                    }
+                    continue;
+                case "SUMMARY":
+                    event.mTitle = unEscape(splitLine[2]);
+                    continue;
+                case "TRANSP":
+                    event.mAvailability =
+                        (splitLine[2].toUpperCase().compareTo("TRANSPARENT") == 0)
+                            ? Events.AVAILABILITY_FREE
+                            : Events.AVAILABILITY_BUSY;
+                    continue;
+                    // URL is ignored because Android doesn't handle it
+                    // RECURRENCE-ID is ignored because Android doesn't handle it
+                case "RRULE":
+                    event.mRrule = splitLine[2];
+                    continue;
+                case "DTEND":
+                    parseDateTime(splitLine, event);
+                    continue;
+                case "DURATION":
+                    event.mDuration = splitLine[2];
+                    continue;
+                    // ATTACH is ignored because Android doesn't handle it
+                case "ATTENDEE":
+                    String email = splitLine[2].replaceFirst(
+                        "[mM][aA][iI][lL][tT][oO]:", "");
+                    CalendarEventModel.Attendee attendee =
+                        new CalendarEventModel.Attendee(null, email);
+                    attendee.mType = Attendees.TYPE_NONE;
+                    params = splitParameters(splitLine[1]);
+                    n = params.size();
+                    for (int i = 0; i < n; i += 2) {
+                        switch (params.get(i)) {
+                            case "CN":
+                                attendee.mName = params.get(i + 1);
+                                break;
+                            case "PARTSTAT":
+                                switch (params.get(i + 1).toUpperCase()) {
+                                    case "ACCEPTED":
+                                        attendee.mStatus =
+                                            Attendees.ATTENDEE_STATUS_ACCEPTED;
+                                        break;
+                                    case "DECLINED":
+                                        attendee.mStatus =
+                                            Attendees.ATTENDEE_STATUS_DECLINED;
+                                        break;
+                                    case "NEEDS-ACTION":
+                                        attendee.mStatus =
+                                            Attendees.ATTENDEE_STATUS_INVITED;
+                                        break;
+                                    case "TENTATIVE":
+                                        attendee.mStatus =
+                                            Attendees.ATTENDEE_STATUS_TENTATIVE;
+                                        break;
+                                    default:
+                                        attendee.mStatus =
+                                            Attendees.ATTENDEE_STATUS_NONE;
+                                }
+                                break;
+                            case "CUTYPE":
+                                switch (params.get(i + 1).toUpperCase()) {
+                                    case "RESOURCE":
+                                    case "ROOM":
+                                        attendee.mType = Attendees.TYPE_RESOURCE;
+                                        break;
+                                }
+                                break;
+                            case "ROLE":
+                                if (attendee.mType != Attendees.TYPE_RESOURCE) {
+                                    switch (params.get(i + 1).toUpperCase()) {
+                                        case "OPT-PARTICIPANT":
+                                            attendee.mType = Attendees.TYPE_OPTIONAL;
+                                            break;
+                                        default:
+                                        case "CHAIR": // Don't assume CHAIR is organizer
+                                        case "REQ-PARTICIPANT":
+                                            attendee.mType = Attendees.TYPE_REQUIRED;
+                                            break;
+                                        case "NON-PARTICIPANT":
+                                            attendee.mType = Attendees.TYPE_NONE;
+                                    }
+                                }
+                        }
+                    }
+                    event.mAttendeesList.put(email, attendee);
+                    continue;
+                    // CATEGORIES is ignored because Android doesn't handle it
+                    // COMMENT is ignored because Android doesn't handle it
+                    // CONTACT is ignored because Android doesn't handle it
+                case "EXDATE":
+                    event.mExdate = parseDateList(splitLine, event.mExdate);
+                    continue;
+                    // REQUEST-STATUS is ignored because Android doesn't handle it
+                    // RELATED-TO is ignored because Android doesn't handle it
+                    // RESOURCES is ignored because Android doesn't handle it
+                case "BEGIN":
+                    if (splitLine[2].compareTo("VALARM") == 0) {
+                        // Start with an invalid minutes value: if we don't see
+                        // a valid TRIGGER property, we'll throw the whole reminder away.
+                        int minutes = -1;
+                        // Android only understands notification reminders some minutes
+                        // before the start of the event, so we ignore anything else
+                        boolean validAlarm = true;
+                        int method = Reminders.METHOD_DEFAULT;
+                        int duration = -1;
+                        int repeat = 0;
+                        while (iter.hasNext()) {
+                            line = iter.next();
+                            if ((line == null) || line.isEmpty()) {
+                                continue;
+                            }
+                            splitLine = splitProperty(line);
+                            switch (splitLine[0]) {
+                                case "END":
+                                    if (splitLine[2].toUpperCase().compareTo("VALARM") == 0)
+                                    {
+                                        break;
+                                    }
+                                    continue;
+                                case "ACTION":
+                                    switch (splitLine[2]) {
+                                        case "AUDIO":
+                                            method = Reminders.METHOD_ALARM;
+                                            break;
+                                        case "DISPLAY":
+                                            method = Reminders.METHOD_ALERT;
+                                            break;
+                                        case "EMAIL":
+                                            // This isn't really much use because Android
+                                            // doesn't have anywhere to put the email
+                                            // address or the subject or body.
+                                            method = Reminders.METHOD_EMAIL;
+                                            break;
+                                        default:
+                                            // RFC 5545 says to ignore unknown ACTIONs
+                                            validAlarm = false;
+                                    }
+                                    continue;
+                                    // AUDIO alarms can have an ATTACH property
+                                    // but Android doesn't handle it so we ignore it.
+                                    // Android will play a default sound.
+                                    // DISPLAY alarms must have a DESCRIPTION property
+                                    // but Android doesn't handle it so we ignore it.
+                                    // Android will make a notification
+                                    // from the event title.
+                                case "TRIGGER":
+                                    params = splitParameters(splitLine[1]);
+                                    n = params.size();
+                                    for (int i = 0; i < n; i += 2) {
+                                        switch (params.get(i)) {
+                                            case "RELATED":
+                                                // Android can't do alarm for end of event
                                                 //FIXME offer to create a dummy
                                                 // event to hold the alarm
-                                                validAlarm = false;
-                                            }
-                                            break;
-                                        case "VALUE":
-                                            if (!split2[2 * i + 2]
-                                                .equalsIgnoreCase("DURATION"))
-                                            {
+                                                validAlarm = params.get(i + 1)
+                                                    .toUpperCase()
+                                                    .compareTo("START") == 0;
+                                                break;
+                                            case "VALUE":
                                                 // Android can't do fixed time reminder
                                                 //FIXME offer to create a dummy
                                                 // event to hold the alarm
-                                                validAlarm = false;
-                                            }
-                                            break;
-                                        default:
-                                            // just ignore invalid parameter
-                                    }
-                                }
-                                if (validAlarm) {
-                                    String offset = split1[1];
-                                    // VALARM offsets are negative for before DTSTART
-                                    // and positive after.
-                                    // Android offset are always positive and always before
-                                    // So we throw away any VALARM with a positive DURATION
-                                    // and throw away the - sign for a negative one.
-                                    //FIXME if the alarm is after the start of the event
-                                    // offer to create a dummy event to hold the alarm
-                                    if (offset.startsWith("-")) {
-                                        minutes = parseDuration(
-                                            offset.replaceFirst("-", ""));
-                                    }
-                                }
-                                break;
-                            case "ACTION":
-                                switch (split1[1].toUpperCase()) {
-                                    case "AUDIO":
-                                        method = Reminders.METHOD_ALARM;
-                                        break;
-                                    case "DISPLAY":
-                                        method = Reminders.METHOD_ALERT;
-                                        break;
-                                    case "EMAIL":
-                                        // Although Android can store METHOD_EMAIL,
-                                        // it can't store the addressee(s) or the
-                                        // subject or the text, so it isn't useful
-                                        // to try to decode this reminder.
-                                    default:
-                                        // RFC 5545 says to ignore unknown ACTIONs
-                                        validAlarm = false;
-                                }
-                                break;
-                            case "REPEAT":
-                                try {
-                                    repeat = Integer.parseInt(split1[1]);
-                                } catch (NumberFormatException ignore) {}
-                            break;
-                            case "DURATION":
-                                duration = parseDuration(split1[1]);
-                        }
-                    }
-                }
-                if ((minutes >= 0) && validAlarm) {
-                    event.mReminders.add(
-                        CalendarEventModel.ReminderEntry.valueOf(minutes, method));
-                    event.mHasAlarm = true;
-                    // Android can't do repeating reminders.
-                    // So we translate a repeating alarm into multiple reminders.
-                    if (duration > 0) {
-                        while (repeat > 0) {
-                            --repeat;
-                            minutes -= duration;
-                            if (minutes < 0) {
-                                // Oops, this repetition is now after the start of the event:
-                                // Android can'ty do that. We could offer to make a dummy
-                                // event to hold the alarm, but currently we don't do that.
-                                break;
-                            }
-                            event.mReminders.add(
-                                CalendarEventModel.ReminderEntry.valueOf(minutes, method));
-                        }
-                    }
-                }
-            } else {
-                String[] split1 = line.split(":", 2);
-                if (split1.length > 1) {
-                    if (uLine.startsWith("DTSTART")) {
-                        parseDateTime(split1, event, which_DTSTART);
-                    } else if (uLine.startsWith("DTEND")) {
-                        parseDateTime(split1, event, which_DTEND);
-                    } else if (uLine.startsWith("RRULE")) {
-                        event.mRrule = split1[1];
-                    } else if (uLine.startsWith("RDATE")) {
-                        event.mRdate = parseDateList(split1, event.mRdate);
-                    } else if (uLine.startsWith("EXDATE")) {
-                        event.mExdate = parseDateList(split1, event.mExdate);
-                    } else if (uLine.startsWith("UID")) {
-                        event.mUid = split1[1];
-                    } else if (uLine.startsWith("SUMMARY")) {
-                        event.mTitle = unEscaoe(split1[1]);
-                    } else if (uLine.startsWith("DESCRIPTION")) {
-                        event.mDescription = unEscaoe(split1[1]);
-                    } else if (uLine.startsWith("LOCATION")) {
-                        event.mLocation = unEscaoe(split1[1]);
-                    } else if (uLine.startsWith("TRANSP")) {
-                        event.mAvailability =
-                            (split1[1].compareTo("TRANSPARENT") == 0)
-                                ? Events.AVAILABILITY_FREE
-                                : Events.AVAILABILITY_BUSY;
-                    } else if (uLine.startsWith("CLASS")) {
-                        switch (split1[1].toUpperCase()) {
-                            case "CONFIDENTIAL":
-                                event.mAccessLevel = Events.ACCESS_CONFIDENTIAL;
-                                break;
-                            case "PRIVATE":
-                                event.mAccessLevel = Events.ACCESS_PRIVATE;
-                                break;
-                            case "PUBLIC":
-                                event.mAccessLevel = Events.ACCESS_PUBLIC;
-                                break;
-                        }
-                    } else if (uLine.startsWith("ORGANIZER")) {
-                        event.mOrganizerDisplayName = null;
-                        split1 =
-                            line.split(":([mM][aA][iI][lL][tT][oO]:)?", 2);
-                        event.mOrganizer = split1[1];
-                        String[] split2 = split1[0].split("[=;]");
-                        int n = split2.length;
-                        for (int i = 1; i < n; i += 2) {
-                            if (split2[i].equalsIgnoreCase("CN")) {
-                                event.mOrganizerDisplayName = split2[i + 1];
-                            }
-                        }
-                    } else if (uLine.startsWith("ATTENDEE")) {
-                        split1 =
-                            line.split(":([mM][aA][iI][lL][tT][oO]:)?", 2);
-                        String email = split1[1];
-                        CalendarEventModel.Attendee attendee =
-                            new CalendarEventModel.Attendee(null, email);
-                        attendee.mType = Attendees.TYPE_NONE;
-                        String[] split2 = split1[0].split("[=;]");
-                        int n = split2.length;
-                        for (int i = 1; i < n; i += 2) {
-                            switch (split2[i].toUpperCase()) {
-                                case "CN":
-                                    attendee.mName = split2[i + 1];
-                                    break;
-                                case "PARTSTAT":
-                                    switch (split2[i + 1].toUpperCase()) {
-                                        case "ACCEPTED":
-                                            attendee.mStatus =
-                                                Attendees.ATTENDEE_STATUS_ACCEPTED;
-                                            break;
-                                        case "DECLINED":
-                                            attendee.mStatus =
-                                                Attendees.ATTENDEE_STATUS_DECLINED;
-                                            break;
-                                        case "NEEDS-ACTION":
-                                            attendee.mStatus =
-                                                Attendees.ATTENDEE_STATUS_INVITED;
-                                            break;
-                                        case "TENTATIVE":
-                                            attendee.mStatus =
-                                                Attendees.ATTENDEE_STATUS_TENTATIVE;
-                                            break;
-                                        default:
-                                            attendee.mStatus =
-                                                Attendees.ATTENDEE_STATUS_NONE;
-                                    }
-                                    break;
-                                case "CUTYPE":
-                                    switch (split2[i + 1].toUpperCase()) {
-                                        case "RESOURCE":
-                                        case "ROOM":
-                                            attendee.mType = Attendees.TYPE_RESOURCE;
-                                            break;
-                                    }
-                                    break;
-                                case "ROLE":
-                                    if (attendee.mType != Attendees.TYPE_RESOURCE) {
-                                        switch (split2[i + 1].toUpperCase()) {
-                                            case "OPT-PARTICIPANT":
-                                                attendee.mType = Attendees.TYPE_OPTIONAL;
+                                                validAlarm = params.get(i + 1)
+                                                    .toUpperCase()
+                                                    .compareTo("DURATION") == 0;
                                                 break;
                                             default:
-                                            case "CHAIR": // Don't assume CHAIR is organizer
-                                            case "REQ-PARTICIPANT":
-                                                attendee.mType = Attendees.TYPE_REQUIRED;
-                                                break;
-                                            case "NON-PARTICIPANT":
-                                                attendee.mType = Attendees.TYPE_NONE;
+                                                // just ignore invalid parameter
                                         }
                                     }
+                                    if (validAlarm) {
+                                        // VALARM offsets are negative for before DTSTART
+                                        // and positive after.
+                                        // Android offset are always positive
+                                        // and always before.
+                                        // So we throw away any VALARM
+                                        // with a positive DURATION.
+                                        // and throw away the - sign for a negative one.
+                                        //FIXME if the alarm is after the start of the event
+                                        // offer to create a dummy event to hold the alarm
+                                        if (splitLine[2].startsWith("-")) {
+                                            minutes = parseDuration(
+                                                splitLine[2].replaceFirst(
+                                                    "-", ""));
+                                        }
+                                    }
+                                    continue;
+                                case "DURATION":
+                                    duration = parseDuration(splitLine[2]);
+                                    continue;
+                                case "REPEAT":
+                                    try {
+                                        repeat = Integer.parseInt(splitLine[2]);
+                                    } catch (NumberFormatException ignore) {
+                                    }
+                                default: //ignore anything we don't understand
+                                    continue;
+                            }
+                            // If we fall out of the switch, we found END:VALARM
+                            // so break out of the while loop
+                            break;
+                        }
+                        if ((minutes >= 0) && validAlarm) {
+                            event.mReminders.add(
+                                CalendarEventModel.ReminderEntry.valueOf(minutes, method));
+                            event.mHasAlarm = true;
+                            // Android can't do repeating reminders.
+                            // So we translate a repeating alarm into multiple reminders.
+                            if (duration > 0) {
+                                while (repeat > 0) {
+                                    --repeat;
+                                    minutes -= duration;
+                                    if (minutes < 0) {
+                                        // Oops, this repetition is now after the star
+                                        // t of the event: Android can't do that.
+                                        // We could offer to make a dummy event to hold
+                                        // the alarm, but currently we don't do that.
+                                        break;
+                                    }
+                                    event.mReminders.add(
+                                        CalendarEventModel.ReminderEntry.valueOf(
+                                            minutes, method));
+                                }
                             }
                         }
-                        event.mAttendeesList.put(email, attendee);
                     }
-                }
+                default: // ignore anything we don't recognise
             }
         }
     }
