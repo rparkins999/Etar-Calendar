@@ -40,7 +40,7 @@ public class CalendarApplication extends Application {
     /**
      * This is a bit sad: we can't pass all the data needed to create a list of
      * CalendarEventModel's between Activities in an Intent. We could serialize each
-     * CalendarEventModel out to a file and back in again, but this is horribly
+     * CalendarEventModel out to a file or a bundle and back in again, but this is horribly
      * inefficient. Instead we keep this static list around. It is empty when we
      * aren't using it.
      * We need synchronisation here because an event can be removed from this list
