@@ -233,12 +233,18 @@ public class EditEventHelper {
             Attendees.ATTENDEE_EMAIL, // 2
             Attendees.ATTENDEE_RELATIONSHIP, // 3
             Attendees.ATTENDEE_STATUS, // 4
+            Attendees.ATTENDEE_TYPE, // 5
+            Attendees.ATTENDEE_IDENTITY, // 6
+            Attendees.ATTENDEE_ID_NAMESPACE, // 7
     };
     static final int ATTENDEES_INDEX_ID = 0;
     static final int ATTENDEES_INDEX_NAME = 1;
     static final int ATTENDEES_INDEX_EMAIL = 2;
     static final int ATTENDEES_INDEX_RELATIONSHIP = 3;
     static final int ATTENDEES_INDEX_STATUS = 4;
+    static final int ATTENDEES_INDEX_TYPE = 5;
+    static final int ATTENDEES_INDEX_IDENTITY = 6;
+    static final int ATTENDEES_INDEX_ID_NAMESPACE = 7;
     static final String ATTENDEES_WHERE = Attendees.EVENT_ID + "=? AND attendeeEmail IS NOT NULL";
 
     public static class AttendeeItem {

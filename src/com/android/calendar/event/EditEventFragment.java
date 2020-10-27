@@ -1133,10 +1133,17 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                 cursor.getString(EditEventHelper.ATTENDEES_INDEX_NAME);
                             String email =
                                 cursor.getString(EditEventHelper.ATTENDEES_INDEX_EMAIL);
+                            int relationship = cursor
+                                .getInt(EditEventHelper.ATTENDEES_INDEX_RELATIONSHIP);
                             int status =
                                 cursor.getInt(EditEventHelper.ATTENDEES_INDEX_STATUS);
-                            int relationship = cursor
-                                    .getInt(EditEventHelper.ATTENDEES_INDEX_RELATIONSHIP);
+                            int type =
+                                cursor.getInt(EditEventHelper.ATTENDEES_INDEX_TYPE);
+                            String identity =
+                                cursor.getString(EditEventHelper.ATTENDEES_INDEX_IDENTITY);
+                            String idNamespace =
+                                cursor.getString(
+                                    EditEventHelper.ATTENDEES_INDEX_ID_NAMESPACE);
                             if (relationship == Attendees.RELATIONSHIP_ORGANIZER) {
                                 if (email != null) {
                                     mModel.mOrganizer = email;
@@ -1173,8 +1180,8 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                                     continue;
                                 }
                             }
-                            Attendee attendee = new Attendee(name, email);
-                            attendee.mStatus = status;
+                            Attendee attendee = new Attendee(
+                                name, email, status, type, identity, idNamespace);
                             mModel.addAttendee(attendee);
                             mOriginalModel.addAttendee(attendee);
                         }
