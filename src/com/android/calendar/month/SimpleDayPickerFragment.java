@@ -37,6 +37,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.android.calendar.DynamicTheme;
+import com.android.calendar.Llog;
 import com.android.calendar.Utils;
 
 import java.util.Calendar;
@@ -270,6 +271,7 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
 
     @Override
     public void onResume() {
+        Llog.d("");
         super.onResume();
         setUpAdapter();
         doResumeUpdates();

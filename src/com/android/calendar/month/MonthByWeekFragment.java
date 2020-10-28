@@ -368,6 +368,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
         mAdapter.setSelectedDay(mSelectedDay);
         mTZUpdater.run();
         mTodayUpdater.run();
+        eventsChanged();
         goTo(mSelectedDay.toMillis(true), false, true, false);
     }
 

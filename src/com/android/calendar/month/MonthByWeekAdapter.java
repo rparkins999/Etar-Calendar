@@ -16,10 +16,14 @@
 
 package com.android.calendar.month;
 
+import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.CalendarContract;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -34,12 +38,16 @@ import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.Event;
+import com.android.calendar.Llog;
 import com.android.calendar.Utils;
+import com.android.calendar.event.EditEventActivity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import ws.xsoh.etar.R;
+
+import static com.android.calendar.CalendarController.EVENT_EDIT_ON_LAUNCH;
 
 public class MonthByWeekAdapter extends SimpleWeeksAdapter {
     public static final String WEEK_PARAMS_IS_MINI = "mini_month";
@@ -65,42 +73,59 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
     protected int mOrientation = Configuration.ORIENTATION_LANDSCAPE;
     protected ArrayList<ArrayList<Event>> mEventDayList = new ArrayList<ArrayList<Event>>();
     protected ArrayList<Event> mEvents = null;
-    MonthWeekEventsView mClickedView;
+    // Synchronisation object needs to be final, but mClickedView is modified
+    private final Object mClickedViewSync = new Object();
+    private MonthWeekEventsView mClickedView;
     MonthWeekEventsView mSingleTapUpView;
     MonthWeekEventsView mLongClickedView;
-    float mClickedXLocation;                // Used to find which day was clicked
+    float mClickedXLocation; // Used to find which day was clicked
+    float mClickedYLocation; // Used to find which event if any was clicked
+    long mClickedEventId;
     // Perform the tap animation in a runnable to allow a delay before showing the tap color.
     // This is done to prevent a click animation when a fling is done.
     private final Runnable mDoClick = new Runnable() {
         @Override
         public void run() {
-            if (mClickedView != null) {
-                synchronized (mClickedView) {
-                    mClickedView.setClickedDay(mClickedXLocation);
+            mClickedEventId = -1;
+            // do as little work as possible inside the synchronized block
+            synchronized (mClickedViewSync) {
+                if (mClickedView != null) {
+                    mClickedEventId =
+                        mClickedView.getClickedEventId(mClickedXLocation, mClickedYLocation);
+                    mLongClickedView = mClickedView;
+                    mClickedView = null;
                 }
-                mLongClickedView = mClickedView;
-                mClickedView = null;
-                // This is a workaround , sometimes the top item on the listview doesn't refresh on
-                // invalidate, so this forces a re-draw.
-                mListView.invalidate();
             }
         }
     };
     // Performs the single tap operation: go to the tapped day.
-    // This is done in a runnable to allow the click animation to finish before switching views
+    // This is done in a runnable to allow the click animation to finish
+    // before switching views
     private final Runnable mDoSingleTapUp = new Runnable() {
         @Override
         public void run() {
-            if (mSingleTapUpView != null) {
-                Time day = mSingleTapUpView.getDayFromLocation(mClickedXLocation);
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Touched day at Row=" + mSingleTapUpView.mWeek + " day=" + day.toString());
+            synchronized (mClickedViewSync) {
+                if (mSingleTapUpView != null) {
+                    if (mClickedEventId >= 0) {
+                        // User clicked on an event
+                        Uri uri = ContentUris.withAppendedId(
+                            CalendarContract.Events.CONTENT_URI, mClickedEventId);
+                        Intent intent = new Intent(Intent.ACTION_EDIT, uri);
+                        intent.setClass(mContext, EditEventActivity.class);
+                        intent.putExtra(EVENT_EDIT_ON_LAUNCH, true);
+                        mContext.startActivity(intent);
+                    } else {
+                        Time day = mSingleTapUpView.getDayFromLocation(mClickedXLocation);
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Touched day at Row=" + mSingleTapUpView.mWeek + " day=" + day.toString());
+                        }
+                        if (day != null) {
+                            onDayTapped(day);
+                        }
+                    }
+                    clearClickedView(mSingleTapUpView);
+                    mSingleTapUpView = null;
                 }
-                if (day != null) {
-                    onDayTapped(day);
-                }
-                clearClickedView(mSingleTapUpView);
-                mSingleTapUpView = null;
             }
         }
     };
@@ -361,8 +386,14 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
             // On Up/scroll/move/cancel: hide the "clicked" color.
             switch (action) {
                 case MotionEvent.ACTION_DOWN:
-                    mClickedView = (MonthWeekEventsView) v;
+                    synchronized (mClickedViewSync) {
+                        mClickedView = (MonthWeekEventsView) v;
+                    }
+                    // These positions are relative to the top left corner of
+                    // mClickedView, which is the week row.
                     mClickedXLocation = event.getX();
+                    mClickedYLocation = event.getY();
+                    Llog.d("getX()->" + event.getX() + ", getY()->" + event.getY());
                     mClickTime = System.currentTimeMillis();
                     mListView.postDelayed(mDoClick, mOnDownDelay);
                     break;
@@ -392,7 +423,9 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
         synchronized(v) {
             v.clearClickedDay();
         }
-        mClickedView = null;
+        synchronized (mClickedViewSync) {
+            mClickedView = null;
+        }
     }
 
     /**

@@ -299,11 +299,11 @@ public class SimpleWeekView extends View {
                 mToday = i;
             }
             if (time.monthDay == 1) {
-                mDayNumbers[i] = time.format("%b ")
-                                 + NumberFormat.getInstance().format(time.monthDay++);
+                mDayNumbers[i] = time.format("%b 1");
             } else {
-                mDayNumbers[i] = NumberFormat.getInstance().format(time.monthDay++);
+                mDayNumbers[i] = NumberFormat.getInstance().format(time.monthDay);
             }
+            time.monthDay++;
             time.normalize(true);
         }
         // We do one extra add at the end of the loop, if that pushed us to a
