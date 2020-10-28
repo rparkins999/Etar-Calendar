@@ -153,7 +153,6 @@
     <string name="modify_event" msgid="5982876409997142690">"この予定のみを変更する"</string>
     <string name="modify_all" msgid="4421657265864209041">"一連の定期的な予定すべてを変更する"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"これ以降の予定すべてを変更する"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"新しい予定"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"新しい予定"</string>
     <string name="new_event_dialog_option_all_day">"新しい終日のイベント"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"この予定を削除しますか？"</string>

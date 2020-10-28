@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Muutke ainult seda sündmust"</string>
     <string name="modify_all" msgid="4421657265864209041">"Muutke kõiki seeria sündmusi"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Muuda seda sündmust ja kõiki tulevasi sündmusi."</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Uus sündmus"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Uus sündmus"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Uus kogu päeva sündmus"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Kas kustutada see sündmus?"</string>

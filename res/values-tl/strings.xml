@@ -153,7 +153,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Baguhin ang kaganapang ito lamang"</string>
     <string name="modify_all" msgid="4421657265864209041">"Palitan ang lahat ng kaganapan sa serye"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Baguhin ito at ang lahat ng kaganapan sa hinaharap"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Bagong kaganapan"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Bagong kaganapan"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Bagong kaganapan buong araw"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Tanggalin ang kaganapang ito?"</string>

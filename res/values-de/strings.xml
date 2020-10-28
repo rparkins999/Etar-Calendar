@@ -154,7 +154,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Nur diesen Termin ändern"</string>
     <string name="modify_all" msgid="4421657265864209041">"Alle Termine in dieser Serie ändern"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Diesen und alle zukünftigen Termine ändern"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Neuer Termin"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Neuer Termin"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Neuer ganztägiger Termin"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Diesen Termin löschen?"</string>

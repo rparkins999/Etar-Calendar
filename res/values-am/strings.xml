@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"ይህንን ክስተት ብቻ ለውጥ"</string>
     <string name="modify_all" msgid="4421657265864209041">"በተከታታይ ውስጥ ያሉ ክስተቶችን ለውጥ።"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"ይህን እና ሁሉንም የወደፊት ክስተቶች ለውጥ።"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"አዲስ ክስተት"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"አዲስ ክስተት"</string>
     <string name="new_event_dialog_option_all_day">"አዲስ ቀኑን ሙሉ ክስተት"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"ይህን ክስተት ሰርዝ?"</string>

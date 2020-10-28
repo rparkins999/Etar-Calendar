@@ -153,7 +153,6 @@
     <string name="modify_event" msgid="5982876409997142690">이번 일정만 변경합니다</string>
     <string name="modify_all" msgid="4421657265864209041">모든 반복일정을 변경합니다</string>
     <string name="modify_all_following" msgid="3017428541066390380">이번 및 모든 향후 일정을 변경합니다</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"새 일정"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"새 일정"</string>
     <string name="new_event_dialog_option_all_day">"새로운 종일 이벤트"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"이번 일정을 삭제하시겠습니까?"</string>

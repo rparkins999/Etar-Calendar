@@ -28,8 +28,6 @@ import android.database.Cursor;
 import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Instances;
@@ -51,7 +49,6 @@ import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Event;
 import com.android.calendar.Utils;
-import com.android.calendar.event.CreateEventDlgFragment;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -100,7 +97,6 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
     protected boolean mHideDeclined;
     protected int mFirstLoadedJulianDay;
     protected int mLastLoadedJulianDay;
-    private CreateEventDlgFragment mEventDialog;
     private CursorLoader mLoader;
     private Uri mEventUri;
     private volatile boolean mShouldLoad = true;
@@ -137,18 +133,6 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
             if (!mIsDetached) {
                 mLoader = (CursorLoader) getLoaderManager().initLoader(0, null,
                         MonthByWeekFragment.this);
-            }
-        }
-    };
-    private Handler mEventDialogHandler = new Handler() {
-
-        @Override
-        public void handleMessage(Message msg) {
-            final FragmentManager manager = getFragmentManager();
-            if (manager != null) {
-                Time day = (Time) msg.obj;
-                mEventDialog = new CreateEventDlgFragment(day);
-                mEventDialog.show(manager, TAG_EVENT_DIALOG);
             }
         }
     };
@@ -274,7 +258,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
                 Time.getJulianDay(mSelectedDay.toMillis(true), mSelectedDay.gmtoff));
         weekParams.put(SimpleWeeksAdapter.WEEK_PARAMS_DAYS_PER_WEEK, mDaysPerWeek);
         if (mAdapter == null) {
-            mAdapter = new MonthByWeekAdapter(getActivity(), weekParams, mEventDialogHandler);
+            mAdapter = new MonthByWeekAdapter(getActivity(), weekParams);
             mAdapter.registerDataSetObserver(mObserver);
         } else {
             mAdapter.updateParams(weekParams);

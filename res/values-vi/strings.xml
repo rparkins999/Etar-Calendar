@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Chỉ thay đổi sự kiện này"</string>
     <string name="modify_all" msgid="4421657265864209041">"Thay đổi tất cả các sự kiện trong loạt sự kiện"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Thay đổi sự kiện này và tất cả các sự kiện trong tương lai"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Sự kiện mới"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Sự kiện mới"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Sự kiện mới cả ngày"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Xóa sự kiện này?"</string>

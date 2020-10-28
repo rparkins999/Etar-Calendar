@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"僅變更這項活動。"</string>
     <string name="modify_all" msgid="4421657265864209041">"變更所有後續的活動"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"變更這項活動和所有未來活動。"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"新活動"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"新活動"</string>
     <string name="new_event_dialog_option_all_day">"新的全天活动"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"刪除這項活動？"</string>

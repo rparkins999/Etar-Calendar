@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Промени само овај догађај"</string>
     <string name="modify_all" msgid="4421657265864209041">"Промени све догађаје у низу"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Промени овај догађај и све будуће догађаје"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Нови догађај"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Нови догађај"</string>
     <string name="new_event_dialog_option_all_day">"нови целодневни догађај"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">Желиш ли да избришеш овај догађај\?</string>

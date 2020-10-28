@@ -154,7 +154,6 @@
     <string name="modify_event" msgid="5982876409997142690">"مۇشۇ پائالىيەتنىلا ئۆزگەرتىدۇ"</string>
     <string name="modify_all" msgid="4421657265864209041">"تەكرار پائالىيەتنىڭ ھەممىسىنى ئۆزگەرتىدۇ."</string>
     <string name="modify_all_following" msgid="3017428541066390380">"مۇشۇ پائالىيەت ۋە كەلگۈسىدىكى ھەممە پائالىيەتنى ئۆزگەرتىدۇ"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"يېڭى پائالىيەت"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"يېڭى پائالىيەت"</string>
     <string name="new_event_dialog_option_all_day">"پۈتۈن كۈنلۈك پائالىيەت"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"بۇ پائالىيەتنى ئۆچۈرەمدۇ؟"</string>

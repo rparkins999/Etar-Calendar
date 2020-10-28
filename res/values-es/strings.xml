@@ -156,7 +156,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Cambiar solo este evento"</string>
     <string name="modify_all" msgid="4421657265864209041">"Cambiar todos los eventos de la serie"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Cambiar este y todos los eventos posteriores"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Nuevo evento"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Nuevo evento"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Nuevo evento todo el día"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"¿Eliminar este evento?"</string>

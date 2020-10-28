@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Tukar acara ini sahaja"</string>
     <string name="modify_all" msgid="4421657265864209041">"Tukar semua acara dalam siri"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Tukar acara ini dan semua acara masa depan"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Acara baru"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Acara baru"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Acara baru sepanjang hari"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Padamkan acara ini?"</string>

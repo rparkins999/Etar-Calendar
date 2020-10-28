@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Modificaţi doar acest eveniment"</string>
     <string name="modify_all" msgid="4421657265864209041">"Modificaţi toate evenimentele din serie"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Modificaţi acest eveniment şi pe toate cele viitoare."</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Eveniment nou"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Eveniment nou toată ziua "</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Evenimentnou"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Ștergeţi acest eveniment?"</string>

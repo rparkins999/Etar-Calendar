@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">Wijzig alleen deze afspraak</string>
     <string name="modify_all" msgid="4421657265864209041">Wijzig alle afspraken in de reeks</string>
     <string name="modify_all_following" msgid="3017428541066390380">Wijzig deze en alle toekomstige afspraken</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Nieuwe afspraak"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Nieuwe afspraak"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Nieuwe hele dag afspraak"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">Verwijder deze afspraak\?</string>

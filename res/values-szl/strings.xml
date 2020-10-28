@@ -44,7 +44,6 @@
     </string>
     <string name="preferences_reminders_responded_dialog">Pōmiń spōmniynia</string>
     <string name="accessibility_pick_end_date">Data kōńca</string>
-    <string name="new_event_dialog_label">Nowe zdarzynie</string>
     <string name="endByDate">; do <xliff:g id="DATE">%s</xliff:g>
     </string>
     <string name="delete_this_event_title">Skasować zdarzynie\?</string>

@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Промяна само на това събитие"</string>
     <string name="modify_all" msgid="4421657265864209041">"Промяна на всички събития в поредицата"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Промяна на това и всички бъдещи събития"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Ново събитие"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Ново събитие"</string>
     <string name="new_event_dialog_option_all_day">"ново целодневно събитие"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Да се изтрие ли това събитие?"</string>

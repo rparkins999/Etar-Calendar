@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"เปลี่ยนเฉพาะกิจกรรมนี้"</string>
     <string name="modify_all" msgid="4421657265864209041">"เปลี่ยนกิจกรรมทั้งหมดในชุด"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"เปลี่ยนกิจกรรมนี้และในอนาคตทั้งหมด"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"กิจกรรมใหม่"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"กิจกรรมใหม่"</string>
     <string name="new_event_dialog_option_all_day">"ใหม่เหตุการณ์ตลอดทั้งวัน"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"ลบกิจกรรมนี้"</string>

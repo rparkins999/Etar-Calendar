@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"فقط این رویداد تغییر داده شود"</string>
     <string name="modify_all" msgid="4421657265864209041">"همه رویدادهای موجود در مجموعه‌ها تغییر داده شود"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"این رویداد و همه رویدادهای آینده تغییر داده شود"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"رویداد جدید"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"رویداد جدید"</string>
     <string name="new_event_dialog_option_all_day">"رویداد جدید در تمام طول روز"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"این رویداد حذف شود؟"</string>

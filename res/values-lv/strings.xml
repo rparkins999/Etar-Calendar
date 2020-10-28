@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Mainīt tikai šo pasākumu"</string>
     <string name="modify_all" msgid="4421657265864209041">"Mainīt visus virknes pasākumus"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Mainīt šo un visus nākamos pasākumus"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Jauns notikums"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Jauns notikums"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Jauns visas dienas notikums"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Vai dzēst šo pasākumu?"</string>

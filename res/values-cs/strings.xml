@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Změnit pouze tuto událost"</string>
     <string name="modify_all" msgid="4421657265864209041">"Změnit všechny události v sérii"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Změnit tuto událost a všechny budoucí"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Nová událost"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Nová událost"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Nová celodenní událost"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Smazat tuto událost?"</string>

@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.CalendarContract;
+import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -132,11 +133,9 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
     long mClickTime;                        // Used to calculate minimum click animation time
     private boolean mAnimateToday = false;
     private long mAnimateTime = 0;
-    private Handler mEventDialogHandler;
 
-    public MonthByWeekAdapter(Context context, HashMap<String, Integer> params, Handler handler) {
+    public MonthByWeekAdapter(Context context, HashMap<String, Integer> params) {
         super(context, params);
-        mEventDialogHandler = handler;
         if (params.containsKey(WEEK_PARAMS_IS_MINI)) {
             mIsMiniMonth = params.get(WEEK_PARAMS_IS_MINI) != 0;
         }
@@ -442,10 +441,15 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
             if (mLongClickedView != null) {
                 Time day = mLongClickedView.getDayFromLocation(mClickedXLocation);
                 if (day != null) {
-                    mLongClickedView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                    Message message = new Message();
-                    message.obj = day;
-                    mEventDialogHandler.sendMessage(message);
+                    mLongClickedView.performHapticFeedback(
+                        HapticFeedbackConstants.LONG_PRESS);
+                    mController.sendEventRelatedEventWithExtraWithTitleWithCalendarId(
+                        this, CalendarController.ControllerAction.CREATE_EVENT,
+                        -1, day.toMillis(true),
+                        day.toMillis(true) + DateUtils.DAY_IN_MILLIS,
+                        0, 0,
+                        CalendarController.EXTRA_CREATE_ALL_DAY, -1,
+                        "", -1);
                 }
                 mLongClickedView.clearClickedDay();
                 mLongClickedView = null;

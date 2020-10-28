@@ -157,7 +157,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Ändra bara den här händelsen"</string>
     <string name="modify_all" msgid="4421657265864209041">"Ändra alla händelser i serien"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Ändra den här och alla framtida händelser"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Ny händelse"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Ny händelse"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"nya heldagshändelse"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Vill du ta bort den här händelsen?"</string>

@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Muuta vain tämä tapahtuma"</string>
     <string name="modify_all" msgid="4421657265864209041">"Muuta tapahtuman kaikki toistokerrat"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Muuta tämä ja kaikki tulevat tapahtumat"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Uusi tapahtuma"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Uusi tapahtuma"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Uusi koko päivän tapahtuma"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Poistetaanko tämä tapahtuma?"</string>

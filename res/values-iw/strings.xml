@@ -198,7 +198,6 @@
     <string name="modify_event" msgid="5982876409997142690">"שנה אירוע זה בלבד"</string>
     <string name="modify_all" msgid="4421657265864209041">"שנה את כל האירועים בסדרה"</string>
     <string name="modify_all_following" msgid="3017428541066390380">"שנה אירוע זה ואת כל האירועים העתידיים"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"אירוע חדש"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"אירוע חדש"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">" אירוע חדש כל היום"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"למחוק אירוע זה?"</string>

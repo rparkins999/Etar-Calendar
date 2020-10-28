@@ -117,7 +117,6 @@
     <string name="modify_event">Aldatu bakarrik gertaera hau</string>
     <string name="modify_all">Aldatu gertaera guztiak serie honetan</string>
     <string name="modify_all_following">Aldatu gertaera hau eta etorkizunekoak</string>
-    <string name="new_event_dialog_label">Gertaera berria</string>
     <string name="new_event_dialog_option">Gertaera berria</string>
     <string name="new_event_dialog_option_all_day">Gertaera egun osoko ekintza berria</string>
     <string name="delete_this_event_title">Ezabatu gertaera hau\?</string>

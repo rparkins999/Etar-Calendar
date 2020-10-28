@@ -155,7 +155,6 @@
     <string name="modify_event" msgid="5982876409997142690">"Αλλαγή μόνο αυτού του συμβάντος"</string>
     <string name="modify_all" msgid="4421657265864209041">"Αλλαγή όλων των συμβάντων στη σειρά."</string>
     <string name="modify_all_following" msgid="3017428541066390380">"Αλλαγή αυτού και όλων των μελλοντικών συμβάντων"</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">"Νέο συμβάν"</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">"Νέο συμβάν"</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">"Νέο ολοήμερο συμβάν"</string>
     <string name="delete_this_event_title" msgid="518402946676919384">"Διαγραφή αυτού του συμβάντος;"</string>

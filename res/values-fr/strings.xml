@@ -156,7 +156,6 @@
     <string name="modify_event" msgid="5982876409997142690">Modifier uniquement cet événement</string>
     <string name="modify_all" msgid="4421657265864209041">Modifier tous les événements de la série</string>
     <string name="modify_all_following" msgid="3017428541066390380">Modifier cet événement et tous les suivants</string>
-    <string name="new_event_dialog_label" msgid="7553105224561147916">Nouvel événement</string>
     <string name="new_event_dialog_option" msgid="6154657379574669371">Nouvel événement toute la journée</string>
     <string name="new_event_dialog_option_all_day" msgid="6154657379574669371">Nouvel événement</string>
     <string name="delete_this_event_title" msgid="518402946676919384">Supprimer cet événement \?</string>

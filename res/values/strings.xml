@@ -444,7 +444,7 @@
     <!-- Dialogs -->
 
     <!-- This is a label on the dialog for creating a new event. [CHAR LIMIT=30] -->
-    <string name="new_event_dialog_label">"New event"</string>
+
     <!-- This is the button to create a new event in a dialog window. [CHAR LIMIT=30] -->
     <string name="new_event_dialog_option">"New event"</string>
     <string name="new_event_dialog_option_all_day">"New all day event"</string>

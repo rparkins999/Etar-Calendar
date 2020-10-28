@@ -190,7 +190,6 @@
     <string name="modify_event">Newid y digwyddiad hwn yn unig</string>
     <string name="modify_all">Newid pob digwyddiad yn y gyfres</string>
     <string name="modify_all_following">Newid hwn a phob digwyddiad yn y dyfodol</string>
-    <string name="new_event_dialog_label">Digwyddiad newydd</string>
     <string name="new_event_dialog_option">Digwyddiad newydd</string>
     <string name="new_event_dialog_option_all_day">Digwyddiad newydd trwy\'r dydd</string>
     <string name="delete_this_event_title">Dileu\'r digwyddiad hwn\?</string>

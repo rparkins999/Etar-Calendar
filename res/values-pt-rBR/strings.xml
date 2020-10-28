@@ -116,7 +116,6 @@
     <string name="modify_event">Alterar somente este evento</string>
     <string name="modify_all">Alterar todos os eventos da série</string>
     <string name="modify_all_following">Alterar este e todos os eventos futuros</string>
-    <string name="new_event_dialog_label">Novo evento</string>
     <string name="new_event_dialog_option">Novo evento</string>
     <string name="new_event_dialog_option_all_day">Novo evento o dia inteiro</string>
     <string name="delete_this_event_title">Excluir este evento\?</string>
