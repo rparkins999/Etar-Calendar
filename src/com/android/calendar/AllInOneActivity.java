@@ -548,7 +548,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements Action
         dynamicTheme.onResume(this);
 
         // Must register as the first activity because this activity can modify
-        // the list of event handlers in it's handle method. This affects who
+        // the list of action handlers in it's handle method. This affects who
         // the rest of the handlers the controller dispatches to are.
         mController.registerFirstActionHandler(HANDLER_KEY, this);
         mOnSaveInstanceStateCalled = false;

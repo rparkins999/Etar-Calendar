@@ -23,14 +23,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.net.Uri;
-import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 import android.text.TextUtils;
 
-import com.android.calendar.event.EditEventActivity;
 import com.android.calendar.event.EventColorCache;
 import com.android.calendar.settings.GeneralPreferences;
 
@@ -249,7 +247,6 @@ public class CalendarEventModel implements Serializable {
         }
     }
 
-    //FIXME check which of tehse things can actually be put inti an intent
     public CalendarEventModel(Context context, Intent intent) {
         this(context);
         if (intent == null) {
@@ -308,7 +305,7 @@ public class CalendarEventModel implements Serializable {
     // before filling the model with data from the CalendarProvider.
     // The Uri must be valid because we used it to access the CalendarProvider.
     public void clear() {
-        // DOn't throw away the Uri
+        // Don't throw away the Uri
         mId = -1;
         mOriginalId = -1;
         mUid = null;
@@ -372,7 +369,7 @@ public class CalendarEventModel implements Serializable {
         mAttendeesList.remove(attendee.mEmail);
     }
 
-    public boolean sameAttendees(CalendarEventModel other) {
+    public boolean differentAttendees(CalendarEventModel other) {
         for (String key : mAttendeesList.keySet()) {
             if (other.mAttendeesList.containsKey(key)) {
                 Attendee mine = mAttendeesList.get(key);
@@ -384,18 +381,18 @@ public class CalendarEventModel implements Serializable {
                     || (!Utils.equals(mine.mIdentity, theirs.mIdentity))
                     || (!Utils.equals(mine.mIdNamespace, theirs.mIdNamespace)))
                 {
-                    return false;
+                    return true;
                 }
             } else {
-                return false;
+                return true;
             }
         }
         for (String key : other.mAttendeesList.keySet()) {
             if (!mAttendeesList.containsKey(key)) {
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     public String getAttendeesString() {
@@ -471,7 +468,7 @@ public class CalendarEventModel implements Serializable {
         }
 
         CalendarEventModel other = (CalendarEventModel) obj;
-        if (!checkOriginalModelFields(other)) {
+        if (originalModelFieldsDiffer(other)) {
             return false;
         }
 
@@ -555,7 +552,7 @@ public class CalendarEventModel implements Serializable {
             return false;
         }
 
-        if (!checkOriginalModelFields(originalModel)) {
+        if (originalModelFieldsDiffer(originalModel)) {
             return false;
         }
 
@@ -627,153 +624,153 @@ public class CalendarEventModel implements Serializable {
      * @param originalModel the model to compare with
      * @return true if these fields are unchanged, false otherwise
      */
-    protected boolean checkOriginalModelFields(CalendarEventModel originalModel) {
+    protected boolean originalModelFieldsDiffer(CalendarEventModel originalModel) {
         if (mAllDay != originalModel.mAllDay) {
-            return false;
+            return true;
         }
         if (mAttendeesList == null) {
             if (originalModel.mAttendeesList != null) {
-                return false;
+                return true;
             }
-        } else if (!sameAttendees(originalModel)) {
-            return false;
+        } else if (differentAttendees(originalModel)) {
+            return true;
         }
 
         if (mCalendarId != originalModel.mCalendarId) {
-            return false;
+            return true;
         }
         if (mCalendarColor != originalModel.mCalendarColor) {
-            return false;
+            return true;
         }
         if (mCalendarColorInitialized != originalModel.mCalendarColorInitialized) {
-            return false;
+            return true;
         }
         if (mGuestsCanInviteOthers != originalModel.mGuestsCanInviteOthers) {
-            return false;
+            return true;
         }
         if (mGuestsCanModify != originalModel.mGuestsCanModify) {
-            return false;
+            return true;
         }
         if (mGuestsCanSeeGuests != originalModel.mGuestsCanSeeGuests) {
-            return false;
+            return true;
         }
         if (mOrganizerCanRespond != originalModel.mOrganizerCanRespond) {
-            return false;
+            return true;
         }
         if (mCalendarAccessLevel != originalModel.mCalendarAccessLevel) {
-            return false;
+            return true;
         }
         if (mModelUpdatedWithEventCursor != originalModel.mModelUpdatedWithEventCursor) {
-            return false;
+            return true;
         }
         if (mHasAlarm != originalModel.mHasAlarm) {
-            return false;
+            return true;
         }
         if (mHasAttendeeData != originalModel.mHasAttendeeData) {
-            return false;
+            return true;
         }
         if (mId != originalModel.mId) {
-            return false;
+            return true;
         }
         if (mIsOrganizer != originalModel.mIsOrganizer) {
-            return false;
+            return true;
         }
 
         if (mOrganizer == null) {
             if (originalModel.mOrganizer != null) {
-                return false;
+                return true;
             }
         } else if (!mOrganizer.equals(originalModel.mOrganizer)) {
-            return false;
+            return true;
         }
 
         if (mOwnerAccount == null) {
             if (originalModel.mOwnerAccount != null) {
-                return false;
+                return true;
             }
         } else if (!mOwnerAccount.equals(originalModel.mOwnerAccount)) {
-            return false;
+            return true;
         }
 
         if (mReminders == null) {
             if (originalModel.mReminders != null) {
-                return false;
+                return true;
             }
         } else if (!mReminders.equals(originalModel.mReminders)) {
-            return false;
+            return true;
         }
 
         if (mSelfAttendeeStatus != originalModel.mSelfAttendeeStatus) {
-            return false;
+            return true;
         }
         if (mOwnerAttendeeId != originalModel.mOwnerAttendeeId) {
-            return false;
+            return true;
         }
         if (mSyncAccountName == null) {
             if (originalModel.mSyncAccountName != null) {
-                return false;
+                return true;
             }
         } else if (!mSyncAccountName.equals(originalModel.mSyncAccountName)) {
-            return false;
+            return true;
         }
 
         if (mSyncAccountType == null) {
             if (originalModel.mSyncAccountType != null) {
-                return false;
+                return true;
             }
         } else if (!mSyncAccountType.equals(originalModel.mSyncAccountType)) {
-            return false;
+            return true;
         }
 
         if (mSyncId == null) {
             if (originalModel.mSyncId != null) {
-                return false;
+                return true;
             }
         } else if (!mSyncId.equals(originalModel.mSyncId)) {
-            return false;
+            return true;
         }
 
         if (mTimezoneStart == null) {
             if (originalModel.mTimezoneStart != null) {
-                return false;
+                return true;
             }
         } else if (!mTimezoneStart.equals(originalModel.mTimezoneStart)) {
-            return false;
+            return true;
         }
 
         if (mTimezoneEnd == null) {
             if (originalModel.mTimezoneEnd != null) {
-                return false;
+                return true;
             }
         } else if (!mTimezoneEnd.equals(originalModel.mTimezoneEnd)) {
-            return false;
+            return true;
         }
 
         if (mAvailability != originalModel.mAvailability) {
-            return false;
+            return true;
         }
 
         if (mUri == null) {
             if (originalModel.mUri != null) {
-                return false;
+                return true;
             }
         } else if (!mUri.equals(originalModel.mUri)) {
-            return false;
+            return true;
         }
 
         if (mAccessLevel != originalModel.mAccessLevel) {
-            return false;
+            return true;
         }
 
         if (mEventStatus != originalModel.mEventStatus) {
-            return false;
+            return true;
         }
 
         if (mEventColor != originalModel.mEventColor) {
-            return false;
+            return true;
         }
 
-        return mEventColorInitialized == originalModel.mEventColorInitialized;
+        return mEventColorInitialized != originalModel.mEventColorInitialized;
     }
 
     /**

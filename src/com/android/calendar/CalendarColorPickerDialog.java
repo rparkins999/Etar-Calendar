@@ -46,7 +46,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
     static final String[] CALENDARS_PROJECTION = new String[] {
             Calendars.ACCOUNT_NAME,
             Calendars.ACCOUNT_TYPE,
-            Calendars.CALENDAR_COLOR,
+            Calendars.CALENDAR_COLOR
     };
     // This looks a bit messy, but it makes the compiler do the work
     // and avoids the maintenance burden of keeping track of the indices by hand.
@@ -61,7 +61,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
 
     static final String[] COLORS_PROJECTION = new String[] {
             Colors.COLOR,
-            Colors.COLOR_KEY,
+            Colors.COLOR_KEY
     };
     // This looks a bit messy, but it makes the compiler do the work
     // and avoids the maintenance burden of keeping track of the indices by hand.

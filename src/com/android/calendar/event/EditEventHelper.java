@@ -545,7 +545,7 @@ public class EditEventHelper {
             // has changed it
             if (   newEvent
                 || (originalModel == null)
-                || !model.sameAttendees(originalModel))
+                || model.differentAttendees(originalModel))
             {
                 // figure out which attendees need to be added and which ones
                 // need to be deleted. use a linked hash set, so we maintain
