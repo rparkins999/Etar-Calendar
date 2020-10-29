@@ -197,7 +197,7 @@ public class AgendaListView extends ListView implements OnItemClickListener {
                 }
                 mTime.set(startTime);
                 CalendarController controller = CalendarController.getInstance(mContext);
-                controller.sendEventRelatedEventWithExtra(this, ControllerAction.EDIT_EVENT, item.id,
+                controller.sendEventActionWithExtra(this, ControllerAction.EDIT_EVENT, item.id,
                         startTime, endTime, 0, 0, CalendarController.ActionInfo.buildViewExtraLong(
                                 Attendees.ATTENDEE_STATUS_NONE, item.allDay), holderStartTime);
             }

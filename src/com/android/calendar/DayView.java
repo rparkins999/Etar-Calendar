@@ -1148,7 +1148,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             }
         }
 
-        mController.sendEvent(this, ControllerAction.UPDATE_TITLE, mBaseDate, mTempTime, null, -1, ViewType.CURRENT,
+        mController.sendAction(this, ControllerAction.UPDATE_TITLE, mBaseDate, mTempTime, null, -1, ViewType.CURRENT,
                 formatFlags, null, null);
     }
 
@@ -1415,7 +1415,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (mSelectionAllday) {
                     extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
                 }
-                mController.sendEventRelatedEventWithExtra(this, ControllerAction.CREATE_EVENT, -1,
+                mController.sendEventActionWithExtra(this, ControllerAction.CREATE_EVENT, -1,
                         startMillis, endMillis, -1, -1, extraLong, -1);
             } else {
                 // This was a touch selection. View the selected event
@@ -1425,7 +1425,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 // force an event reload when we get back
                 // because the selected event may get deleted
                 clearCachedEvents();
-                mController.sendEventRelatedEvent(
+                mController.sendEventAction(
                     this, ControllerAction.EDIT_EVENT, selectedEvent.id,
                     selectedEvent.startMillis, selectedEvent.endMillis, 0, 0,
                         -1);
@@ -1442,7 +1442,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (mSelectionAllday) {
                     extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
                 }
-                mController.sendEventRelatedEventWithExtra(
+                mController.sendEventActionWithExtra(
                     this, ControllerAction.CREATE_EVENT, -1,
                     startMillis, endMillis, -1, -1, extraLong, -1);
             } else {
@@ -1452,7 +1452,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 // force an event reload when we get back
                 // because the selected event may get deleted
                 clearCachedEvents();
-                mController.sendEventRelatedEvent(
+                mController.sendEventAction(
                     this, ControllerAction.EDIT_EVENT, selectedEvent.id,
                     selectedEvent.startMillis, selectedEvent.endMillis,
                     0, 0, -1);
@@ -2730,7 +2730,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         if (mSelectionAllday) {
             mTempTime.hour = mFirstHour;
         }
-        mController.sendEvent(this, ControllerAction.GO_TO, mTempTime, mTempTime, -1, ViewType.CURRENT);
+        mController.sendAction(this, ControllerAction.GO_TO, mTempTime, mTempTime, -1, ViewType.CURRENT);
         return true;
     }
 
@@ -4425,7 +4425,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 if (mClickedDay < mNumDays) {
                     mTempTime.setJulianDay(mClickedDay + mFirstJulianDay);
                     // On a day label, go to single day view
-                    mController.sendEvent(this, ControllerAction.GO_TO,
+                    mController.sendAction(this, ControllerAction.GO_TO,
                         null, null, mTempTime, -1, ViewType.DAY,
                         CalendarController.EXTRA_GOTO_DATE,
                         null, null);
@@ -4472,7 +4472,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             // force an event reload when we get back
             // because the selected event may get deleted
             clearCachedEvents();
-            mController.sendEventRelatedEvent(this, ControllerAction.EDIT_EVENT,
+            mController.sendEventAction(this, ControllerAction.EDIT_EVENT,
                 mSelectedEvent.id,
                 mSelectedEvent.startMillis, mSelectedEvent.endMillis,
                 mViewWidth / 2, yLocation,
@@ -4494,7 +4494,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 endMillis = startMillis + DateUtils.HOUR_IN_MILLIS;
                 extraLong = 0;
             }
-            mController.sendEventRelatedEventWithExtra(this,
+            mController.sendEventActionWithExtra(this,
                 ControllerAction.CREATE_EVENT, -1, startMillis, endMillis,
                 (int) ev.getRawX(), (int) ev.getRawY(), extraLong, -1);
         } else {
@@ -5234,7 +5234,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == 0) {
-                        mController.sendEventRelatedEventWithExtra(
+                        mController.sendEventActionWithExtra(
                             this, ControllerAction.CREATE_EVENT, -1,
                             time, time + MILLIS_PER_HOUR,
                             -1, -1, extraLong, -1);
@@ -5353,7 +5353,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             view.mViewStartX = 0;
 
             if (mCounter == sCounter) {
-                mController.sendEvent(this, ControllerAction.GO_TO, mStart, mEnd, null, -1,
+                mController.sendAction(this, ControllerAction.GO_TO, mStart, mEnd, null, -1,
                         ViewType.CURRENT, CalendarController.EXTRA_GOTO_DATE, null, null);
             }
         }
@@ -5376,26 +5376,26 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         // force an event reload when we get back
                         // because the selected event may get deleted
                         clearCachedEvents();
-                        mController.sendEventRelatedEvent(this, ControllerAction.EDIT_EVENT,
+                        mController.sendEventAction(this, ControllerAction.EDIT_EVENT,
                                 mSelectedEvent.id, mSelectedEvent.startMillis,
                                 mSelectedEvent.endMillis, 0, 0, -1);
                     }
                     break;
                 }
                 case MENU_DAY: {
-                    mController.sendEvent(this, ControllerAction.GO_TO, getSelectedTime(), null, -1,
+                    mController.sendAction(this, ControllerAction.GO_TO, getSelectedTime(), null, -1,
                             ViewType.DAY);
                     break;
                 }
                 case MENU_AGENDA: {
-                    mController.sendEvent(this, ControllerAction.GO_TO, getSelectedTime(), null, -1,
+                    mController.sendAction(this, ControllerAction.GO_TO, getSelectedTime(), null, -1,
                             ViewType.AGENDA);
                     break;
                 }
                 case MENU_EVENT_CREATE: {
                     long startMillis = getSelectedTimeInMillis();
                     long endMillis = startMillis + DateUtils.HOUR_IN_MILLIS;
-                    mController.sendEventRelatedEvent(this, ControllerAction.CREATE_EVENT, -1,
+                    mController.sendEventAction(this, ControllerAction.CREATE_EVENT, -1,
                             startMillis, endMillis, 0, 0, -1);
                     break;
                 }
@@ -5408,7 +5408,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         // force an event reload when we get back
                         // because the selected event may get deleted
                         clearCachedEvents();
-                        mController.sendEventRelatedEvent(this, ControllerAction.DELETE_EVENT, id, begin,
+                        mController.sendEventAction(this, ControllerAction.DELETE_EVENT, id, begin,
                                 end, 0, 0, -1);
                     }
                     break;

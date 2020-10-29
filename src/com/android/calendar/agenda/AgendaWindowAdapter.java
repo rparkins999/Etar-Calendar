@@ -567,7 +567,7 @@ public class AgendaWindowAdapter extends BaseAdapter
             Log.d(TAG, "Sent (AgendaWindowAdapter): VIEW EVENT: " + new Date(startTime));
         }
         CalendarController.getInstance(mContext)
-        .sendEventRelatedEventWithExtra(this, ControllerAction.EDIT_EVENT,
+        .sendEventActionWithExtra(this, ControllerAction.EDIT_EVENT,
                 item.id, startTime, endTime, 0,
                 0, CalendarController.ActionInfo.buildViewExtraLong(
                         Attendees.ATTENDEE_STATUS_NONE,
@@ -620,7 +620,7 @@ public class AgendaWindowAdapter extends BaseAdapter
 
                 Time actualTime = new Time(mTimeZone);
                 actualTime.set(goToTime);
-                CalendarController.getInstance(mContext).sendEvent(this, ControllerAction.UPDATE_TITLE,
+                CalendarController.getInstance(mContext).sendAction(this, ControllerAction.UPDATE_TITLE,
                         actualTime, actualTime, -1, ViewType.CURRENT);
             }
             return;
@@ -1122,7 +1122,7 @@ public class AgendaWindowAdapter extends BaseAdapter
                         if (DEBUGLOG) {
                             Log.d(TAG, "onQueryComplete: Updating title...");
                         }
-                        CalendarController.getInstance(mContext).sendEvent(this,
+                        CalendarController.getInstance(mContext).sendAction(this,
                                 ControllerAction.UPDATE_TITLE, actualTime, actualTime, -1,
                                 ViewType.CURRENT);
                     }

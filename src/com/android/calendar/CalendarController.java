@@ -20,7 +20,6 @@ package com.android.calendar;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.app.Activity;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ComponentName;
@@ -42,7 +41,6 @@ import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.SettingsActivity;
 
 import java.lang.ref.WeakReference;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
@@ -55,8 +53,6 @@ import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 
 public class CalendarController {
     public static final String EVENT_EDIT_ON_LAUNCH = "editMode";
-    public static final int MIN_CALENDAR_YEAR = 1970;
-    public static final int MAX_CALENDAR_YEAR = 2036;
     public static final int MIN_CALENDAR_WEEK = 0;
     public static final int MAX_CALENDAR_WEEK = 3497; // weeks between 1/1/1970 and 1/1/2037
     /**
@@ -74,18 +70,18 @@ public class CalendarController {
     public static final long EXTRA_GOTO_TODAY = 8;
     private static final boolean DEBUG = false;
     private static final String TAG = "CalendarController";
-    private static WeakHashMap<Context, WeakReference<CalendarController>> instances =
-            new WeakHashMap<Context, WeakReference<CalendarController>>();
+    private static final WeakHashMap<Context, WeakReference<CalendarController>> instances
+        = new WeakHashMap<>();
     private final Context mContext;
     // This uses a LinkedHashMap so that we can replace fragments based on the
     // view id they are being expanded into since we can't guarantee a reference
     // to the handler will be findable
-    private final LinkedHashMap<Integer,EventHandler> actionHandlers =
-            new LinkedHashMap<Integer,EventHandler>(5);
-    private final LinkedList<Integer> mToBeRemovedEventHandlers = new LinkedList<Integer>();
-    private final LinkedHashMap<Integer, EventHandler> mToBeAddedEventHandlers = new LinkedHashMap<
-            Integer, EventHandler>();
-    private final WeakHashMap<Object, Long> filters = new WeakHashMap<Object, Long>(1);
+    private final LinkedHashMap<Integer, ActionHandler> actionHandlers
+        = new LinkedHashMap<>(5);
+    private final LinkedList<Integer> mToBeRemovedActionHandlers = new LinkedList<>();
+    private final LinkedHashMap<Integer, ActionHandler> mToBeAddedEventHandlers =
+        new LinkedHashMap<>();
+    private final WeakHashMap<Object, Long> filters = new WeakHashMap<>(1);
     private final Time mTime = new Time();
     private final Runnable mUpdateTimezone = new Runnable() {
         @Override
@@ -93,11 +89,11 @@ public class CalendarController {
             mTime.switchTimezone(Utils.getTimeZone(mContext, this));
         }
     };
-    private Pair<Integer, EventHandler> mFirstEventHandler;
-    private Pair<Integer, EventHandler> mToBeAddedFirstEventHandler;
+    private Pair<Integer, ActionHandler> mFirstActionHandler;
+    private Pair<Integer, ActionHandler> mToBeAddedFirstActionHandler;
     private volatile int mDispatchInProgressCounter = 0;
     private int mViewType = -1;
-    private int mDetailViewType = -1;
+    private int mDetailViewType;
     private int mPreviousViewType = -1;
     private long mEventId = -1;
     private long mDateFlags = 0;
@@ -118,8 +114,8 @@ public class CalendarController {
      * @param context The activity if at all possible.
      */
     public static CalendarController getInstance(Context context) {
+        CalendarController controller = null;
         synchronized (instances) {
-            CalendarController controller = null;
             WeakReference<CalendarController> weakController = instances.get(context);
             if (weakController != null) {
                 controller = weakController.get();
@@ -127,10 +123,10 @@ public class CalendarController {
 
             if (controller == null) {
                 controller = new CalendarController(context);
-                instances.put(context, new WeakReference(controller));
+                instances.put(context, new WeakReference<>(controller));
             }
-            return controller;
         }
+        return controller;
     }
 
     /**
@@ -139,17 +135,20 @@ public class CalendarController {
      *
      * @param context The activity used to create the controller
      */
-    public static void removeInstance(Context context) {
+    public static void removeInstance(Context context)
+    {
         instances.remove(context);
     }
 
-    public void sendEventRelatedEvent(Object sender, long eventType, long eventId, long startMillis,
-                                      long endMillis, int x, int y, long selectedMillis) {
-        // TODO: pass the real allDay status or at least a status that says we don't know the
-        // status and have the receiver query the data.
-        // The current use of this method for VIEW_EVENT is by the day view to show an ActionInfo
-        // so currently the missing allDay status has no effect.
-        sendEventRelatedEventWithExtra(sender, eventType, eventId, startMillis, endMillis, x, y,
+    public void sendEventAction(
+        Object sender, long actionType, long eventId, long startMillis,
+        long endMillis, int x, int y, long selectedMillis)
+    {
+        // TODO: pass the real allDay status or at least a status that says
+        // we don't know the status and have the receiver query the data.
+        // The current use of this method for VIEW_EVENT is by the day view
+        // to show an ActionInfo so currently the missing allDay status has no effect.
+        sendEventActionWithExtra(sender, actionType, eventId, startMillis, endMillis, x, y,
                 ActionInfo.buildViewExtraLong(Attendees.ATTENDEE_STATUS_NONE, false),
                 selectedMillis);
     }
@@ -158,7 +157,7 @@ public class CalendarController {
      * Helper for sending New/View/Edit/Delete events
      *
      * @param sender object of the caller
-     * @param eventType one of {@link ControllerAction}
+     * @param actionType one of {@link ControllerAction}
      * @param eventId event id
      * @param startMillis start time
      * @param endMillis end time
@@ -168,17 +167,20 @@ public class CalendarController {
      *        Use Attendees.ATTENDEE_STATUS_NONE for no response.
      * @param selectedMillis The time to specify as selected
      */
-    public void sendEventRelatedEventWithExtra(Object sender, long eventType, long eventId,
-                                               long startMillis, long endMillis, int x, int y, long extraLong, long selectedMillis) {
-        sendEventRelatedEventWithExtraWithTitleWithCalendarId(sender, eventType, eventId,
-                startMillis, endMillis, x, y, extraLong, selectedMillis, null, -1);
+    public void sendEventActionWithExtra(
+        Object sender, long actionType, long eventId, long startMillis, long endMillis,
+        int x, int y, long extraLong, long selectedMillis)
+    {
+        sendEventActionWithExtraWithTitleWithCalendarId(
+            sender, actionType, eventId, startMillis, endMillis, x, y, extraLong,
+            selectedMillis, null, -1);
     }
 
     /**
      * Helper for sending New/View/Edit/Delete events
      *
      * @param sender object of the caller
-     * @param eventType one of {@link ControllerAction}
+     * @param actionType one of {@link ControllerAction}
      * @param eventId event id
      * @param startMillis start time
      * @param endMillis end time
@@ -190,83 +192,90 @@ public class CalendarController {
      * @param title The title of the event
      * @param calendarId The id of the calendar which the event belongs to
      */
-    public void sendEventRelatedEventWithExtraWithTitleWithCalendarId(Object sender, long eventType,
-                                                                      long eventId, long startMillis, long endMillis, int x, int y, long extraLong,
-                                                                      long selectedMillis, String title, long calendarId) {
-        ActionInfo info = new ActionInfo();
-        info.actionType = eventType;
-        if (eventType == ControllerAction.EDIT_EVENT) {
-            info.viewType = ViewType.CURRENT;
+    public void sendEventActionWithExtraWithTitleWithCalendarId(
+        Object sender, long actionType, long eventId, long startMillis, long endMillis,
+        int x, int y, long extraLong, long selectedMillis, String title, long calendarId)
+    {
+        ActionInfo actionInfo = new ActionInfo();
+        actionInfo.actionType = actionType;
+        if (actionType == ControllerAction.EDIT_EVENT) {
+            actionInfo.viewType = ViewType.CURRENT;
         }
 
-        info.id = eventId;
-        info.startTime = new Time(Utils.getTimeZone(mContext, mUpdateTimezone));
-        info.startTime.set(startMillis);
+        actionInfo.eventId = eventId;
+        actionInfo.startTime = new Time(Utils.getTimeZone(mContext, mUpdateTimezone));
+        actionInfo.startTime.set(startMillis);
         if (selectedMillis != -1) {
-            info.selectedTime = new Time(Utils.getTimeZone(mContext, mUpdateTimezone));
-            info.selectedTime.set(selectedMillis);
+            actionInfo.selectedTime = new Time(Utils.getTimeZone(mContext, mUpdateTimezone));
+            actionInfo.selectedTime.set(selectedMillis);
         } else {
-            info.selectedTime = info.startTime;
+            actionInfo.selectedTime = actionInfo.startTime;
         }
-        info.endTime = new Time(Utils.getTimeZone(mContext, mUpdateTimezone));
-        info.endTime.set(endMillis);
-        info.x = x;
-        info.y = y;
-        info.extraLong = extraLong;
-        info.eventTitle = title;
-        info.calendarId = calendarId;
-        this.sendEvent(sender, info);
+        actionInfo.endTime = new Time(Utils.getTimeZone(mContext, mUpdateTimezone));
+        actionInfo.endTime.set(endMillis);
+        actionInfo.x = x;
+        actionInfo.y = y;
+        actionInfo.extraLong = extraLong;
+        actionInfo.eventTitle = title;
+        actionInfo.calendarId = calendarId;
+        this.sendAction(sender, actionInfo);
     }
 
     /**
-     * Helper for sending non-calendar-event events
+     * Helper for sending non-calendar-event actions
      *
      * @param sender    object of the caller
-     * @param eventType one of {@link ControllerAction}
+     * @param actionType one of {@link ControllerAction}
      * @param start     start time
      * @param end       end time
      * @param eventId   event id
      * @param viewType  {@link ViewType}
      */
-    public void sendEvent(Object sender, long eventType, Time start, Time end, long eventId,
-                          int viewType) {
-        sendEvent(sender, eventType, start, end, start, eventId, viewType, EXTRA_GOTO_TIME, null,
-                null);
+    public void sendAction(
+        Object sender, long actionType, Time start, Time end, long eventId, int viewType) {
+        sendAction(sender, actionType, start, end, start, eventId, viewType,
+            EXTRA_GOTO_TIME, null, null);
     }
 
     /**
-     * sendEvent() variant with extraLong, search query, and search component name.
+     * sendAction() variant with extraLong, search query, and search component name.
      */
-    public void sendEvent(Object sender, long eventType, Time start, Time end, long eventId,
-                          int viewType, long extraLong, String query, ComponentName componentName) {
-        sendEvent(sender, eventType, start, end, start, eventId, viewType, extraLong, query,
-                componentName);
+    public void sendAction(
+        Object sender, long actionType, Time start, Time end, long eventId, int viewType,
+        long extraLong, String query, ComponentName componentName)
+    {
+        sendAction(sender, actionType, start, end, start, eventId, viewType, extraLong,
+            query, componentName);
     }
 
-    public void sendEvent(Object sender, long eventType, Time start, Time end, Time selected,
-                          long eventId, int viewType, long extraLong, String query, ComponentName componentName) {
+    public void sendAction(
+        Object sender, long actionType, Time start, Time end, Time selected, long eventId,
+        int viewType, long extraLong, String query, ComponentName componentName)
+    {
         ActionInfo info = new ActionInfo();
-        info.actionType = eventType;
+        info.actionType = actionType;
         info.startTime = start;
         info.selectedTime = selected;
         info.endTime = end;
-        info.id = eventId;
+        info.eventId = eventId;
         info.viewType = viewType;
         info.query = query;
         info.componentName = componentName;
         info.extraLong = extraLong;
-        this.sendEvent(sender, info);
+        this.sendAction(sender, info);
     }
 
-    public void sendEvent(Object sender, final ActionInfo event) {
-        // TODO Throw exception on invalid events
+    public void sendAction(Object sender, final ActionInfo actionInfo) {
+        // TODO Throw exception on invalid actions
 
         if (DEBUG) {
-            Log.d(TAG, eventInfoToString(event));
+            Log.d(TAG, actionInfoToString(actionInfo));
         }
 
         Long filteredTypes = filters.get(sender);
-        if (filteredTypes != null && (filteredTypes.longValue() & event.actionType) != 0) {
+        if (   (filteredTypes != null)
+            && ((filteredTypes & actionInfo.actionType) != 0))
+        {
             // Suppress event per filter
             if (DEBUG) {
                 Log.d(TAG, "Event suppressed");
@@ -277,69 +286,86 @@ public class CalendarController {
         mPreviousViewType = mViewType;
 
         // Fix up view if not specified
-        if (event.viewType == ViewType.DETAIL) {
-            event.viewType = mDetailViewType;
+        if (actionInfo.viewType == ViewType.DETAIL) {
+            actionInfo.viewType = mDetailViewType;
             mViewType = mDetailViewType;
-        } else if (event.viewType == ViewType.CURRENT) {
-            event.viewType = mViewType;
-        } else if (event.viewType != ViewType.EDIT) {
-            mViewType = event.viewType;
+        } else if (actionInfo.viewType == ViewType.CURRENT) {
+            actionInfo.viewType = mViewType;
+        } else if (actionInfo.viewType != ViewType.EDIT) {
+            mViewType = actionInfo.viewType;
 
-            if (event.viewType == ViewType.AGENDA || event.viewType == ViewType.DAY
-                    || (Utils.getAllowWeekForDetailView() && event.viewType == ViewType.WEEK)) {
+            if (   (actionInfo.viewType == ViewType.AGENDA)
+                || (actionInfo.viewType == ViewType.DAY)
+                || (   Utils.getAllowWeekForDetailView()
+                    && (actionInfo.viewType == ViewType.WEEK)))
+            {
                 mDetailViewType = mViewType;
             }
         }
 
         if (DEBUG) {
             Log.d(TAG, "vvvvvvvvvvvvvvv");
-            Log.d(TAG, "Start  " + (event.startTime == null ? "null" : event.startTime.toString()));
-            Log.d(TAG, "End    " + (event.endTime == null ? "null" : event.endTime.toString()));
-            Log.d(TAG, "Select " + (event.selectedTime == null ? "null" : event.selectedTime.toString()));
-            Log.d(TAG, "mTime  " + (mTime == null ? "null" : mTime.toString()));
+            Log.d(TAG, "Start  " +
+                ((actionInfo.startTime == null) ? "null" : actionInfo.startTime.toString()));
+            Log.d(TAG, "End    " +
+                ((actionInfo.endTime == null) ? "null" : actionInfo.endTime.toString()));
+            Log.d(TAG, "Select " +
+                ((actionInfo.selectedTime == null)
+                    ? "null" : actionInfo.selectedTime.toString()));
+            Log.d(TAG, "mTime  " + mTime.toString());
         }
 
         long startMillis = 0;
-        if (event.startTime != null) {
-            startMillis = event.startTime.toMillis(false);
+        if (actionInfo.startTime != null) {
+            startMillis = actionInfo.startTime.toMillis(false);
         }
 
         // Set mTime if selectedTime is set
-        if (event.selectedTime != null && event.selectedTime.toMillis(false) != 0) {
-            mTime.set(event.selectedTime);
+        if (   (actionInfo.selectedTime != null)
+            && (actionInfo.selectedTime.toMillis(false) != 0))
+        {
+            mTime.set(actionInfo.selectedTime);
         } else {
             if (startMillis != 0) {
                 // selectedTime is not set so set mTime to startTime iff it is not
                 // within start and end times
                 long mtimeMillis = mTime.toMillis(false);
-                if (mtimeMillis < startMillis
-                        || (event.endTime != null && mtimeMillis > event.endTime.toMillis(false))) {
-                    mTime.set(event.startTime);
+                if (   (mtimeMillis < startMillis)
+                    || (   (actionInfo.endTime != null)
+                        && (mtimeMillis > actionInfo.endTime.toMillis(false))))
+                {
+                    mTime.set(actionInfo.startTime);
                 }
             }
-            event.selectedTime = mTime;
+            actionInfo.selectedTime = mTime;
         }
         // Store the formatting flags if this is an update to the title
-        if (event.actionType == ControllerAction.UPDATE_TITLE) {
-            mDateFlags = event.extraLong;
+        if (actionInfo.actionType == ControllerAction.UPDATE_TITLE) {
+            mDateFlags = actionInfo.extraLong;
         }
 
         // Fix up start time if not specified
         if (startMillis == 0) {
-            event.startTime = mTime;
+            actionInfo.startTime = mTime;
         }
         if (DEBUG) {
-            Log.d(TAG, "Start  " + (event.startTime == null ? "null" : event.startTime.toString()));
-            Log.d(TAG, "End    " + (event.endTime == null ? "null" : event.endTime.toString()));
-            Log.d(TAG, "Select " + (event.selectedTime == null ? "null" : event.selectedTime.toString()));
-            Log.d(TAG, "mTime  " + (mTime == null ? "null" : mTime.toString()));
+            Log.d(TAG, "Start  " +
+                ((actionInfo.startTime == null) ? "null" : actionInfo.startTime.toString()));
+            Log.d(TAG, "End    " +
+                ((actionInfo.endTime == null) ? "null" : actionInfo.endTime.toString()));
+            Log.d(TAG, "Select " +
+                ((actionInfo.selectedTime == null)
+                    ? "null" : actionInfo.selectedTime.toString()));
+            Log.d(TAG, "mTime  " + mTime.toString());
             Log.d(TAG, "^^^^^^^^^^^^^^^");
         }
 
         // Store the eventId if we're entering edit event
-        if ((event.actionType & (ControllerAction.CREATE_EVENT | ControllerAction.EDIT_EVENT)) != 0) {
-            if (event.id > 0) {
-                mEventId = event.id;
+        if ((actionInfo.actionType
+            & (ControllerAction.CREATE_EVENT | ControllerAction.EDIT_EVENT)) != 0)
+        {
+            if (actionInfo.eventId > 0) {
+                mEventId = actionInfo.eventId;
             } else {
                 mEventId = -1;
             }
@@ -350,33 +376,35 @@ public class CalendarController {
             mDispatchInProgressCounter++;
 
             if (DEBUG) {
-                Log.d(TAG, "sendEvent: Dispatching to " + actionHandlers.size() + " handlers");
+                Log.d(TAG, "sendAction: Dispatching to " +
+                    actionHandlers.size() + " handlers");
             }
             // Dispatch to event handler(s)
-            if (mFirstEventHandler != null) {
+            if (mFirstActionHandler != null) {
                 // Handle the 'first' one before handling the others
-                EventHandler handler = mFirstEventHandler.second;
-                if (handler != null && (handler.getSupportedEventTypes() & event.actionType) != 0
-                        && !mToBeRemovedEventHandlers.contains(mFirstEventHandler.first)) {
-                    handler.handleAction(event);
+                ActionHandler handler = mFirstActionHandler.second;
+                if (   (handler != null)
+                    && ((handler.getSupportedActionTypes() & actionInfo.actionType) != 0)
+                    && !mToBeRemovedActionHandlers.contains(mFirstActionHandler.first))
+                {
+                    handler.handleAction(actionInfo);
                     handled = true;
                 }
             }
-            for (Iterator<Entry<Integer, EventHandler>> handlers =
-                 actionHandlers.entrySet().iterator(); handlers.hasNext(); ) {
-                Entry<Integer, EventHandler> entry = handlers.next();
+            for (Entry<Integer, ActionHandler> entry : actionHandlers.entrySet()) {
                 int key = entry.getKey();
-                if (mFirstEventHandler != null && key == mFirstEventHandler.first) {
+                if ((mFirstActionHandler != null) && (key == mFirstActionHandler.first)) {
                     // If this was the 'first' handler it was already handled
                     continue;
                 }
-                EventHandler eventHandler = entry.getValue();
-                if (eventHandler != null
-                        && (eventHandler.getSupportedEventTypes() & event.actionType) != 0) {
-                    if (mToBeRemovedEventHandlers.contains(key)) {
+                ActionHandler actionHandler = entry.getValue();
+                if ((actionHandler != null)
+                    && ((actionHandler.getSupportedActionTypes()
+                    & actionInfo.actionType) != 0)) {
+                    if (mToBeRemovedActionHandlers.contains(key)) {
                         continue;
                     }
-                    eventHandler.handleAction(event);
+                    actionHandler.handleAction(actionInfo);
                     handled = true;
                 }
             }
@@ -384,24 +412,27 @@ public class CalendarController {
             mDispatchInProgressCounter--;
 
             if (mDispatchInProgressCounter == 0) {
-
                 // Deregister removed handlers
-                if (mToBeRemovedEventHandlers.size() > 0) {
-                    for (Integer zombie : mToBeRemovedEventHandlers) {
+                if (mToBeRemovedActionHandlers.size() > 0) {
+                    for (Integer zombie : mToBeRemovedActionHandlers) {
                         actionHandlers.remove(zombie);
-                        if (mFirstEventHandler != null && zombie.equals(mFirstEventHandler.first)) {
-                            mFirstEventHandler = null;
+                        if (   (mFirstActionHandler != null)
+                            && zombie.equals(mFirstActionHandler.first))
+                        {
+                            mFirstActionHandler = null;
                         }
                     }
-                    mToBeRemovedEventHandlers.clear();
+                    mToBeRemovedActionHandlers.clear();
                 }
                 // Add new handlers
-                if (mToBeAddedFirstEventHandler != null) {
-                    mFirstEventHandler = mToBeAddedFirstEventHandler;
-                    mToBeAddedFirstEventHandler = null;
+                if (mToBeAddedFirstActionHandler != null) {
+                    mFirstActionHandler = mToBeAddedFirstActionHandler;
+                    mToBeAddedFirstActionHandler = null;
                 }
                 if (mToBeAddedEventHandlers.size() > 0) {
-                    for (Entry<Integer, EventHandler> food : mToBeAddedEventHandlers.entrySet()) {
+                    for (Entry<Integer, ActionHandler> food :
+                        mToBeAddedEventHandlers.entrySet())
+                    {
                         actionHandlers.put(food.getKey(), food.getValue());
                     }
                 }
@@ -410,86 +441,86 @@ public class CalendarController {
 
         if (!handled) {
             // Launch Settings
-            if (event.actionType == ControllerAction.LAUNCH_SETTINGS) {
+            if (actionInfo.actionType == ControllerAction.LAUNCH_SETTINGS) {
                 launchSettings();
                 return;
             }
 
             // Create/View/Edit/Delete Event
-            long endTime = (event.endTime == null) ? -1 : event.endTime.toMillis(false);
-            if (event.actionType == ControllerAction.CREATE_EVENT) {
-                launchCreateEvent(event.startTime.toMillis(false), endTime,
-                        event.extraLong == EXTRA_CREATE_ALL_DAY, event.eventTitle,
-                        event.calendarId);
-                return;
-            } else if (event.actionType == ControllerAction.EDIT_EVENT) {
-                launchEditEvent(event.id, event.startTime.toMillis(false), endTime, true);
-                return;
-            } else if (event.actionType == ControllerAction.DELETE_EVENT) {
-                launchDeleteEvent(event.id, event.startTime.toMillis(false), endTime);
-                return;
-            } else if (event.actionType == ControllerAction.SEARCH) {
-                launchSearch(event.id, event.query, event.componentName);
-                return;
+            long endTime = (actionInfo.endTime == null)
+                            ? -1 : actionInfo.endTime.toMillis(false);
+            if (actionInfo.actionType == ControllerAction.CREATE_EVENT) {
+                launchCreateEvent(actionInfo.startTime.toMillis(false), endTime,
+                    actionInfo.extraLong == EXTRA_CREATE_ALL_DAY,
+                    actionInfo.eventTitle, actionInfo.calendarId);
+            } else if (actionInfo.actionType == ControllerAction.EDIT_EVENT) {
+                launchEditEvent(actionInfo.eventId,
+                    actionInfo.startTime.toMillis(false), endTime);
+            } else if (actionInfo.actionType == ControllerAction.DELETE_EVENT) {
+                launchDeleteEvent(actionInfo.eventId,
+                    actionInfo.startTime.toMillis(false), endTime);
+            } else if (actionInfo.actionType == ControllerAction.SEARCH) {
+                launchSearch(actionInfo.query, actionInfo.componentName);
             }
         }
     }
 
     /**
-     * Adds or updates an event handler. This uses a LinkedHashMap so that we can
+     * Adds or updates an action handler. This uses a LinkedHashMap so that we can
      * replace fragments based on the view id they are being expanded into.
      *
      * @param key The view id or placeholder for this handler
-     * @param eventHandler Typically a fragment or activity in the calendar app
+     * @param actionHandler Typically a fragment or activity in the calendar app
      */
-    public void registerEventHandler(int key, EventHandler eventHandler) {
+    public void registerActionHandler(int key, ActionHandler actionHandler) {
         synchronized (this) {
             if (mDispatchInProgressCounter > 0) {
-                mToBeAddedEventHandlers.put(key, eventHandler);
+                mToBeAddedEventHandlers.put(key, actionHandler);
             } else {
-                actionHandlers.put(key, eventHandler);
+                actionHandlers.put(key, actionHandler);
             }
         }
     }
 
-    public void registerFirstEventHandler(int key, EventHandler eventHandler) {
+    public void registerFirstActionHandler(int key, ActionHandler actionHandler) {
         synchronized (this) {
-            registerEventHandler(key, eventHandler);
+            registerActionHandler(key, actionHandler);
             if (mDispatchInProgressCounter > 0) {
-                mToBeAddedFirstEventHandler = new Pair<Integer, EventHandler>(key, eventHandler);
+                mToBeAddedFirstActionHandler = new Pair<>(key, actionHandler);
             } else {
-                mFirstEventHandler = new Pair<Integer, EventHandler>(key, eventHandler);
+                mFirstActionHandler = new Pair<>(key, actionHandler);
             }
         }
     }
 
-    public void deregisterEventHandler(Integer key) {
+    public void deregisterActionHandler(int key) {
         synchronized (this) {
             if (mDispatchInProgressCounter > 0) {
                 // To avoid ConcurrencyException, stash away the event handler for now.
-                mToBeRemovedEventHandlers.add(key);
+                mToBeRemovedActionHandlers.add(key);
             } else {
                 actionHandlers.remove(key);
-                if (mFirstEventHandler != null && mFirstEventHandler.first == key) {
-                    mFirstEventHandler = null;
+                if (mFirstActionHandler != null && mFirstActionHandler.first == key) {
+                    mFirstActionHandler = null;
                 }
             }
         }
     }
 
-    public void deregisterAllEventHandlers() {
+    public void deregisterAllActionHandlers() {
         synchronized (this) {
             if (mDispatchInProgressCounter > 0) {
                 // To avoid ConcurrencyException, stash away the event handler for now.
-                mToBeRemovedEventHandlers.addAll(actionHandlers.keySet());
+                mToBeRemovedActionHandlers.addAll(actionHandlers.keySet());
             } else {
                 actionHandlers.clear();
-                mFirstEventHandler = null;
+                mFirstActionHandler = null;
             }
         }
     }
 
     // FRAG_TODO doesn't work yet
+    @SuppressWarnings("unused")
     public void filterBroadcasts(Object sender, long eventTypes) {
         filters.put(sender, eventTypes);
     }
@@ -546,20 +577,24 @@ public class CalendarController {
     private void launchSettings() {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setClass(mContext, SettingsActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.setFlags(
+            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         mContext.startActivity(intent);
     }
 
     private void launchCreateEvent(long startMillis, long endMillis, boolean allDayEvent,
-                                   String title, long calendarId) {
-        Intent intent = generateCreateEventIntent(startMillis, endMillis, allDayEvent, title,
-                calendarId);
+                                   String title, long calendarId)
+    {
+        Intent intent = generateCreateEventIntent(
+            startMillis, endMillis, allDayEvent, title, calendarId);
         mEventId = -1;
         mContext.startActivity(intent);
     }
 
-    public Intent generateCreateEventIntent(long startMillis, long endMillis,
-                                            boolean allDayEvent, String title, long calendarId) {
+    public Intent generateCreateEventIntent(
+        long startMillis, long endMillis,  boolean allDayEvent,
+        String title, long calendarId)
+    {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setClass(mContext, EditEventActivity.class);
         intent.putExtra(EXTRA_EVENT_BEGIN_TIME, startMillis);
@@ -570,7 +605,9 @@ public class CalendarController {
         return intent;
     }
 
-    public void launchViewEvent(long eventId, long startMillis, long endMillis, int response) {
+    public void launchViewEvent(
+        long eventId, long startMillis, long endMillis, int response)
+    {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, eventId);
         intent.setData(eventUri);
@@ -582,36 +619,33 @@ public class CalendarController {
         mContext.startActivity(intent);
     }
 
-    private void launchEditEvent(long eventId, long startMillis, long endMillis, boolean edit) {
+    private void launchEditEvent(
+        long eventId, long startMillis, long endMillis)
+    {
         Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, eventId);
         Intent intent = new Intent(Intent.ACTION_EDIT, uri);
         intent.putExtra(EXTRA_EVENT_BEGIN_TIME, startMillis);
         intent.putExtra(EXTRA_EVENT_END_TIME, endMillis);
         intent.setClass(mContext, EditEventActivity.class);
-        intent.putExtra(EVENT_EDIT_ON_LAUNCH, edit);
+        intent.putExtra(EVENT_EDIT_ON_LAUNCH, true);
         mEventId = eventId;
         mContext.startActivity(intent);
     }
 
     private void launchDeleteEvent(long eventId, long startMillis, long endMillis) {
-        launchDeleteEventAndFinish(null, eventId, startMillis, endMillis, -1);
+        launchDeleteEventAndFinish(
+            eventId, startMillis, endMillis);
     }
 
-    private void launchDeleteEventAndFinish(Activity parentActivity, long eventId, long startMillis,
-                                            long endMillis, int deleteWhich) {
-        DeleteEventHelper deleteEventHelper = new DeleteEventHelper(mContext, parentActivity,
-                parentActivity != null /* exit when done */);
-        deleteEventHelper.delete(startMillis, endMillis, eventId, deleteWhich);
+    private void launchDeleteEventAndFinish(
+        long eventId, long startMillis, long endMillis)
+    {
+        DeleteEventHelper deleteEventHelper = new DeleteEventHelper(
+            mContext, null, false /* exit when done */);
+        deleteEventHelper.delete(startMillis, endMillis, eventId, -1);
     }
 
-//    private void launchAlerts() {
-//        Intent intent = new Intent();
-//        intent.setClass(mContext, AlertActivity.class);
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//        mContext.startActivity(intent);
-//    }
-
-    private void launchSearch(long eventId, String query, ComponentName componentName) {
+    private void launchSearch(String query, ComponentName componentName) {
         final SearchManager searchManager =
                 (SearchManager) mContext.getSystemService(Context.SEARCH_SERVICE);
         final SearchableInfo searchableInfo = searchManager.getSearchableInfo(componentName);
@@ -630,17 +664,17 @@ public class CalendarController {
         Log.d(TAG, "Refreshing " + accounts.length + " accounts");
 
         String authority = Calendars.CONTENT_URI.getAuthority();
-        for (int i = 0; i < accounts.length; i++) {
+        for (Account account : accounts) {
             if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Refreshing calendars for: " + accounts[i]);
+                Log.d(TAG, "Refreshing calendars for: " + account);
             }
             Bundle extras = new Bundle();
             extras.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-            ContentResolver.requestSync(accounts[i], authority, extras);
+            ContentResolver.requestSync(account, authority, extras);
         }
     }
 
-    private String eventInfoToString(ActionInfo actionInfo) {
+    private String actionInfoToString(ActionInfo actionInfo) {
         String tmp = "Unknown";
 
         StringBuilder builder = new StringBuilder();
@@ -665,7 +699,7 @@ public class CalendarController {
         }
         builder.append(tmp);
         builder.append(": id=");
-        builder.append(actionInfo.id);
+        builder.append(actionInfo.eventId);
         builder.append(", selected=");
         builder.append(actionInfo.selectedTime);
         builder.append(", start=");
@@ -682,47 +716,47 @@ public class CalendarController {
     }
 
     /**
-     * One of the event types that are sent to or from the controller
+     * One of the action types that are sent to or from the controller
      */
     public interface ControllerAction {
-        final long CREATE_EVENT = 1L;
+        long CREATE_EVENT = 1L;
 
         // full detail view in edit mode
-        final long EDIT_EVENT = 1L << 3;
+        long EDIT_EVENT = 1L << 3;
 
-        final long DELETE_EVENT = 1L << 4;
+        long DELETE_EVENT = 1L << 4;
 
-        final long GO_TO = 1L << 5;
+        long GO_TO = 1L << 5;
 
-        final long LAUNCH_SETTINGS = 1L << 6;
+        long LAUNCH_SETTINGS = 1L << 6;
 
-        final long EVENTS_CHANGED = 1L << 7;
+        long EVENTS_CHANGED = 1L << 7;
 
-        final long SEARCH = 1L << 8;
+        long SEARCH = 1L << 8;
 
         // User has pressed the home key
-        final long USER_HOME = 1L << 9;
+        long USER_HOME = 1L << 9;
 
         // date range has changed, update the title
-        final long UPDATE_TITLE = 1L << 10;
+        long UPDATE_TITLE = 1L << 10;
     }
 
     /**
      * One of the Agenda/Day/Week/Month view types
      */
     public interface ViewType {
-        final int DETAIL = -1;
-        final int CURRENT = 0;
-        final int AGENDA = 1;
-        final int DAY = 2;
-        final int WEEK = 3;
-        final int MONTH = 4;
-        final int EDIT = 5;
-        final int MAX_VALUE = 5;
+        int DETAIL = -1;
+        int CURRENT = 0;
+        int AGENDA = 1;
+        int DAY = 2;
+        int WEEK = 3;
+        int MONTH = 4;
+        int EDIT = 5;
+        int MAX_VALUE = 5;
     }
 
-    public interface EventHandler {
-        long getSupportedEventTypes();
+    public interface ActionHandler {
+        long getSupportedActionTypes();
 
         void handleAction(ActionInfo actionInfo);
 
@@ -735,7 +769,6 @@ public class CalendarController {
 
     public static class ActionInfo {
 
-        private static final long ATTENDEE_STATUS_MASK = 0xFF;
         private static final long ALL_DAY_MASK = 0x100;
         private static final int ATTENDEE_STATUS_NONE_MASK = 0x01;
         private static final int ATTENDEE_STATUS_ACCEPTED_MASK = 0x02;
@@ -744,7 +777,7 @@ public class CalendarController {
 
         public long actionType; // one of the ControllerAction's
         public int viewType; // one of the ViewType
-        public long id; // event id
+        public long eventId; // event id
         public Time selectedTime; // the selected time in focus
 
         // Event start and end times.  All-day events are represented in:
@@ -767,8 +800,10 @@ public class CalendarController {
          * For ControllerAction.GO_TO:
          * Set to {@link #EXTRA_GOTO_TIME} to go to the specified date/time.
          * Set to {@link #EXTRA_GOTO_DATE} to consider the date but ignore the time.
-         * Set to {@link #EXTRA_GOTO_BACK_TO_PREVIOUS} if back should bring back previous view.
-         * Set to {@link #EXTRA_GOTO_TODAY} if this is a user request to go to the current time.
+         * Set to {@link #EXTRA_GOTO_BACK_TO_PREVIOUS} if back should bring back
+         * previous view.
+         * Set to {@link #EXTRA_GOTO_TODAY} if this is a user request to go to the
+         * current time.
          * <p/>
          * For ControllerAction.UPDATE_TITLE:
          * Set formatting flags for Utils.formatDateRange
@@ -801,8 +836,7 @@ public class CalendarController {
         }
 
         public boolean isAllDay() {
-            return ((extraLong & ALL_DAY_MASK) != 0) ? true : false;
+            return (extraLong & ALL_DAY_MASK) != 0;
         }
-
     }
 }

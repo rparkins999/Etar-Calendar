@@ -23,8 +23,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Message;
 import android.provider.CalendarContract;
 import android.text.format.DateUtils;
 import android.text.format.Time;
@@ -344,11 +342,11 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
          if (mShowAgendaWithMonth || mIsMiniMonth) {
             // If agenda view is visible with month view , refresh the views
             // with the selected day's info
-            mController.sendEvent(mContext, ControllerAction.GO_TO, day, day, -1,
+            mController.sendAction(mContext, ControllerAction.GO_TO, day, day, -1,
                     ViewType.CURRENT, CalendarController.EXTRA_GOTO_DATE, null, null);
         } else {
             // Else , switch to the detailed view
-            mController.sendEvent(mContext, ControllerAction.GO_TO, day, day, -1,
+            mController.sendAction(mContext, ControllerAction.GO_TO, day, day, -1,
                     ViewType.DETAIL,
                             CalendarController.EXTRA_GOTO_DATE
                             | CalendarController.EXTRA_GOTO_BACK_TO_PREVIOUS, null, null);
@@ -445,7 +443,7 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
                 if (day != null) {
                     mLongClickedView.performHapticFeedback(
                         HapticFeedbackConstants.LONG_PRESS);
-                    mController.sendEventRelatedEventWithExtraWithTitleWithCalendarId(
+                    mController.sendEventActionWithExtraWithTitleWithCalendarId(
                         this, CalendarController.ControllerAction.CREATE_EVENT,
                         -1, day.toMillis(true),
                         day.toMillis(true) + DateUtils.DAY_IN_MILLIS,

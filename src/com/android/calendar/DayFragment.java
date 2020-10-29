@@ -40,7 +40,7 @@ import ws.xsoh.etar.R;
 /**
  * This is the base class for Day and Week Activities.
  */
-public class DayFragment extends Fragment implements CalendarController.EventHandler, ViewFactory {
+public class DayFragment extends Fragment implements CalendarController.ActionHandler, ViewFactory {
     protected static final String BUNDLE_KEY_RESTORE_TIME = "key_restore_time";
     /**
      * The view id used for all the views we create. It's OK to have all child
@@ -241,7 +241,7 @@ public class DayFragment extends Fragment implements CalendarController.EventHan
         view.clearCachedEvents();
     }
 
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return CalendarController.ControllerAction.GO_TO | ControllerAction.EVENTS_CHANGED;
     }
 

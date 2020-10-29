@@ -49,7 +49,7 @@ import java.util.Date;
 
 import ws.xsoh.etar.R;
 
-public class AgendaFragment extends Fragment implements CalendarController.EventHandler,
+public class AgendaFragment extends Fragment implements CalendarController.ActionHandler,
         OnScrollListener {
 
     protected static final String BUNDLE_KEY_RESTORE_TIME = "key_restore_time";
@@ -308,7 +308,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
             // later.
             return;
         }
-        mAgendaListView.goTo(mTime, event.id, mQuery, false,
+        mAgendaListView.goTo(mTime, event.eventId, mQuery, false,
                 ((event.extraLong & CalendarController.EXTRA_GOTO_TODAY) != 0 &&
                         mShowEventDetailsWithAgenda) ? true : false);
         AgendaAdapter.ViewHolder vh = mAgendaListView.getSelectedViewHolder();
@@ -338,7 +338,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return ControllerAction.GO_TO | ControllerAction.EVENTS_CHANGED | ((mUsedForSearch)? ControllerAction.SEARCH:0);
     }
 
@@ -348,7 +348,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
             // TODO support a range of time
             // TODO support event_id
             // TODO figure out the animate bit
-            mLastHandledEventId = actionInfo.id;
+            mLastHandledEventId = actionInfo.eventId;
             mLastHandledEventTime =
                     (actionInfo.selectedTime != null) ? actionInfo.selectedTime : actionInfo.startTime;
             goTo(actionInfo, true);
@@ -367,12 +367,12 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
     private void showEventInfo(ActionInfo actionInfo, boolean allDay, boolean replaceFragment) {
 
         // Ignore unknown events
-        if (actionInfo.id == -1) {
-            Log.e(TAG, "showEventInfo, event ID = " + actionInfo.id);
+        if (actionInfo.eventId == -1) {
+            Log.e(TAG, "showEventInfo, event ID = " + actionInfo.eventId);
             return;
         }
 
-        mLastShownEventId = actionInfo.id;
+        mLastShownEventId = actionInfo.eventId;
 
         // Create a fragment to show the event to the side of the agenda list
         if (mShowEventDetailsWithAgenda) {
@@ -442,7 +442,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Event
                     public void run() {
                         Time t = new Time(mTimeZone);
                         t.setJulianDay(mJulianDayOnTop);
-                        mController.sendEvent(this, ControllerAction.UPDATE_TITLE, t, t, null, -1,
+                        mController.sendAction(this, ControllerAction.UPDATE_TITLE, t, t, null, -1,
                                 ViewType.CURRENT, 0, null, null);
                     }
                 });

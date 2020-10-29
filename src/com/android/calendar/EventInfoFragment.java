@@ -129,7 +129,7 @@ import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 import static com.android.calendar.CalendarController.EVENT_EDIT_ON_LAUNCH;
 
 public class EventInfoFragment extends DialogFragment
-    implements OnCheckedChangeListener, CalendarController.EventHandler, OnClickListener,
+    implements OnCheckedChangeListener, CalendarController.ActionHandler, OnClickListener,
     DeleteEventHelper.DeleteNotifyListener, OnColorSelectedListener
 {
 
@@ -585,7 +585,7 @@ public class EventInfoFragment extends DialogFragment
         // Ensure that mIsTabletConfig is set before creating the menu.
         mIsTabletConfig = Utils.getConfigBool(mActivity, R.bool.tablet_config);
         mController = CalendarController.getInstance(mActivity);
-        mController.registerEventHandler(R.layout.event_info, this);
+        mController.registerActionHandler(R.layout.event_info, this);
         mEditResponseHelper = new EditResponseHelper(activity);
         mEditResponseHelper.setDismissListener(
             new DialogInterface.OnDismissListener() {
@@ -963,7 +963,7 @@ public class EventInfoFragment extends DialogFragment
     @Override
     public void onDetach() {
         super.onDetach();
-        mController.deregisterEventHandler(R.layout.event_info);
+        mController.deregisterActionHandler(R.layout.event_info);
     }
 
     private void updateTitle() {
@@ -2145,7 +2145,7 @@ public class EventInfoFragment extends DialogFragment
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return ControllerAction.EVENTS_CHANGED;
     }
 

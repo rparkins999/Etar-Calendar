@@ -74,7 +74,7 @@ import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.calendar.CalendarController.EventHandler;
+import com.android.calendar.CalendarController.ActionHandler;
 import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
@@ -95,7 +95,7 @@ import static android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY;
 import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 
-public class AllInOneActivity extends AbstractCalendarActivity implements EventHandler,
+public class AllInOneActivity extends AbstractCalendarActivity implements ActionHandler,
         OnSharedPreferenceChangeListener, SearchView.OnQueryTextListener, SearchView.OnSuggestionListener, NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "AllInOneActivity";
     private static final boolean DEBUG = false;
@@ -244,7 +244,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 Time time = new Time(mTimeZone);
                 time.set(millis);
                 time.normalize(true);
-                mController.sendEvent(this, ControllerAction.GO_TO, time, time, -1, ViewType.CURRENT);
+                mController.sendAction(this, ControllerAction.GO_TO, time, time, -1, ViewType.CURRENT);
             }
         }
     }
@@ -366,7 +366,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         // Must register as the first activity because this activity can modify
         // the list of event handlers in it's handle method. This affects who
         // the rest of the handlers the controller dispatches to are.
-        mController.registerFirstEventHandler(HANDLER_KEY, this);
+        mController.registerFirstActionHandler(HANDLER_KEY, this);
 
         initFragments(timeMillis, viewType, icicle);
 
@@ -488,7 +488,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
             @Override
             public void onClick(View v) {
                 //Create new Event
-                mController.sendEventRelatedEventWithExtra(
+                mController.sendEventActionWithExtra(
                     this, ControllerAction.CREATE_EVENT, -1,
                     DayView.mSelectionTime.toMillis(true),
                     0, 0, 0,
@@ -550,7 +550,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         // Must register as the first activity because this activity can modify
         // the list of event handlers in it's handle method. This affects who
         // the rest of the handlers the controller dispatches to are.
-        mController.registerFirstEventHandler(HANDLER_KEY, this);
+        mController.registerFirstActionHandler(HANDLER_KEY, this);
         mOnSaveInstanceStateCalled = false;
 
         if (Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(this,
@@ -569,7 +569,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         }
         Time t = new Time(mTimeZone);
         t.set(mController.getTime());
-        mController.sendEvent(this, ControllerAction.UPDATE_TITLE, t, t, -1, ViewType.CURRENT,
+        mController.sendAction(this, ControllerAction.UPDATE_TITLE, t, t, -1, ViewType.CURRENT,
                 mController.getDateFlags(), null, null);
 
         if (mControlsMenu != null) {
@@ -589,7 +589,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     protected void onPause() {
         super.onPause();
 
-        mController.deregisterEventHandler(HANDLER_KEY);
+        mController.deregisterActionHandler(HANDLER_KEY);
         mPaused = true;
         mHomeTime.removeCallbacks(mHomeTimeUpdater);
 
@@ -617,7 +617,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
 
     @Override
     protected void onUserLeaveHint() {
-        mController.sendEvent(this, ControllerAction.USER_HOME, null, null, -1, ViewType.CURRENT);
+        mController.sendAction(this, ControllerAction.USER_HOME, null, null, -1, ViewType.CURRENT);
         super.onUserLeaveHint();
     }
 
@@ -646,7 +646,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         SharedPreferences prefs = GeneralPreferences.Companion.getSharedPreferences(this);
         prefs.unregisterOnSharedPreferenceChangeListener(this);
 
-        mController.deregisterAllEventHandlers();
+        mController.deregisterAllActionHandlers();
 
         CalendarController.removeInstance(this);
 
@@ -691,12 +691,12 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         if (mShowCalendarControls) {
             Fragment miniMonthFrag = new MonthByWeekFragment(timeMillis, true);
             ft.replace(R.id.mini_month, miniMonthFrag);
-            mController.registerEventHandler(R.id.mini_month, (EventHandler) miniMonthFrag);
+            mController.registerActionHandler(R.id.mini_month, (ActionHandler) miniMonthFrag);
 
             Fragment selectCalendarsFrag = new SelectVisibleCalendarsFragment();
             ft.replace(R.id.calendar_list, selectCalendarsFrag);
-            mController.registerEventHandler(
-                    R.id.calendar_list, (EventHandler) selectCalendarsFrag);
+            mController.registerActionHandler(
+                    R.id.calendar_list, (ActionHandler) selectCalendarsFrag);
         }
         if (!mShowCalendarControls || viewType == ViewType.EDIT) {
             mMiniMonth.setVisibility(View.GONE);
@@ -734,7 +734,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 info.startTime = new Time();
                 info.startTime.set(begin);
             }
-            info.id = eventId;
+            info.eventId = eventId;
             // We set the viewtype so if the user presses back when they are
             // done editing the controller knows we were in the Edit Event
             // screen. Likewise for eventId
@@ -750,17 +750,17 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         Time t = new Time(mTimeZone);
         t.set(timeMillis);
         if (viewType == ViewType.AGENDA && icicle != null) {
-            mController.sendEvent(this, ControllerAction.GO_TO, t, null,
+            mController.sendAction(this, ControllerAction.GO_TO, t, null,
                     icicle.getLong(BUNDLE_KEY_EVENT_ID, -1), viewType);
         } else if (viewType != ViewType.EDIT) {
-            mController.sendEvent(this, ControllerAction.GO_TO, t, null, -1, viewType);
+            mController.sendAction(this, ControllerAction.GO_TO, t, null, -1, viewType);
         }
     }
 
     @Override
     public void onBackPressed() {
         if (mCurrentView == ViewType.EDIT || mBackToPreviousView) {
-            mController.sendEvent(this, ControllerAction.GO_TO, null, null, -1, mPreviousView);
+            mController.sendAction(this, ControllerAction.GO_TO, null, null, -1, mPreviousView);
         } else {
             super.onBackPressed();
         }
@@ -860,7 +860,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                     selectedTime.month = monthOfYear;
                     selectedTime.monthDay = dayOfMonth;
                     long extras = CalendarController.EXTRA_GOTO_TIME | CalendarController.EXTRA_GOTO_DATE;
-                    mController.sendEvent(this, ControllerAction.GO_TO, selectedTime, null, selectedTime, -1, ViewType.CURRENT, extras, null, null);
+                    mController.sendAction(this, ControllerAction.GO_TO, selectedTime, null, selectedTime, -1, ViewType.CURRENT, extras, null, null);
                 }
             };
             DatePickerDialog datePickerDialog = new DatePickerDialog(this,datePickerListener,t.year, t.month,t.monthDay);
@@ -894,7 +894,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         } else {
                 return mExtensions.handleItemSelected(item, this);
         }
-        mController.sendEvent(this, ControllerAction.GO_TO, t, null, t, -1, viewType, extras, null, null);
+        mController.sendAction(this, ControllerAction.GO_TO, t, null, t, -1, viewType, extras, null, null);
         return true;
     }
 
@@ -904,26 +904,26 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
         switch (itemId) {
             case R.id.day_menu_item:
                 if (mCurrentView != ViewType.DAY) {
-                    mController.sendEvent(this, ControllerAction.GO_TO, null, null, -1, ViewType.DAY);
+                    mController.sendAction(this, ControllerAction.GO_TO, null, null, -1, ViewType.DAY);
                 }
                 break;
             case R.id.week_menu_item:
                 if (mCurrentView != ViewType.WEEK) {
-                    mController.sendEvent(this, ControllerAction.GO_TO, null, null, -1, ViewType.WEEK);
+                    mController.sendAction(this, ControllerAction.GO_TO, null, null, -1, ViewType.WEEK);
                 }
                 break;
             case R.id.month_menu_item:
                 if (mCurrentView != ViewType.MONTH) {
-                    mController.sendEvent(this, CalendarController.ControllerAction.GO_TO, null, null, -1, ViewType.MONTH);
+                    mController.sendAction(this, CalendarController.ControllerAction.GO_TO, null, null, -1, ViewType.MONTH);
                 }
                 break;
             case R.id.agenda_menu_item:
                 if (mCurrentView != ViewType.AGENDA) {
-                    mController.sendEvent(this, ControllerAction.GO_TO, null, null, -1, ViewType.AGENDA);
+                    mController.sendAction(this, ControllerAction.GO_TO, null, null, -1, ViewType.AGENDA);
                 }
                 break;
             case R.id.action_settings:
-                mController.sendEvent(this, ControllerAction.LAUNCH_SETTINGS, null, null, 0, 0);
+                mController.sendAction(this, ControllerAction.LAUNCH_SETTINGS, null, null, 0, 0);
                 break;
             case R.id.action_about:
                 Intent intent = new Intent(this, AboutActivity.class);
@@ -1087,16 +1087,16 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
                 if (f != null) {
                     ft.remove(f);
                 }
-                mController.deregisterEventHandler(R.id.secondary_pane);
+                mController.deregisterActionHandler(R.id.secondary_pane);
             }
         }
         if (DEBUG) {
             Log.d(TAG, "Adding handler with viewId " + viewId + " and type " + viewType);
         }
         // If the key is already registered this will replace it
-        mController.registerEventHandler(viewId, (EventHandler) frag);
+        mController.registerActionHandler(viewId, (ActionHandler) frag);
         if (secFrag != null) {
-            mController.registerEventHandler(viewId, (EventHandler) secFrag);
+            mController.registerActionHandler(viewId, (ActionHandler) secFrag);
         }
 
         if (doCommit) {
@@ -1199,7 +1199,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return ControllerAction.GO_TO | ControllerAction.UPDATE_TITLE;
     }
 
@@ -1278,14 +1278,14 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     // Needs to be in proguard whitelist
     // Specified as listener via android:onClick in a layout xml
     public void handleSelectSyncedCalendarsClicked(View v) {
-        mController.sendEvent(this, CalendarController.ControllerAction.LAUNCH_SETTINGS, null, null, null, 0, 0,
+        mController.sendAction(this, CalendarController.ControllerAction.LAUNCH_SETTINGS, null, null, null, 0, 0,
                 CalendarController.EXTRA_GOTO_TIME, null,
                 null);
     }
 
     @Override
     public void eventsChanged() {
-        mController.sendEvent(this, ControllerAction.EVENTS_CHANGED, null, null, -1, ViewType.CURRENT);
+        mController.sendAction(this, ControllerAction.EVENTS_CHANGED, null, null, -1, ViewType.CURRENT);
     }
 
     @Override
@@ -1296,7 +1296,7 @@ public class AllInOneActivity extends AbstractCalendarActivity implements EventH
     @Override
     public boolean onQueryTextSubmit(String query) {
         mSearchMenu.collapseActionView();
-        mController.sendEvent(this, CalendarController.ControllerAction.SEARCH, null, null, -1, ViewType.CURRENT, 0, query,
+        mController.sendAction(this, CalendarController.ControllerAction.SEARCH, null, null, -1, ViewType.CURRENT, 0, query,
                 getComponentName());
         return true;
     }

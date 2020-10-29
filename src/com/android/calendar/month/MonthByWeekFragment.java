@@ -20,7 +20,6 @@ package com.android.calendar.month;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.FragmentManager;
 import android.app.LoaderManager;
 import android.content.ContentUris;
 import android.content.CursorLoader;
@@ -60,7 +59,7 @@ import java.util.List;
 import ws.xsoh.etar.R;
 
 public class MonthByWeekFragment extends SimpleDayPickerFragment implements
-        CalendarController.EventHandler, LoaderManager.LoaderCallbacks<Cursor>, OnScrollListener,
+    CalendarController.ActionHandler, LoaderManager.LoaderCallbacks<Cursor>, OnScrollListener,
         OnTouchListener {
     private static final String TAG = "MonthFragment";
     private static final String TAG_EVENT_DIALOG = "event_dialog";
@@ -395,7 +394,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return CalendarController.ControllerAction.GO_TO | CalendarController.ControllerAction.EVENTS_CHANGED;
     }
 
@@ -453,7 +452,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
                 long offset = useSelected ? 0 : DateUtils.WEEK_IN_MILLIS * mNumWeeks / 3;
                 controller.setTime(newTime + offset);
             }
-            controller.sendEvent(this, CalendarController.ControllerAction.UPDATE_TITLE, time, time, time, -1,
+            controller.sendAction(this, CalendarController.ControllerAction.UPDATE_TITLE, time, time, time, -1,
                     ViewType.CURRENT, DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_NO_MONTH_DAY
                             | DateUtils.FORMAT_SHOW_YEAR, null, null);
         }

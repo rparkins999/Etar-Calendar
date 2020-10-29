@@ -53,7 +53,7 @@ import ws.xsoh.etar.R;
 import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 
-public class SearchActivity extends AppCompatActivity implements CalendarController.EventHandler,
+public class SearchActivity extends AppCompatActivity implements CalendarController.ActionHandler,
         SearchView.OnQueryTextListener, MenuItemCompat.OnActionExpandListener {
 
 
@@ -130,7 +130,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         // Must be the first to register because this activity can modify the
         // list of event handlers in it's handle method. This affects who the
         // rest of the handlers the controller dispatches to are.
-        mController.registerEventHandler(HANDLER_KEY, this);
+        mController.registerActionHandler(HANDLER_KEY, this);
 
         mDeleteEventHelper = new DeleteEventHelper(this, this,
                 false /* don't exit when done */);
@@ -163,7 +163,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mController.deregisterAllEventHandlers();
+        mController.deregisterAllActionHandlers();
         CalendarController.removeInstance(this);
     }
 
@@ -173,7 +173,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
         AgendaFragment searchResultsFragment = new AgendaFragment(timeMillis, true);
         ft.replace(R.id.body_frame, searchResultsFragment);
-        mController.registerEventHandler(R.id.body_frame, searchResultsFragment);
+        mController.registerActionHandler(R.id.body_frame, searchResultsFragment);
 
         ft.commit();
         Time t = new Time();
@@ -194,7 +194,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
             ft.commit();
         } else {
             Intent intent = new Intent(Intent.ACTION_EDIT);
-            Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, actionInfo.id);
+            Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, actionInfo.eventId);
             intent.setData(eventUri);
             intent.setClass(this, EditEventActivity.class);
             intent.putExtra(EXTRA_EVENT_BEGIN_TIME,
@@ -203,7 +203,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
                     EXTRA_EVENT_END_TIME, actionInfo.endTime != null ? actionInfo.endTime.toMillis(true) : -1);
             startActivity(intent);
         }
-        mCurrentEventId = actionInfo.id;
+        mCurrentEventId = actionInfo.eventId;
     }
 
     private void search(String searchQuery, Time goToTime) {
@@ -221,7 +221,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         if (goToTime != null) {
             searchActionInfo.startTime = goToTime;
         }
-        mController.sendEvent(this, searchActionInfo);
+        mController.sendAction(this, searchActionInfo);
         mQuery = searchQuery;
         if (mSearchView != null) {
             mSearchView.setQuery(mQuery, false);
@@ -273,12 +273,12 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         if (itemId == R.id.action_today) {
             t = new Time();
             t.setToNow();
-            mController.sendEvent(this, CalendarController.ControllerAction.GO_TO, t, null, -1, ViewType.CURRENT);
+            mController.sendAction(this, CalendarController.ControllerAction.GO_TO, t, null, -1, ViewType.CURRENT);
             return true;
         } else if (itemId == R.id.action_search) {
             return false;
         } else if (itemId == R.id.action_settings) {
-            mController.sendEvent(this, ControllerAction.LAUNCH_SETTINGS, null, null, 0, 0);
+            mController.sendAction(this, ControllerAction.LAUNCH_SETTINGS, null, null, 0, 0);
             return true;
         } else if (itemId == android.R.id.home) {
             Utils.returnToCalendarHome(this);
@@ -340,11 +340,11 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
     @Override
     public void eventsChanged() {
-        mController.sendEvent(this, CalendarController.ControllerAction.EVENTS_CHANGED, null, null, -1, ViewType.CURRENT);
+        mController.sendAction(this, CalendarController.ControllerAction.EVENTS_CHANGED, null, null, -1, ViewType.CURRENT);
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return ControllerAction.EDIT_EVENT | CalendarController.ControllerAction.DELETE_EVENT;
     }
 
@@ -354,7 +354,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
         if (actionInfo.actionType == CalendarController.ControllerAction.EDIT_EVENT) {
             editEvent(actionInfo);
         } else if (actionInfo.actionType == CalendarController.ControllerAction.DELETE_EVENT) {
-            deleteEvent(actionInfo.id, actionInfo.startTime.toMillis(false), endTime);
+            deleteEvent(actionInfo.eventId, actionInfo.startTime.toMillis(false), endTime);
         }
     }
 
@@ -366,7 +366,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
     @Override
     public boolean onQueryTextSubmit(String query) {
         mQuery = query;
-        mController.sendEvent(this, CalendarController.ControllerAction.SEARCH, null, null, -1, ViewType.CURRENT, 0, query,
+        mController.sendAction(this, CalendarController.ControllerAction.SEARCH, null, null, -1, ViewType.CURRENT, 0, query,
                 getComponentName());
         return false;
     }

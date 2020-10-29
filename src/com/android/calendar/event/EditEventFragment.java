@@ -70,7 +70,7 @@ import android.widget.Toast;
 import com.android.calendar.AsyncQueryService;
 import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
-import com.android.calendar.CalendarController.EventHandler;
+import com.android.calendar.CalendarController.ActionHandler;
 import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
@@ -91,7 +91,7 @@ import java.util.Collections;
 import ws.xsoh.etar.BuildConfig;
 import ws.xsoh.etar.R;
 
-public class EditEventFragment extends DialogFragment implements EventHandler, OnColorSelectedListener, DeleteEventHelper.DeleteNotifyListener {
+public class EditEventFragment extends DialogFragment implements ActionHandler, OnColorSelectedListener, DeleteEventHelper.DeleteNotifyListener {
     private static final String TAG = "EditEventActivity";
     private static final String COLOR_PICKER_DIALOG_TAG = "ColorPickerDialog";
 
@@ -418,10 +418,10 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
                     if (mActionInfo.calendarId != -1) {
                         mModel.mCalendarId = mActionInfo.calendarId;
                     }
-                    if (mActionInfo.id != -1) {
-                        mModel.mId = mActionInfo.id;
+                    if (mActionInfo.eventId != -1) {
+                        mModel.mId = mActionInfo.eventId;
                         mModel.mUri = ContentUris.withAppendedId(
-                            Events.CONTENT_URI, mActionInfo.id);
+                            Events.CONTENT_URI, mActionInfo.eventId);
                     } else {
                         // New event. All day?
                         mModel.mAllDay =
@@ -949,7 +949,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
         outState.putInt(BUNDLE_KEY_EDIT_STATE, mModification);
         if (mEventBundle == null && mActionInfo != null) {
             mEventBundle = new EventBundle();
-            mEventBundle.id = mActionInfo.id;
+            mEventBundle.id = mActionInfo.eventId;
             if (mActionInfo.startTime != null) {
                 mEventBundle.start = mActionInfo.startTime.toMillis(true);
             }
@@ -965,7 +965,7 @@ public class EditEventFragment extends DialogFragment implements EventHandler, O
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return CalendarController.ControllerAction.USER_HOME;
     }
 

@@ -21,11 +21,10 @@ package com.android.calendar.event;
 import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.CalendarContract.Events;
+
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
 import android.text.format.Time;
-import android.util.Log;
 import android.view.MenuItem;
 
 import com.android.calendar.AbstractCalendarActivity;
@@ -33,7 +32,6 @@ import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarEventModel;
-import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 
@@ -75,7 +73,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
             if (id >= 0) { mModel.mId = id; }
         }
         ActionInfo actionInfo = new ActionInfo();
-        actionInfo.id = mModel.mId;
+        actionInfo.eventId = mModel.mId;
         actionInfo.startTime = new Time(Time.TIMEZONE_UTC);
         actionInfo.startTime.set(mModel.mStart);
         actionInfo.endTime = new Time(Time.TIMEZONE_UTC);
@@ -107,7 +105,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
         if (editFragment == null) {
 
             boolean readOnly =
-                   (actionInfo.id == -1)
+                   (actionInfo.eventId == -1)
                 && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
             editFragment = new EditEventFragment(actionInfo, mModel.mReminders,
                 mModel.mEventColorInitialized, mModel.mEventColor, readOnly, mIntent);

@@ -43,7 +43,7 @@ import ws.xsoh.etar.R;
  * TODO: This fragment is still used in the tablet design
  */
 public class SelectVisibleCalendarsFragment extends Fragment
-        implements AdapterView.OnItemClickListener, CalendarController.EventHandler,
+        implements AdapterView.OnItemClickListener, CalendarController.ActionHandler,
         OnCalendarColorsLoadedListener {
 
     private static final String TAG = "Calendar";
@@ -86,7 +86,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
         super.onAttach(activity);
         mContext = activity;
         mController = CalendarController.getInstance(activity);
-        mController.registerEventHandler(R.layout.select_calendars_fragment, this);
+        mController.registerActionHandler(R.layout.select_calendars_fragment, this);
         mService = new AsyncQueryService(activity) {
             @Override
             protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
@@ -99,7 +99,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
     @Override
     public void onDetach() {
         super.onDetach();
-        mController.deregisterEventHandler(R.layout.select_calendars_fragment);
+        mController.deregisterActionHandler(R.layout.select_calendars_fragment);
         if (mCursor != null) {
             mAdapter.changeCursor(null);
             mCursor.close();
@@ -181,7 +181,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
     }
 
     @Override
-    public long getSupportedEventTypes() {
+    public long getSupportedActionTypes() {
         return ControllerAction.EVENTS_CHANGED;
     }
 
