@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ws.xsoh.etar.R;
@@ -73,50 +74,71 @@ public class Event implements Cloneable {
     private static final String DISPLAY_AS_ALLDAY = "dispAllday";
     // The projection to use when querying instances to build a list of events
     public static final String[] EVENT_PROJECTION = new String[] {
-            Instances.TITLE,                 // 0
-            Instances.EVENT_LOCATION,        // 1
-            Instances.ALL_DAY,               // 2
-            Instances.DISPLAY_COLOR,         // 3
-            Instances.EVENT_TIMEZONE,        // 4
-            Instances.EVENT_ID,              // 5
-            Instances.BEGIN,                 // 6
-            Instances.END,                   // 7
-            Instances._ID,                   // 8
-            Instances.START_DAY,             // 9
-            Instances.END_DAY,               // 10
-            Instances.START_MINUTE,          // 11
-            Instances.END_MINUTE,            // 12
-            Instances.HAS_ALARM,             // 13
-            Instances.RRULE,                 // 14
-            Instances.RDATE,                 // 15
-            Instances.SELF_ATTENDEE_STATUS,  // 16
-            Events.ORGANIZER,                // 17
-            Events.GUESTS_CAN_MODIFY,        // 18
+            Instances.TITLE,
+            Instances.EVENT_LOCATION,
+            Instances.ALL_DAY,
+            Instances.DISPLAY_COLOR,
+            Instances.EVENT_TIMEZONE,
+            Instances.EVENT_ID,
+            Instances.BEGIN,
+            Instances.END,
+            Instances._ID,
+            Instances.START_DAY,
+            Instances.END_DAY,
+            Instances.START_MINUTE,
+            Instances.END_MINUTE,
+            Instances.HAS_ALARM,
+            Instances.RRULE,
+            Instances.RDATE,
+            Instances.SELF_ATTENDEE_STATUS,
+            Events.ORGANIZER,
+            Events.GUESTS_CAN_MODIFY,
             Instances.ALL_DAY + "=1 OR (" + Instances.END + "-" + Instances.BEGIN + ")>="
                     + DateUtils.DAY_IN_MILLIS + " AS " + DISPLAY_AS_ALLDAY, // 19
     };
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    // The indices for the projection array above.
+    private static final int PROJECTION_TITLE_INDEX =
+        eventProjection.indexOf(Instances.TITLE);
+    private static final int PROJECTION_LOCATION_INDEX =
+        eventProjection.indexOf(Instances.EVENT_LOCATION);
+    private static final int PROJECTION_ALL_DAY_INDEX =
+        eventProjection.indexOf(Instances.ALL_DAY);
+    private static final int PROJECTION_COLOR_INDEX =
+        eventProjection.indexOf(Instances.DISPLAY_COLOR);
+    private static final int PROJECTION_TIMEZONE_INDEX =
+        eventProjection.indexOf(Instances.EVENT_TIMEZONE);
+    private static final int PROJECTION_EVENT_ID_INDEX =
+        eventProjection.indexOf(Instances.EVENT_ID);
+    private static final int PROJECTION_BEGIN_INDEX =
+        eventProjection.indexOf(Instances.BEGIN);
+    private static final int PROJECTION_END_INDEX =
+        eventProjection.indexOf(Instances.END);
+    private static final int PROJECTION_START_DAY_INDEX =
+        eventProjection.indexOf(Instances.START_DAY);
+    private static final int PROJECTION_END_DAY_INDEX =
+        eventProjection.indexOf(Instances.END_DAY);
+    private static final int PROJECTION_START_MINUTE_INDEX =
+        eventProjection.indexOf(Instances.START_MINUTE);
+    private static final int PROJECTION_END_MINUTE_INDEX =
+        eventProjection.indexOf(Instances.END_MINUTE);
+    private static final int PROJECTION_HAS_ALARM_INDEX =
+        eventProjection.indexOf(Instances.HAS_ALARM);
+    private static final int PROJECTION_RRULE_INDEX =
+        eventProjection.indexOf(Instances.RRULE);
+    private static final int PROJECTION_RDATE_INDEX =
+        eventProjection.indexOf(Instances.RDATE);
+    private static final int PROJECTION_SELF_ATTENDEE_STATUS_INDEX =
+        eventProjection.indexOf(Instances.SELF_ATTENDEE_STATUS);
+    private static final int PROJECTION_ORGANIZER_INDEX =
+        eventProjection.indexOf(Events.ORGANIZER);
+    private static final int PROJECTION_GUESTS_CAN_MODIFY =
+        eventProjection.indexOf(Instances.GUESTS_CAN_MODIFY);
+
     private static final String EVENTS_WHERE = DISPLAY_AS_ALLDAY + "=0";
     private static final String ALLDAY_WHERE = DISPLAY_AS_ALLDAY + "=1";
-    // The indices for the projection array above.
-    private static final int PROJECTION_TITLE_INDEX = 0;
-    private static final int PROJECTION_LOCATION_INDEX = 1;
-    private static final int PROJECTION_ALL_DAY_INDEX = 2;
-    private static final int PROJECTION_COLOR_INDEX = 3;
-    private static final int PROJECTION_TIMEZONE_INDEX = 4;
-    private static final int PROJECTION_EVENT_ID_INDEX = 5;
-    private static final int PROJECTION_BEGIN_INDEX = 6;
-    private static final int PROJECTION_END_INDEX = 7;
-    private static final int PROJECTION_START_DAY_INDEX = 9;
-    private static final int PROJECTION_END_DAY_INDEX = 10;
-    private static final int PROJECTION_START_MINUTE_INDEX = 11;
-    private static final int PROJECTION_END_MINUTE_INDEX = 12;
-    private static final int PROJECTION_HAS_ALARM_INDEX = 13;
-    private static final int PROJECTION_RRULE_INDEX = 14;
-    private static final int PROJECTION_RDATE_INDEX = 15;
-    private static final int PROJECTION_SELF_ATTENDEE_STATUS_INDEX = 16;
-    private static final int PROJECTION_ORGANIZER_INDEX = 17;
-    private static final int PROJECTION_GUESTS_CAN_INVITE_OTHERS_INDEX = 18;
-    private static final int PROJECTION_DISPLAY_AS_ALLDAY = 19;
     private static String mNoTitleString;
     private static int mNoColorColor;
 
@@ -339,7 +361,7 @@ public class Event implements Cloneable {
         e.location = cEvents.getString(PROJECTION_LOCATION_INDEX);
         e.allDay = cEvents.getInt(PROJECTION_ALL_DAY_INDEX) != 0;
         e.organizer = cEvents.getString(PROJECTION_ORGANIZER_INDEX);
-        e.guestsCanModify = cEvents.getInt(PROJECTION_GUESTS_CAN_INVITE_OTHERS_INDEX) != 0;
+        e.guestsCanModify = cEvents.getInt(PROJECTION_GUESTS_CAN_MODIFY) != 0;
 
         if (e.title == null || e.title.length() == 0) {
             e.title = mNoTitleString;

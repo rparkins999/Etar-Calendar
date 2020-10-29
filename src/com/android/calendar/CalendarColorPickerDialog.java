@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,6 +26,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Colors;
 import android.util.SparseIntArray;
@@ -34,25 +37,40 @@ import com.android.colorpicker.HsvColorComparator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import ws.xsoh.etar.R;
 
 public class CalendarColorPickerDialog extends ColorPickerDialog {
 
-    public static final int COLORS_INDEX_COLOR = 0;
-    public static final int COLORS_INDEX_COLOR_KEY = 1;
     static final String[] CALENDARS_PROJECTION = new String[] {
             Calendars.ACCOUNT_NAME,
             Calendars.ACCOUNT_TYPE,
-            Calendars.CALENDAR_COLOR
+            Calendars.CALENDAR_COLOR,
     };
-    static final int CALENDARS_INDEX_ACCOUNT_NAME = 0;
-    static final int CALENDARS_INDEX_ACCOUNT_TYPE = 1;
-    static final int CALENDARS_INDEX_CALENDAR_COLOR = 2;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> calendarsProjection =
+        Arrays.asList(CALENDARS_PROJECTION);
+    static final int CALENDARS_INDEX_ACCOUNT_NAME =
+        calendarsProjection.indexOf(Calendars.ACCOUNT_NAME);
+    static final int CALENDARS_INDEX_ACCOUNT_TYPE =
+        calendarsProjection.indexOf(Calendars.ACCOUNT_TYPE);
+    static final int CALENDARS_INDEX_CALENDAR_COLOR =
+        calendarsProjection.indexOf(Calendars.CALENDAR_COLOR);
+
     static final String[] COLORS_PROJECTION = new String[] {
             Colors.COLOR,
-            Colors.COLOR_KEY
+            Colors.COLOR_KEY,
     };
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> colorsProjection = Arrays.asList(COLORS_PROJECTION);
+    static final int COLORS_INDEX_COLOR =
+        colorsProjection.indexOf(Colors.COLOR);
+    static final int COLORS_INDEX_COLOR_KEY =
+        colorsProjection.indexOf(Colors.COLOR_KEY);
+
     static final String COLORS_WHERE = Colors.ACCOUNT_NAME + "=? AND " + Colors.ACCOUNT_TYPE +
             "=? AND " + Colors.COLOR_TYPE + "=" + Colors.TYPE_CALENDAR;
     private static final int NUM_COLUMNS = 4;

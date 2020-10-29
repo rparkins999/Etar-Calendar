@@ -2,6 +2,8 @@
 **
 ** Copyright 2009, The Android Open Source Project
 **
+** Modifications from the original version Copyright (C) Richard Parkins 2020
+**
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
 ** You may obtain a copy of the License at
@@ -43,22 +45,32 @@ import android.widget.Toast;
 import com.android.calendarcommon2.DateException;
 import com.android.calendarcommon2.Duration;
 
+import java.util.Arrays;
+import java.util.List;
+
 import ws.xsoh.etar.R;
 
 public class GoogleCalendarUriIntentFilter extends Activity {
     static final boolean debug = false;
-    private static final String TAG = "GoogleCalendarUriIntentFilter";
-    private static final int EVENT_INDEX_ID = 0;
-    private static final int EVENT_INDEX_START = 1;
-    private static final int EVENT_INDEX_END = 2;
-    private static final int EVENT_INDEX_DURATION = 3;
+    private static final String TAG = "GoogleCalIntentFilter";
 
     private static final String[] EVENT_PROJECTION = new String[] {
-        Events._ID,      // 0
-        Events.DTSTART,  // 1
-        Events.DTEND,    // 2
-        Events.DURATION, // 3
+        Events._ID,
+        Events.DTSTART,
+        Events.DTEND,
+        Events.DURATION,
     };
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    private static final int EVENT_INDEX_ID =
+        eventProjection.indexOf(Events._ID);
+    private static final int EVENT_INDEX_DTSTART =
+        eventProjection.indexOf(Events.DTSTART);
+    private static final int EVENT_INDEX_DTEND =
+        eventProjection.indexOf(Events.DTEND);
+    private static final int EVENT_INDEX_DURATION =
+        eventProjection.indexOf(Events.DURATION);
 
     /**
      * Extracts the ID and calendar email from the eid parameter of a URI.
@@ -182,8 +194,8 @@ public class GoogleCalendarUriIntentFilter extends Activity {
                         // Get info from Cursor
                         while (eventCursor.moveToNext()) {
                             int eventId = eventCursor.getInt(EVENT_INDEX_ID);
-                            long startMillis = eventCursor.getLong(EVENT_INDEX_START);
-                            long endMillis = eventCursor.getLong(EVENT_INDEX_END);
+                            long startMillis = eventCursor.getLong(EVENT_INDEX_DTSTART);
+                            long endMillis = eventCursor.getLong(EVENT_INDEX_DTEND);
                             if (debug) Log.d(TAG, "_id: " + eventCursor.getLong(EVENT_INDEX_ID));
                             if (debug) Log.d(TAG, "startMillis: " + startMillis);
                             if (debug) Log.d(TAG, "endMillis:   " + endMillis);

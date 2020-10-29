@@ -51,10 +51,12 @@ import com.android.calendarcommon2.RecurrenceProcessor;
 import com.android.calendarcommon2.RecurrenceSet;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.TimeZone;
 
 public class EditEventHelper {
@@ -68,63 +70,97 @@ public class EditEventHelper {
     private static final String NO_EVENT_COLOR = "";
 
     public static final String[] EVENT_PROJECTION = new String[] {
-            Events._ID, // 0
-            Events.TITLE, // 1
-            Events.DESCRIPTION, // 2
-            Events.EVENT_LOCATION, // 3
-            Events.ALL_DAY, // 4
+            Events._ID,
+            Events.TITLE,
+            Events.DESCRIPTION,
+            Events.EVENT_LOCATION,
+            Events.ALL_DAY,
             Events.HAS_ALARM, // 5
-            Events.CALENDAR_ID, // 6
-            Events.DTSTART, // 7
-            Events.DTEND, // 8
-            Events.DURATION, // 9
-            Events.EVENT_TIMEZONE, // 10
-            Events.RRULE, // 11
-            Events._SYNC_ID, // 12
-            Events.AVAILABILITY, // 13
-            Events.ACCESS_LEVEL, // 14
-            Events.OWNER_ACCOUNT, // 15
-            Events.HAS_ATTENDEE_DATA, // 16
-            Events.ORIGINAL_SYNC_ID, // 17
-            Events.ORGANIZER, // 18
-            Events.GUESTS_CAN_MODIFY, // 19
-            Events.ORIGINAL_ID, // 20
-            Events.STATUS, // 21
-            Events.CALENDAR_COLOR, // 22
-            Events.EVENT_COLOR, // 23
-            Events.EVENT_COLOR_KEY, // 24
-            Events.ACCOUNT_NAME, // 25
-            Events.ACCOUNT_TYPE, // 26
-            Events.UID_2445 // 27
+            Events.CALENDAR_ID,
+            Events.DTSTART,
+            Events.DTEND,
+            Events.DURATION,
+            Events.EVENT_TIMEZONE,
+            Events.RRULE,
+            Events._SYNC_ID,
+            Events.AVAILABILITY,
+            Events.ACCESS_LEVEL,
+            Events.OWNER_ACCOUNT,
+            Events.HAS_ATTENDEE_DATA,
+            Events.ORIGINAL_SYNC_ID,
+            Events.ORGANIZER,
+            Events.GUESTS_CAN_MODIFY,
+            Events.ORIGINAL_ID,
+            Events.STATUS,
+            Events.CALENDAR_COLOR,
+            Events.EVENT_COLOR,
+            Events.EVENT_COLOR_KEY,
+            Events.ACCOUNT_NAME,
+            Events.ACCOUNT_TYPE,
+            Events.UID_2445,
+            Events.EVENT_END_TIMEZONE,
     };
-    protected static final int EVENT_INDEX_ID = 0;
-    protected static final int EVENT_INDEX_TITLE = 1;
-    protected static final int EVENT_INDEX_DESCRIPTION = 2;
-    protected static final int EVENT_INDEX_EVENT_LOCATION = 3;
-    protected static final int EVENT_INDEX_ALL_DAY = 4;
-    protected static final int EVENT_INDEX_HAS_ALARM = 5;
-    protected static final int EVENT_INDEX_CALENDAR_ID = 6;
-    protected static final int EVENT_INDEX_DTSTART = 7;
-    protected static final int EVENT_INDEX_DTEND = 8;
-    protected static final int EVENT_INDEX_DURATION = 9;
-    protected static final int EVENT_INDEX_TIMEZONE = 10;
-    protected static final int EVENT_INDEX_RRULE = 11;
-    protected static final int EVENT_INDEX_SYNC_ID = 12;
-    protected static final int EVENT_INDEX_AVAILABILITY = 13;
-    protected static final int EVENT_INDEX_ACCESS_LEVEL = 14;
-    protected static final int EVENT_INDEX_OWNER_ACCOUNT = 15;
-    protected static final int EVENT_INDEX_HAS_ATTENDEE_DATA = 16;
-    protected static final int EVENT_INDEX_ORIGINAL_SYNC_ID = 17;
-    protected static final int EVENT_INDEX_ORGANIZER = 18;
-    protected static final int EVENT_INDEX_GUESTS_CAN_MODIFY = 19;
-    protected static final int EVENT_INDEX_ORIGINAL_ID = 20;
-    protected static final int EVENT_INDEX_EVENT_STATUS = 21;
-    protected static final int EVENT_INDEX_CALENDAR_COLOR = 22;
-    protected static final int EVENT_INDEX_EVENT_COLOR = 23;
-    protected static final int EVENT_INDEX_EVENT_COLOR_KEY = 24;
-    protected static final int EVENT_INDEX_ACCOUNT_NAME = 25;
-    protected static final int EVENT_INDEX_ACCOUNT_TYPE = 26;
-    protected static final int EVENT_INDEX_UID = 27;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    protected static final int EVENT_INDEX_ID =
+        eventProjection.indexOf(Events._ID);
+    protected static final int EVENT_INDEX_TITLE =
+        eventProjection.indexOf(Events.TITLE);
+    protected static final int EVENT_INDEX_DESCRIPTION =
+        eventProjection.indexOf(Events.DESCRIPTION);
+    protected static final int EVENT_INDEX_EVENT_LOCATION =
+        eventProjection.indexOf(Events.EVENT_LOCATION);
+    protected static final int EVENT_INDEX_ALL_DAY =
+        eventProjection.indexOf(Events.ALL_DAY);
+    protected static final int EVENT_INDEX_HAS_ALARM =
+        eventProjection.indexOf(Events.HAS_ALARM);
+    protected static final int EVENT_INDEX_CALENDAR_ID =
+        eventProjection.indexOf(Events.CALENDAR_ID);
+    protected static final int EVENT_INDEX_DTSTART =
+        eventProjection.indexOf(Events.DTSTART);
+    protected static final int EVENT_INDEX_DTEND =
+        eventProjection.indexOf(Events.DTEND);
+    protected static final int EVENT_INDEX_DURATION =
+        eventProjection.indexOf(Events.DURATION);
+    protected static final int EVENT_INDEX_TIMEZONE =
+        eventProjection.indexOf(Events.EVENT_TIMEZONE);
+    protected static final int EVENT_INDEX_RRULE =
+        eventProjection.indexOf(Events.RRULE);
+    protected static final int EVENT_INDEX_SYNC_ID =
+        eventProjection.indexOf(Events._SYNC_ID);
+    protected static final int EVENT_INDEX_AVAILABILITY =
+        eventProjection.indexOf(Events.AVAILABILITY);
+    protected static final int EVENT_INDEX_ACCESS_LEVEL =
+        eventProjection.indexOf(Events.ACCESS_LEVEL);
+    protected static final int EVENT_INDEX_OWNER_ACCOUNT =
+        eventProjection.indexOf(Events.OWNER_ACCOUNT);
+    protected static final int EVENT_INDEX_HAS_ATTENDEE_DATA =
+        eventProjection.indexOf(Events.HAS_ATTENDEE_DATA);
+    protected static final int EVENT_INDEX_ORIGINAL_SYNC_ID =
+        eventProjection.indexOf(Events.ORIGINAL_SYNC_ID);
+    protected static final int EVENT_INDEX_ORGANIZER =
+        eventProjection.indexOf(Events.ORGANIZER);
+    protected static final int EVENT_INDEX_GUESTS_CAN_MODIFY =
+        eventProjection.indexOf(Events.GUESTS_CAN_MODIFY);
+    protected static final int EVENT_INDEX_ORIGINAL_ID =
+        eventProjection.indexOf(Events.ORIGINAL_ID);
+    protected static final int EVENT_INDEX_EVENT_STATUS =
+        eventProjection.indexOf(Events.STATUS);
+    protected static final int EVENT_INDEX_CALENDAR_COLOR =
+        eventProjection.indexOf(Events.CALENDAR_COLOR);
+    protected static final int EVENT_INDEX_EVENT_COLOR =
+        eventProjection.indexOf(Events.EVENT_COLOR);
+    protected static final int EVENT_INDEX_EVENT_COLOR_KEY =
+        eventProjection.indexOf(Events.EVENT_COLOR_KEY);
+    protected static final int EVENT_INDEX_ACCOUNT_NAME =
+        eventProjection.indexOf(Events.ACCOUNT_NAME);
+    protected static final int EVENT_INDEX_ACCOUNT_TYPE =
+        eventProjection.indexOf(Events.ACCOUNT_TYPE);
+    protected static final int EVENT_INDEX_UID =
+        eventProjection.indexOf(Events.UID_2445);
+    protected static final int EVENT_INDEX_END_TIMEZONE =
+        eventProjection.indexOf(Events.EVENT_END_TIMEZONE);
 
     public static final String[] REMINDERS_PROJECTION = new String[] {
             Reminders._ID, // 0

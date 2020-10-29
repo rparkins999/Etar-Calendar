@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -53,6 +55,7 @@ import com.android.calendar.Utils;
 import com.android.calendar.settings.GeneralPreferences;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
@@ -71,32 +74,48 @@ public class AlertService extends Service {
     public static final int MAX_NOTIFICATIONS = 20;
     static final boolean DEBUG = true;
     static final String[] ALERT_PROJECTION = new String[] {
-        CalendarAlerts._ID,                     // 0
-        CalendarAlerts.EVENT_ID,                // 1
-        CalendarAlerts.STATE,                   // 2
-        CalendarAlerts.TITLE,                   // 3
-        CalendarAlerts.EVENT_LOCATION,          // 4
-        CalendarAlerts.SELF_ATTENDEE_STATUS,    // 5
-        CalendarAlerts.ALL_DAY,                 // 6
-        CalendarAlerts.ALARM_TIME,              // 7
-        CalendarAlerts.MINUTES,                 // 8
-        CalendarAlerts.BEGIN,                   // 9
-        CalendarAlerts.END,                     // 10
-        CalendarAlerts.DESCRIPTION,             // 11
+        CalendarAlerts._ID,
+        CalendarAlerts.EVENT_ID,
+        CalendarAlerts.STATE,
+        CalendarAlerts.TITLE,
+        CalendarAlerts.EVENT_LOCATION,
+        CalendarAlerts.SELF_ATTENDEE_STATUS,
+        CalendarAlerts.ALL_DAY,
+        CalendarAlerts.ALARM_TIME,
+        CalendarAlerts.MINUTES,
+        CalendarAlerts.BEGIN,
+        CalendarAlerts.END,
+        CalendarAlerts.DESCRIPTION,
     };
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> alertProjection = Arrays.asList(ALERT_PROJECTION);
+    private static final int ALERT_INDEX_ID =
+        alertProjection.indexOf(CalendarAlerts._ID);
+    private static final int ALERT_INDEX_EVENT_ID =
+        alertProjection.indexOf(CalendarAlerts.EVENT_ID);
+    private static final int ALERT_INDEX_STATE =
+        alertProjection.indexOf(CalendarAlerts.STATE);
+    private static final int ALERT_INDEX_TITLE =
+        alertProjection.indexOf(CalendarAlerts.TITLE);
+    private static final int ALERT_INDEX_EVENT_LOCATION =
+        alertProjection.indexOf(CalendarAlerts.EVENT_LOCATION);
+    private static final int ALERT_INDEX_SELF_ATTENDEE_STATUS =
+        alertProjection.indexOf(CalendarAlerts.SELF_ATTENDEE_STATUS);
+    private static final int ALERT_INDEX_ALL_DAY =
+        alertProjection.indexOf(CalendarAlerts.ALL_DAY);
+    private static final int ALERT_INDEX_ALARM_TIME =
+        alertProjection.indexOf(CalendarAlerts.ALARM_TIME);
+    private static final int ALERT_INDEX_MINUTES =
+        alertProjection.indexOf(CalendarAlerts.MINUTES);
+    private static final int ALERT_INDEX_BEGIN =
+        alertProjection.indexOf(CalendarAlerts.BEGIN);
+    private static final int ALERT_INDEX_END =
+        alertProjection.indexOf(CalendarAlerts.END);
+    private static final int ALERT_INDEX_DESCRIPTION =
+        alertProjection.indexOf(CalendarAlerts.DESCRIPTION);
+
     private static final String TAG = "AlertService";
-    private static final int ALERT_INDEX_ID = 0;
-    private static final int ALERT_INDEX_EVENT_ID = 1;
-    private static final int ALERT_INDEX_STATE = 2;
-    private static final int ALERT_INDEX_TITLE = 3;
-    private static final int ALERT_INDEX_EVENT_LOCATION = 4;
-    private static final int ALERT_INDEX_SELF_ATTENDEE_STATUS = 5;
-    private static final int ALERT_INDEX_ALL_DAY = 6;
-    private static final int ALERT_INDEX_ALARM_TIME = 7;
-    private static final int ALERT_INDEX_MINUTES = 8;
-    private static final int ALERT_INDEX_BEGIN = 9;
-    private static final int ALERT_INDEX_END = 10;
-    private static final int ALERT_INDEX_DESCRIPTION = 11;
     private static final String ACTIVE_ALERTS_SELECTION = "(" + CalendarAlerts.STATE + "=? OR "
             + CalendarAlerts.STATE + "=?) AND " + CalendarAlerts.ALARM_TIME + "<=";
     private static final String[] ACTIVE_ALERTS_SELECTION_ARGS = new String[] {

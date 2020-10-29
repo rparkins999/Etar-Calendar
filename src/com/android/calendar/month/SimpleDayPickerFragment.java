@@ -16,6 +16,7 @@
 
 package com.android.calendar.month;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ListFragment;
 import android.content.Context;
@@ -37,7 +38,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.android.calendar.DynamicTheme;
-import com.android.calendar.Llog;
 import com.android.calendar.Utils;
 
 import java.util.Calendar;
@@ -147,6 +147,7 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
         }
     };
 
+    @SuppressLint("ValidFragment")
     public SimpleDayPickerFragment(long initialTime) {
         goTo(initialTime, false, true, true);
         mHandler = new Handler();
@@ -271,7 +272,6 @@ public class SimpleDayPickerFragment extends ListFragment implements OnScrollLis
 
     @Override
     public void onResume() {
-        Llog.d("");
         super.onResume();
         setUpAdapter();
         doResumeUpdates();

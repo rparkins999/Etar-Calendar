@@ -1,6 +1,8 @@
  /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,6 +29,7 @@ package com.android.calendar.event;
  import android.graphics.Paint;
  import android.graphics.drawable.Drawable;
  import android.net.Uri;
+ import android.provider.CalendarContract;
  import android.provider.CalendarContract.Attendees;
  import android.provider.ContactsContract.CommonDataKinds.Email;
  import android.provider.ContactsContract.CommonDataKinds.Identity;
@@ -49,7 +52,9 @@ package com.android.calendar.event;
  import com.android.calendar.event.EditEventHelper.AttendeeItem;
 
  import java.util.ArrayList;
+ import java.util.Arrays;
  import java.util.HashMap;
+ import java.util.List;
 
  import ws.xsoh.etar.R;
 
@@ -60,15 +65,20 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
     // This doesn't really belong in a view, but we'll put it somewhere sensible later.
     public ArrayList<Attendee> mAttendeesList = new ArrayList<>();
 
-    private static final int EMAIL_PROJECTION_CONTACT_ID_INDEX = 0;
-    private static final int EMAIL_PROJECTION_CONTACT_LOOKUP_INDEX = 1;
-    private static final int EMAIL_PROJECTION_PHOTO_ID_INDEX = 2;
-
     private static final String[] PROJECTION = new String[] {
-        RawContacts.CONTACT_ID,     // 0
-        Contacts.LOOKUP_KEY,        // 1
-        Contacts.PHOTO_ID,          // 2
+        RawContacts.CONTACT_ID,
+        Contacts.LOOKUP_KEY,
+        Contacts.PHOTO_ID,
     };
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> projection = Arrays.asList(PROJECTION);
+    private static final int EMAIL_PROJECTION_CONTACT_ID_INDEX =
+        projection.indexOf(RawContacts.CONTACT_ID);
+    private static final int EMAIL_PROJECTION_CONTACT_LOOKUP_INDEX =
+        projection.indexOf(Contacts.LOOKUP_KEY);
+    private static final int EMAIL_PROJECTION_PHOTO_ID_INDEX =
+        projection.indexOf(Contacts.PHOTO_ID);
 
     private final Context mContext;
     private final LayoutInflater mInflater;

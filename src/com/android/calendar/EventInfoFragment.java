@@ -181,11 +181,21 @@ public class EventInfoFragment extends DialogFragment
             Calendars.ACCOUNT_NAME, // 4
             Calendars.ACCOUNT_TYPE  // 5
     };
-    static final int CALENDARS_INDEX_DISPLAY_NAME = 1;
-    static final int CALENDARS_INDEX_OWNER_ACCOUNT = 2;
-    static final int CALENDARS_INDEX_OWNER_CAN_RESPOND = 3;
-    static final int CALENDARS_INDEX_ACCOUNT_NAME = 4;
-    static final int CALENDARS_INDEX_ACCOUNT_TYPE = 5;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> calendarsProjection =
+        Arrays.asList(CALENDARS_PROJECTION);
+    static final int CALENDARS_INDEX_DISPLAY_NAME =
+        calendarsProjection.indexOf(Calendars.CALENDAR_DISPLAY_NAME);
+    static final int CALENDARS_INDEX_OWNER_ACCOUNT =
+        calendarsProjection.indexOf(Calendars.OWNER_ACCOUNT);
+    static final int CALENDARS_INDEX_OWNER_CAN_RESPOND =
+        calendarsProjection.indexOf(Calendars.CAN_ORGANIZER_RESPOND);
+    static final int CALENDARS_INDEX_ACCOUNT_NAME =
+        calendarsProjection.indexOf(Calendars.ACCOUNT_NAME);
+    static final int CALENDARS_INDEX_ACCOUNT_TYPE =
+        calendarsProjection.indexOf(Calendars.ACCOUNT_TYPE);
+
     static final String CALENDARS_WHERE = Calendars._ID + "=?";
     static final String CALENDARS_DUPLICATE_NAME_WHERE = Calendars.CALENDAR_DISPLAY_NAME + "=?";
     static final String CALENDARS_VISIBLE_WHERE = Calendars.VISIBLE + "=?";
@@ -221,52 +231,75 @@ public class EventInfoFragment extends DialogFragment
     }
 
     private static final String[] EVENT_PROJECTION = new String[] {
-        Events._ID,                  // 0  do not remove; used in DeleteEventHelper
-        Events.TITLE,                // 1  do not remove; used in DeleteEventHelper
-        Events.RRULE,                // 2  do not remove; used in DeleteEventHelper
-        Events.ALL_DAY,              // 3  do not remove; used in DeleteEventHelper
-        Events.CALENDAR_ID,          // 4  do not remove; used in DeleteEventHelper
-        Events.DTSTART,              // 5  do not remove; used in DeleteEventHelper
-        Events._SYNC_ID,             // 6  do not remove; used in DeleteEventHelper
-        Events.EVENT_TIMEZONE,       // 7  do not remove; used in DeleteEventHelper
-        Events.DESCRIPTION,          // 8
-        Events.EVENT_LOCATION,       // 9
-        Calendars.CALENDAR_ACCESS_LEVEL, // 10
-        Events.CALENDAR_COLOR,       // 11
-        Events.EVENT_COLOR,          // 12
-        Events.HAS_ATTENDEE_DATA,    // 13
-        Events.ORGANIZER,            // 14
-        Events.HAS_ALARM,            // 15
-        Calendars.MAX_REMINDERS,     // 16
-        Calendars.ALLOWED_REMINDERS, // 17
-        Events.CUSTOM_APP_PACKAGE,   // 18
-        Events.CUSTOM_APP_URI,       // 19
-        Events.DTEND,                // 20
-        Events.DURATION,             // 21
-        Events.ORIGINAL_SYNC_ID      // 22 do not remove; used in DeleteEventHelper
+        Events._ID,
+        Events.TITLE,
+        Events.RRULE,
+        Events.ALL_DAY,
+        Events.CALENDAR_ID,
+        Events.DTSTART,
+        Events._SYNC_ID,
+        Events.EVENT_TIMEZONE,
+        Events.DESCRIPTION,
+        Events.EVENT_LOCATION,
+        Calendars.CALENDAR_ACCESS_LEVEL,
+        Events.CALENDAR_COLOR,
+        Events.EVENT_COLOR,
+        Events.HAS_ATTENDEE_DATA,
+        Events.ORGANIZER,
+        Events.HAS_ALARM,
+        Calendars.MAX_REMINDERS,
+        Calendars.ALLOWED_REMINDERS,
+        Events.CUSTOM_APP_PACKAGE,
+        Events.CUSTOM_APP_URI,
+        Events.DTEND,
+        Events.DURATION,
     };
-    private static final int EVENT_INDEX_ID = 0;
-    private static final int EVENT_INDEX_TITLE = 1;
-    private static final int EVENT_INDEX_RRULE = 2;
-    private static final int EVENT_INDEX_ALL_DAY = 3;
-    private static final int EVENT_INDEX_CALENDAR_ID = 4;
-    private static final int EVENT_INDEX_DTSTART = 5;
-    private static final int EVENT_INDEX_SYNC_ID = 6;
-    private static final int EVENT_INDEX_EVENT_TIMEZONE = 7;
-    private static final int EVENT_INDEX_DESCRIPTION = 8;
-    private static final int EVENT_INDEX_EVENT_LOCATION = 9;
-    private static final int EVENT_INDEX_ACCESS_LEVEL = 10;
-    private static final int EVENT_INDEX_CALENDAR_COLOR = 11;
-    private static final int EVENT_INDEX_EVENT_COLOR = 12;
-    private static final int EVENT_INDEX_HAS_ATTENDEE_DATA = 13;
-    private static final int EVENT_INDEX_ORGANIZER = 14;
-    private static final int EVENT_INDEX_HAS_ALARM = 15;
-    private static final int EVENT_INDEX_MAX_REMINDERS = 16;
-    private static final int EVENT_INDEX_ALLOWED_REMINDERS = 17;
-    private static final int EVENT_INDEX_CUSTOM_APP_PACKAGE = 18;
-    private static final int EVENT_INDEX_CUSTOM_APP_URI = 19;
-    private static final int EVENT_INDEX_DTEND = 20;
-    private static final int EVENT_INDEX_DURATION = 21;
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    private static final int EVENT_INDEX_ID =
+        eventProjection.indexOf(Events._ID);
+    private static final int EVENT_INDEX_TITLE =
+        eventProjection.indexOf(Events.TITLE);
+    private static final int EVENT_INDEX_RRULE =
+        eventProjection.indexOf(Events.RRULE);
+    private static final int EVENT_INDEX_ALL_DAY =
+        eventProjection.indexOf(Events.ALL_DAY);
+    private static final int EVENT_INDEX_CALENDAR_ID =
+        eventProjection.indexOf(Events.CALENDAR_ID);
+    private static final int EVENT_INDEX_DTSTART =
+        eventProjection.indexOf(Events.DTSTART);
+    private static final int EVENT_INDEX_SYNC_ID =
+        eventProjection.indexOf(Events._SYNC_ID);
+    private static final int EVENT_INDEX_EVENT_TIMEZONE =
+        eventProjection.indexOf(Events.EVENT_TIMEZONE);
+    private static final int EVENT_INDEX_DESCRIPTION =
+        eventProjection.indexOf(Events.DESCRIPTION);
+    private static final int EVENT_INDEX_EVENT_LOCATION =
+        eventProjection.indexOf(Events.EVENT_LOCATION);
+    private static final int EVENT_INDEX_ACCESS_LEVEL =
+        eventProjection.indexOf(Calendars.CALENDAR_ACCESS_LEVEL);
+    private static final int EVENT_INDEX_CALENDAR_COLOR =
+        eventProjection.indexOf(Events.CALENDAR_COLOR);
+    private static final int EVENT_INDEX_EVENT_COLOR =
+        eventProjection.indexOf(Events.EVENT_COLOR);
+    private static final int EVENT_INDEX_HAS_ATTENDEE_DATA =
+        eventProjection.indexOf(Events.HAS_ATTENDEE_DATA);
+    private static final int EVENT_INDEX_ORGANIZER =
+        eventProjection.indexOf(Events.ORGANIZER);
+    private static final int EVENT_INDEX_HAS_ALARM =
+        eventProjection.indexOf(Events.HAS_ALARM);
+    private static final int EVENT_INDEX_MAX_REMINDERS =
+        eventProjection.indexOf(Calendars.MAX_REMINDERS);
+    private static final int EVENT_INDEX_ALLOWED_REMINDERS =
+        eventProjection.indexOf(Calendars.ALLOWED_REMINDERS);
+    private static final int EVENT_INDEX_CUSTOM_APP_PACKAGE =
+        eventProjection.indexOf(Events.CUSTOM_APP_PACKAGE);
+    private static final int EVENT_INDEX_CUSTOM_APP_URI =
+        eventProjection.indexOf(Events.CUSTOM_APP_URI);
+    private static final int EVENT_INDEX_DTEND =
+        eventProjection.indexOf(Events.DTEND);
+    private static final int EVENT_INDEX_DURATION =
+        eventProjection.indexOf(Events.DURATION);
+
     private static final String[] ATTENDEES_PROJECTION = new String[] {
         Attendees._ID,                      // 0
         Attendees.ATTENDEE_NAME,            // 1

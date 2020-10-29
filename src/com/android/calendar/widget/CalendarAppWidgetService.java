@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -31,6 +33,7 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Handler;
+import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Instances;
@@ -47,6 +50,8 @@ import com.android.calendar.widget.CalendarAppWidgetModel.DayInfo;
 import com.android.calendar.widget.CalendarAppWidgetModel.EventInfo;
 import com.android.calendar.widget.CalendarAppWidgetModel.RowInfo;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,16 +76,30 @@ public class CalendarAppWidgetService extends RemoteViewsService {
         Instances.DISPLAY_COLOR,
         Instances.SELF_ATTENDEE_STATUS,
     };
-    static final int INDEX_ALL_DAY = 0;
-    static final int INDEX_BEGIN = 1;
-    static final int INDEX_END = 2;
-    static final int INDEX_TITLE = 3;
-    static final int INDEX_EVENT_LOCATION = 4;
-    static final int INDEX_EVENT_ID = 5;
-    static final int INDEX_START_DAY = 6;
-    static final int INDEX_END_DAY = 7;
-    static final int INDEX_COLOR = 8;
-    static final int INDEX_SELF_ATTENDEE_STATUS = 9;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    static final int INDEX_ALL_DAY =
+        eventProjection.indexOf(Instances.ALL_DAY);
+    static final int INDEX_BEGIN =
+        eventProjection.indexOf(Instances.BEGIN);
+    static final int INDEX_END =
+        eventProjection.indexOf(Instances.END);
+    static final int INDEX_TITLE =
+        eventProjection.indexOf(Instances.TITLE);
+    static final int INDEX_EVENT_LOCATION =
+        eventProjection.indexOf(Instances.EVENT_LOCATION);
+    static final int INDEX_EVENT_ID =
+        eventProjection.indexOf(Instances.EVENT_ID);
+    static final int INDEX_START_DAY =
+        eventProjection.indexOf(Instances.START_DAY);
+    static final int INDEX_END_DAY =
+        eventProjection.indexOf(Instances.END_DAY);
+    static final int INDEX_COLOR =
+        eventProjection.indexOf(Instances.DISPLAY_COLOR);
+    static final int INDEX_SELF_ATTENDEE_STATUS =
+        eventProjection.indexOf(Instances.SELF_ATTENDEE_STATUS);
+
     static final int MAX_DAYS = 31;
     private static final String TAG = "CalendarWidget";
     private static final String EVENT_SORT_ORDER = Instances.START_DAY + " ASC, "

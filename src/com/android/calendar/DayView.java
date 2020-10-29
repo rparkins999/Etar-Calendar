@@ -92,6 +92,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Formatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -127,13 +128,21 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     private static final int MENU_EVENT_CREATE = 4;
     private static final int MENU_EVENT_EDIT = 5;
     private static final int MENU_EVENT_DELETE = 6;
+
     private static final String[] CALENDARS_PROJECTION = new String[] {
         Calendars._ID,          // 0
         Calendars.CALENDAR_ACCESS_LEVEL, // 1
         Calendars.OWNER_ACCOUNT, // 2
     };
-    private static final int CALENDARS_INDEX_ACCESS_LEVEL = 1;
-    private static final int CALENDARS_INDEX_OWNER_ACCOUNT = 2;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> calendarsProjection =
+        Arrays.asList(CALENDARS_PROJECTION);
+    private static final int CALENDARS_INDEX_ACCESS_LEVEL =
+        calendarsProjection.indexOf(Calendars.CALENDAR_ACCESS_LEVEL);
+    private static final int CALENDARS_INDEX_OWNER_ACCOUNT =
+        calendarsProjection.indexOf(Calendars.OWNER_ACCOUNT);
+
     private static final String CALENDARS_WHERE = Calendars._ID + "=%d";
     private static final int ACCESS_LEVEL_NONE = 0;
     private static final int ACCESS_LEVEL_DELETE = 1;

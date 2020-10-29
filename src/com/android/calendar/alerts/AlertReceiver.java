@@ -53,6 +53,7 @@ import com.android.calendar.Utils;
 import com.android.calendar.alerts.AlertService.NotificationWrapper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -92,24 +93,37 @@ public class AlertReceiver extends BroadcastReceiver {
     private static final String TEL_PREFIX = "tel:";
     private static final int MAX_NOTIF_ACTIONS = 3;
     private static final String[] ATTENDEES_PROJECTION = new String[]{
-            Attendees.ATTENDEE_EMAIL,           // 0
-            Attendees.ATTENDEE_STATUS,          // 1
+            Attendees.ATTENDEE_EMAIL,
+            Attendees.ATTENDEE_STATUS,
     };
-    private static final int ATTENDEES_INDEX_EMAIL = 0;
-    private static final int ATTENDEES_INDEX_STATUS = 1;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> attendeesProjection =
+        Arrays.asList(ATTENDEES_PROJECTION);
+    private static final int ATTENDEES_INDEX_EMAIL =
+        attendeesProjection.indexOf(Attendees.ATTENDEE_EMAIL);
+    private static final int ATTENDEES_INDEX_STATUS =
+        attendeesProjection.indexOf(Attendees.ATTENDEE_STATUS);
+
     private static final String ATTENDEES_WHERE = Attendees.EVENT_ID + "=?";
     private static final String ATTENDEES_SORT_ORDER = Attendees.ATTENDEE_NAME + " ASC, "
             + Attendees.ATTENDEE_EMAIL + " ASC";
     private static final String[] EVENT_PROJECTION = new String[]{
-            Calendars.OWNER_ACCOUNT, // 0
-            Calendars.ACCOUNT_NAME,  // 1
-            Events.TITLE,            // 2
-            Events.ORGANIZER,        // 3
+            Calendars.OWNER_ACCOUNT,
+            Calendars.ACCOUNT_NAME,
+            Events.TITLE,
+            Events.ORGANIZER,
     };
-    private static final int EVENT_INDEX_OWNER_ACCOUNT = 0;
-    private static final int EVENT_INDEX_ACCOUNT_NAME = 1;
-    private static final int EVENT_INDEX_TITLE = 2;
-    private static final int EVENT_INDEX_ORGANIZER = 3;
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    private static final int EVENT_INDEX_OWNER_ACCOUNT =
+        eventProjection.indexOf(Calendars.OWNER_ACCOUNT);
+    private static final int EVENT_INDEX_ACCOUNT_NAME =
+        eventProjection.indexOf(Calendars.ACCOUNT_NAME);
+    private static final int EVENT_INDEX_TITLE =
+        eventProjection.indexOf(Events.TITLE);
+    private static final int EVENT_INDEX_ORGANIZER =
+        eventProjection.indexOf(Events.ORGANIZER);
+
     static PowerManager.WakeLock mStartingService;
     private static Handler sAsyncHandler;
 
@@ -261,7 +275,9 @@ public class AlertReceiver extends BroadcastReceiver {
         notificationBuilder.setContentText(summaryText);
         notificationBuilder.setSmallIcon(R.drawable.stat_notify_calendar);
         int color = DynamicTheme.getColorId(DynamicTheme.getPrimaryColor(context));
-        notificationBuilder.setColor(context.getResources().getColor(color));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            notificationBuilder.setColor(context.getResources().getColor(color));
+        }
         notificationBuilder.setContentIntent(clickIntent);
         notificationBuilder.setDeleteIntent(deleteIntent);
 

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,6 +29,7 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.CalendarContract;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.Contacts;
@@ -39,6 +42,7 @@ import android.widget.Filter;
 import android.widget.Filterable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -113,9 +117,13 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
             Contacts.DISPLAY_NAME,  // 0
             Email.DATA              // 1
         };
-
-        public static final int NAME = 0;
-        public static final int ADDRESS = 1;
+        // This looks a bit messy, but it makes the compiler do the work
+        // and avoids the maintenance burden of keeping track of the indices by hand.
+        private static final List<String> projection = Arrays.asList(PROJECTION);
+        public static final int NAME =
+            projection.indexOf(Contacts.DISPLAY_NAME);
+        public static final int ADDRESS =
+            projection.indexOf(Email.DATA);
     }
 
     private static class DirectoryListQuery {

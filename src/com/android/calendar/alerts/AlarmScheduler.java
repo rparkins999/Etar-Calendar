@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2012 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,6 +41,7 @@ import android.util.Log;
 import com.android.calendar.Utils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +56,30 @@ public class AlarmScheduler {
         Instances.BEGIN,
         Instances.ALL_DAY,
     };
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> instancesProjection =
+        Arrays.asList(INSTANCES_PROJECTION);
+    private static final int INSTANCES_INDEX_EVENTID =
+        instancesProjection.indexOf(Instances.EVENT_ID);
+    private static final int INSTANCES_INDEX_BEGIN =
+        instancesProjection.indexOf(Instances.BEGIN);
+    private static final int INSTANCES_INDEX_ALL_DAY =
+        instancesProjection.indexOf(Instances.ALL_DAY);
     static final String[] REMINDERS_PROJECTION = new String[] {
         Reminders.EVENT_ID,
         Reminders.MINUTES,
         Reminders.METHOD,
     };
+    private static final List<String> remindersProjection =
+        Arrays.asList(REMINDERS_PROJECTION);
+    private static final int REMINDERS_INDEX_EVENT_ID =
+        remindersProjection.indexOf(Reminders.EVENT_ID);
+    private static final int REMINDERS_INDEX_MINUTES =
+        remindersProjection.indexOf(Reminders.MINUTES);
+    private static final int REMINDERS_INDEX_METHOD =
+        remindersProjection.indexOf(Reminders.METHOD);
+
     // Add a slight delay for the EVENT_REMINDER_APP broadcast for a couple reasons:
     // (1) so that the concurrent reminder broadcast from the provider doesn't result
     // in a double ring, and (2) some OEMs modified the provider to not add an alert to
@@ -69,14 +91,8 @@ public class AlarmScheduler {
     private static final String INSTANCES_WHERE = Events.VISIBLE + "=? AND "
             + Instances.BEGIN + ">=? AND " + Instances.BEGIN + "<=? AND "
             + Events.ALL_DAY + "=?";
-    private static final int INSTANCES_INDEX_EVENTID = 0;
-    private static final int INSTANCES_INDEX_BEGIN = 1;
-    private static final int INSTANCES_INDEX_ALL_DAY = 2;
     private static final String REMINDERS_WHERE = Reminders.METHOD + "=1 AND "
             + Reminders.EVENT_ID + " IN ";
-    private static final int REMINDERS_INDEX_EVENT_ID = 0;
-    private static final int REMINDERS_INDEX_MINUTES = 1;
-    private static final int REMINDERS_INDEX_METHOD = 2;
     // The reminders query looks like "SELECT ... AND eventId IN 101,102,202,...".  This
     // sets the max # of events in the query before batching into multiple queries, to
     // limit the SQL query length.

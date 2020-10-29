@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2012 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -45,6 +47,7 @@ import android.widget.TextView;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -73,11 +76,20 @@ public class EventLocationAdapter extends ArrayAdapter<EventLocationAdapter.Resu
         RawContacts.CONTACT_ID,
         Contacts.PHOTO_ID,
     };
-    private static final int CONTACTS_INDEX_ID = 0;
-    private static final int CONTACTS_INDEX_DISPLAY_NAME = 1;
-    private static final int CONTACTS_INDEX_ADDRESS = 2;
-    private static final int CONTACTS_INDEX_CONTACT_ID = 3;
-    private static final int CONTACTS_INDEX_PHOTO_ID = 4;
+    // This looks a bit messy, but it makes the compiler do the work
+    // and avoids the maintenance burden of keeping track of the indices by hand.
+    private static final List<String> contactProjection = Arrays.asList(CONTACTS_PROJECTION);
+    private static final int CONTACTS_INDEX_ID =
+        contactProjection.indexOf(CommonDataKinds.StructuredPostal._ID);
+    private static final int CONTACTS_INDEX_DISPLAY_NAME =
+        contactProjection.indexOf(Contacts.DISPLAY_NAME);
+    private static final int CONTACTS_INDEX_ADDRESS =
+        contactProjection.indexOf(CommonDataKinds.StructuredPostal.FORMATTED_ADDRESS);
+    private static final int CONTACTS_INDEX_CONTACT_ID =
+        contactProjection.indexOf(RawContacts.CONTACT_ID);
+    private static final int CONTACTS_INDEX_PHOTO_ID =
+        contactProjection.indexOf(Contacts.PHOTO_ID);
+
     // TODO: Only query visible contacts?
     private static final String CONTACTS_WHERE = new StringBuilder()
             .append("(")
@@ -97,9 +109,14 @@ public class EventLocationAdapter extends ArrayAdapter<EventLocationAdapter.Resu
         Events.EVENT_LOCATION,
         Events.VISIBLE,
     };
-    private static final int EVENT_INDEX_ID = 0;
-    private static final int EVENT_INDEX_LOCATION = 1;
-    private static final int EVENT_INDEX_VISIBLE = 2;
+    private static final List<String> eventProjection = Arrays.asList(EVENT_PROJECTION);
+    private static final int EVENT_INDEX_ID =
+        eventProjection.indexOf(Events._ID);
+    private static final int EVENT_INDEX_LOCATION =
+        eventProjection.indexOf(Events.EVENT_LOCATION);
+    private static final int EVENT_INDEX_VISIBLE =
+        eventProjection.indexOf(Events.VISIBLE);
+
     private static final String LOCATION_WHERE = Events.VISIBLE + "=? AND "
             + Events.EVENT_LOCATION + " LIKE ?";
     private static final int MAX_LOCATION_SUGGESTIONS = 4;
