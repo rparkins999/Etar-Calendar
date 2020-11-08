@@ -1203,7 +1203,6 @@ public class EditEventHelper {
             model.mCalendarAccountType = cursor.getString(CALENDARS_INDEX_ACCOUNT_TYPE);
 
             model.mCalendarMaxReminders = cursor.getInt(CALENDARS_INDEX_MAX_REMINDERS);
-            model.mCalendarAllowedReminders = cursor.getString(CALENDARS_INDEX_ALLOWED_REMINDERS);
             model.mCalendarAllowedAttendeeTypes = cursor
                     .getString(CALENDARS_INDEX_ALLOWED_ATTENDEE_TYPES);
             model.mCalendarAllowedAvailability = cursor

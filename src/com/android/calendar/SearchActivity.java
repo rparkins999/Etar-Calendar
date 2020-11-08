@@ -230,7 +230,7 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
     }
 
     private void deleteEvent(long eventId, long startMillis, long endMillis) {
-        mDeleteEventHelper.delete(startMillis, endMillis, eventId, -1);
+        mDeleteEventHelper.delete(startMillis, endMillis, eventId);
         if (mIsMultipane && mEditEventFragment != null
                 && eventId == mCurrentEventId) {
             FragmentManager fragmentManager = getFragmentManager();

@@ -231,7 +231,7 @@ public class AgendaListView extends ListView implements OnItemClickListener {
         int position = getSelectedItemPosition();
         AgendaItem agendaItem = mWindowAdapter.getAgendaItemByPosition(position);
         if (agendaItem != null) {
-            mDeleteEventHelper.delete(agendaItem.begin, agendaItem.end, agendaItem.id, -1);
+            mDeleteEventHelper.delete(agendaItem.begin, agendaItem.end, agendaItem.id);
         }
     }
 

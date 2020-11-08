@@ -531,7 +531,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         mDeleteHelper.setDeleteNotificationListener(this);
         mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
         mDeleteHelper.delete(
-            mModel.mStart, mModel.mEnd, mModel.mId, -1, onDeleteRunnable);
+            mModel.mStart, mModel.mEnd, mModel.mId, onDeleteRunnable);
     }
 
     // onViewStateRestored and onStart are not overridden.

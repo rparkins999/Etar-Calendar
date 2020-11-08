@@ -174,12 +174,12 @@ public class EventInfoFragment extends DialogFragment
     static final int UPDATE_SINGLE = 0;
     static final int UPDATE_ALL = 1;
     static final String[] CALENDARS_PROJECTION = new String[]{
-            Calendars._ID,           // 0
-            Calendars.CALENDAR_DISPLAY_NAME,  // 1
-            Calendars.OWNER_ACCOUNT, // 2
-            Calendars.CAN_ORGANIZER_RESPOND, // 3
-            Calendars.ACCOUNT_NAME, // 4
-            Calendars.ACCOUNT_TYPE  // 5
+            Calendars._ID,
+            Calendars.CALENDAR_DISPLAY_NAME,
+            Calendars.OWNER_ACCOUNT,
+            Calendars.CAN_ORGANIZER_RESPOND,
+            Calendars.ACCOUNT_NAME,
+            Calendars.ACCOUNT_TYPE
     };
     // This looks a bit messy, but it makes the compiler do the work
     // and avoids the maintenance burden of keeping track of the indices by hand.
@@ -207,6 +207,7 @@ public class EventInfoFragment extends DialogFragment
     static final String COLORS_WHERE =
         Colors.ACCOUNT_NAME + "=? AND " + Colors.ACCOUNT_TYPE
         + "=? AND " + Colors.COLOR_TYPE + "=" + Colors.TYPE_EVENT;
+    @SuppressWarnings("unused")
     private static final int REQUEST_CODE_COLOR_PICKER = 0;
     private static final String PERIOD_SPACE = ". ";
     private static final String NO_EVENT_COLOR = "";
@@ -267,6 +268,7 @@ public class EventInfoFragment extends DialogFragment
         eventProjection.indexOf(Events.CALENDAR_ID);
     private static final int EVENT_INDEX_DTSTART =
         eventProjection.indexOf(Events.DTSTART);
+    @SuppressWarnings("unused")
     private static final int EVENT_INDEX_SYNC_ID =
         eventProjection.indexOf(Events._SYNC_ID);
     private static final int EVENT_INDEX_EVENT_TIMEZONE =
@@ -319,15 +321,6 @@ public class EventInfoFragment extends DialogFragment
     private static final String ATTENDEES_WHERE = Attendees.EVENT_ID + "=?";
     private static final String ATTENDEES_SORT_ORDER = Attendees.ATTENDEE_NAME + " ASC, "
             + Attendees.ATTENDEE_EMAIL + " ASC";
-    private static final String[] REMINDERS_PROJECTION = new String[] {
-        Reminders._ID,                      // 0
-        Reminders.MINUTES,            // 1
-        Reminders.METHOD           // 2
-    };
-    private static final int REMINDERS_INDEX_ID = 0;
-    private static final int REMINDERS_MINUTES_ID = 1;
-    private static final int REMINDERS_METHOD_ID = 2;
-    private static final String REMINDERS_WHERE = Reminders.EVENT_ID + "=?";
     private static final int FADE_IN_TIME = 300;   // in milliseconds
     private static final int LOADING_MSG_DELAY = 600;   // in milliseconds
     private static final int LOADING_MSG_MIN_DISPLAY_TIME = 600;
@@ -346,8 +339,6 @@ public class EventInfoFragment extends DialogFragment
     ArrayList<Attendee> mDeclinedAttendees = new ArrayList<>();
     ArrayList<Attendee> mTentativeAttendees = new ArrayList<>();
     ArrayList<Attendee> mNoResponseAttendees = new ArrayList<>();
-    ArrayList<String> mToEmails = new ArrayList<>();
-    ArrayList<String> mCcEmails = new ArrayList<>();
     private int mWindowStyle = DIALOG_WINDOW_STYLE;
     private int mCurrentQuery = 0;
     private View mView;
@@ -411,7 +402,7 @@ public class EventInfoFragment extends DialogFragment
         }
     };
     private EventColorPickerDialog mColorPickerDialog;
-    private SparseArray<String> mDisplayColorKeyMap = new SparseArray<>();
+    private final SparseArray<String> mDisplayColorKeyMap = new SparseArray<>();
     private int[] mColors;
     private int mOriginalColor = -1;
     private boolean mOriginalColorInitialized = false;
@@ -699,7 +690,7 @@ public class EventInfoFragment extends DialogFragment
             mView = inflater.inflate(R.layout.event_info, container, false);
         }
 
-        Toolbar myToolbar = (Toolbar) mView.findViewById(R.id.toolbar);
+        Toolbar myToolbar =  mView.findViewById(R.id.toolbar);
         AppCompatActivity activity = (AppCompatActivity)mActivity;
         if (myToolbar != null && activity != null) {
             activity.setSupportActionBar(myToolbar);
@@ -707,16 +698,16 @@ public class EventInfoFragment extends DialogFragment
             myToolbar.setNavigationIcon(R.drawable.ic_arrow_back);
         }
 
-        mScrollView = (ScrollView) mView.findViewById(R.id.event_info_scroll_view);
+        mScrollView = mView.findViewById(R.id.event_info_scroll_view);
         mLoadingMsgView = mView.findViewById(R.id.event_info_loading_msg);
-        mTitle = (TextView) mView.findViewById(R.id.title);
-        mWhenDateTime = (TextView) mView.findViewById(R.id.when_datetime);
-        mWhere = (TextView) mView.findViewById(R.id.where);
+        mTitle = mView.findViewById(R.id.title);
+        mWhenDateTime = mView.findViewById(R.id.when_datetime);
+        mWhere = mView.findViewById(R.id.where);
         mDesc = mView.findViewById(R.id.description);
         mHeadlines = mView.findViewById(R.id.event_info_headline);
-        mLongAttendees = (AttendeesView) mView.findViewById(R.id.long_attendee_list);
+        mLongAttendees = mView.findViewById(R.id.long_attendee_list);
 
-        mResponseRadioGroup = (RadioGroup) mView.findViewById(R.id.response_value);
+        mResponseRadioGroup = mView.findViewById(R.id.response_value);
 
         mAnimateAlpha = ObjectAnimator.ofFloat(
             mScrollView, "Alpha", 0, 1);
@@ -771,7 +762,7 @@ public class EventInfoFragment extends DialogFragment
                 mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
                 mDeleteDialogVisible = true;
                 mDeleteHelper.delete(
-                    mStartMillis, mEndMillis, mEventId, -1, onDeleteRunnable);
+                    mStartMillis, mEndMillis, mEventId, onDeleteRunnable);
             }
         });
 
@@ -792,7 +783,7 @@ public class EventInfoFragment extends DialogFragment
         }
 
         // Create a listener for the email guests button
-        emailAttendeesButton = (Button) mView.findViewById(R.id.email_attendees_button);
+        emailAttendeesButton = mView.findViewById(R.id.email_attendees_button);
         if (emailAttendeesButton != null) {
             emailAttendeesButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -888,7 +879,7 @@ public class EventInfoFragment extends DialogFragment
                 !mIsDialog && !mIsTabletConfig /* exitWhenDone */);
             mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
             mDeleteHelper.delete(
-                mStartMillis, mEndMillis, mEventId, -1, onDeleteRunnable);
+                mStartMillis, mEndMillis, mEventId, onDeleteRunnable);
         } else if (mTentativeUserSetResponse != Attendees.ATTENDEE_STATUS_NONE) {
             int buttonId = findButtonIdForResponse(mTentativeUserSetResponse);
             mResponseRadioGroup.check(buttonId);
@@ -925,6 +916,9 @@ public class EventInfoFragment extends DialogFragment
         window.setAttributes(a);
     }
 
+    // This isn't used at present, but will be needed
+    // to reinstste the tablet version
+    @SuppressWarnings("unused")
     public void setDialogParams(int x, int y, int minTop) {
         mX = x;
         mY = y;
@@ -1069,7 +1063,7 @@ public class EventInfoFragment extends DialogFragment
                 } while (mAttendeesCursor.moveToNext());
                 mAttendeesCursor.moveToFirst();
 
-                updateAttendees(view);
+                updateAttendees();
             }
         }
     }
@@ -1169,7 +1163,7 @@ public class EventInfoFragment extends DialogFragment
             mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
             mDeleteDialogVisible = true;
             mDeleteHelper.delete(
-                mStartMillis, mEndMillis, mEventId, -1, onDeleteRunnable);
+                mStartMillis, mEndMillis, mEventId, onDeleteRunnable);
         } else if (itemId == R.id.info_action_change_color) {
             showEventColorPickerDialog();
         } else if (itemId == R.id.info_action_share_event) {
@@ -1298,9 +1292,8 @@ public class EventInfoFragment extends DialogFragment
                 }
                 isShareSuccessful = true;
 
-            } else {
-                // Error writing event info to file
             }
+            // else error is handled below because isShareSuccessful is still false
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1478,7 +1471,7 @@ public class EventInfoFragment extends DialogFragment
         values.put(Events.SELF_ATTENDEE_STATUS, status);
         values.put(Events.STATUS, Events.STATUS_CONFIRMED);
 
-        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        ArrayList<ContentProviderOperation> ops = new ArrayList<>();
         Uri exceptionUri = Uri.withAppendedPath(Events.CONTENT_EXCEPTION_URI,
                 String.valueOf(eventId));
         ops.add(
@@ -1509,6 +1502,8 @@ public class EventInfoFragment extends DialogFragment
         }
     }
 
+    // suppression needed because textview.onTouch oasses the event to another view
+    @SuppressLint("ClickableViewAccessibility")
     private void updateEvent(View view) {
         if (mEventCursor == null || view == null) {
             return;
@@ -1661,8 +1656,7 @@ public class EventInfoFragment extends DialogFragment
 
     private void updateCustomAppButton() {
         buttonSetup: {
-            final Button launchButton
-                = (Button) mView.findViewById(R.id.launch_custom_app_button);
+            final Button launchButton= mView.findViewById(R.id.launch_custom_app_button);
             if (launchButton == null)
                 break buttonSetup;
 
@@ -1824,11 +1818,11 @@ public class EventInfoFragment extends DialogFragment
                     mEventCursor.getInt(EVENT_INDEX_ACCESS_LEVEL)
                         == Calendars.CAL_ACCESS_FREEBUSY;
 
+            Button editButtob = mView.findViewById(R.id.edit);
             if (!mIsBusyFreeCalendar) {
 
-                View b = mView.findViewById(R.id.edit);
-                b.setEnabled(true);
-                b.setOnClickListener(new OnClickListener() {
+                editButtob.setEnabled(true);
+                editButtob.setOnClickListener(new OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         doEdit();
@@ -1852,10 +1846,9 @@ public class EventInfoFragment extends DialogFragment
                 }
             }
             if (mCanModifyEvent) {
-                button = mView.findViewById(R.id.edit);
-                if (button != null) {
-                    button.setEnabled(true);
-                    button.setVisibility(View.VISIBLE);
+                if (editButtob != null) {
+                    editButtob.setEnabled(true);
+                    editButtob.setVisibility(View.VISIBLE);
                 }
             }
             if (   (   ((!mIsDialog) && (!mIsTabletConfig))
@@ -1894,7 +1887,7 @@ public class EventInfoFragment extends DialogFragment
         }
     }
 
-    private void updateAttendees(View view) {
+    private void updateAttendees() {
         if (mAcceptedAttendees.size() + mDeclinedAttendees.size() +
                 mTentativeAttendees.size() + mNoResponseAttendees.size() > 0) {
             mLongAttendees.clearAttendees();
@@ -1955,7 +1948,7 @@ public class EventInfoFragment extends DialogFragment
                 Utils.isEmailableFrom(mEventOrganizerEmail, mSyncAccountName);
     }
 
-    public void initReminders(View view, Cursor cursor) {
+    public void initReminders(Cursor cursor) {
 
         // Add reminders
         mOriginalReminders.clear();
@@ -1983,8 +1976,7 @@ public class EventInfoFragment extends DialogFragment
             return;
         }
 
-        LinearLayout parent = (LinearLayout) mScrollView
-                .findViewById(R.id.reminder_items_container);
+        LinearLayout parent = mScrollView.findViewById(R.id.reminder_items_container);
         if (parent != null) {
             parent.removeAllViews();
         }
@@ -2018,34 +2010,6 @@ public class EventInfoFragment extends DialogFragment
             }
             EventViewUtils.updateAddReminderButton(mView, mReminderViews, mMaxReminders);
             // TODO show unsupported reminder types in some fashion.
-        }
-    }
-
-    public void initAttendees(View view) {
-        LinearLayout parent = (LinearLayout) mScrollView
-            .findViewById(R.id.attendees);
-        if (parent != null) {
-            parent.removeAllViews();
-            for (Attendee attendee : mDeclinedAttendees) {
-                TextView tv = new TextView(mActivity);
-                tv.setText(attendee.getDisplayName());
-                parent.addView(tv);
-            }
-            for (Attendee attendee : mTentativeAttendees) {
-                TextView tv = new TextView(mActivity);
-                tv.setText(attendee.getDisplayName());
-                parent.addView(tv);
-            }
-            for (Attendee attendee : mAcceptedAttendees) {
-                TextView tv = new TextView(mActivity);
-                tv.setText(attendee.getDisplayName());
-                parent.addView(tv);
-            }
-            for (Attendee attendee : mNoResponseAttendees) {
-                TextView tv = new TextView(mActivity);
-                tv.setText(attendee.getDisplayName());
-                parent.addView(tv);
-            }
         }
     }
 
@@ -2090,7 +2054,7 @@ public class EventInfoFragment extends DialogFragment
     }
 
     private void setTextCommon(View view, int id, CharSequence text) {
-        TextView textView = (TextView) view.findViewById(id);
+        TextView textView = view.findViewById(id);
         if (textView == null)
             return;
         textView.setText(text);
@@ -2107,7 +2071,10 @@ public class EventInfoFragment extends DialogFragment
      * Taken from com.google.android.gm.HtmlConversationActivity
      *
      * Send the intent that shows the Contact info corresponding to the email address.
+     *
+     * Not currntly used, but evenrually we will need to be able to show the contact info.
      */
+    @SuppressWarnings("unused")
     public void showContactInfo(Attendee attendee, Rect rect) {
         // First perform lookup query to find existing contact
         final ContentResolver resolver = getActivity().getContentResolver();
@@ -2404,13 +2371,14 @@ public class EventInfoFragment extends DialogFragment
                         args = new String[]{Long.toString(mEventId)};
                         uri = Reminders.CONTENT_URI;
                         startQuery(TOKEN_QUERY_REMINDERS, null, uri,
-                                REMINDERS_PROJECTION, REMINDERS_WHERE, args, null);
+                            EditEventHelper.REMINDERS_PROJECTION,
+                            EditEventHelper.REMINDERS_WHERE, args, null);
                     } else {
                         sendAccessibilityEventIfQueryDone(TOKEN_QUERY_REMINDERS);
                     }
                     break;
                 case TOKEN_QUERY_COLORS:
-                    ArrayList<Integer> colors = new ArrayList<Integer>();
+                    ArrayList<Integer> colors = new ArrayList<>();
                     if (cursor.moveToFirst()) {
                         do {
                             String colorKey = cursor.getString(COLORS_INDEX_COLOR_KEY);
@@ -2450,7 +2418,7 @@ public class EventInfoFragment extends DialogFragment
                     break;
                 case TOKEN_QUERY_REMINDERS:
                     Cursor remindersCursor = Utils.matrixCursorFromCursor(cursor);
-                    initReminders(mView, remindersCursor);
+                    initReminders(remindersCursor);
                     break;
                 case TOKEN_QUERY_VISIBLE_CALENDARS:
                     if (cursor.getCount() > 1) {

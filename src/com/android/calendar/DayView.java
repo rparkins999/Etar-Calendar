@@ -2655,7 +2655,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 // force an event reload when we get back
                 // because the selected event may get deleted
                 clearCachedEvents();
-                mDeleteEventHelper.delete(begin, end, id, -1);
+                mDeleteEventHelper.delete(begin, end, id);
                 return true;
             case KeyEvent.KEYCODE_ENTER:
                 switchViews();

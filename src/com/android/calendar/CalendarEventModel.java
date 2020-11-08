@@ -48,7 +48,7 @@ import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 import static com.android.calendar.event.EditEventActivity.EXTRA_EVENT_REMINDERS;
 
 /**
-* Stores all the information that we can ever want about a calendar event.
+ * Stores all the information that we can ever want about a calendar event.
  * Most of it gets into the database, but some is only needed while we are
  * creating or editing the event.
  */
@@ -94,7 +94,7 @@ public class CalendarEventModel implements Serializable {
     public String mRdate = null; // list of extra dates or datetimes
     public String mExdate = null; // list of excluded dates or datetimes
     public boolean mIsFirstEventInSeries = true;
-    public String mTitle = null;  // Summary in the ical file
+    public String mTitle = null; // Summary in the ical file
     public String mLocation = null;
     public String mDescription = null;
     public int mEventColor = -1;
@@ -111,7 +111,11 @@ public class CalendarEventModel implements Serializable {
     public String mCalendarAccountName;
     public String mCalendarAccountType;
     public int mCalendarMaxReminders;
-    public String mCalendarAllowedReminders;
+    // The original code removed any reminders not allowed for the calendar.
+    // However this is a mistake: even if this device cannot do some types
+    // of reminder, we may export an ICS file to, or synchronise with,
+    // a device which can.
+    // public String mCalendarAllowedReminders;
     public String mCalendarAllowedAttendeeTypes;
     public String mCalendarAllowedAvailability;
     public int mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
@@ -194,7 +198,6 @@ public class CalendarEventModel implements Serializable {
         mCalendarAccountName = other.mCalendarAccountName;
         mCalendarAccountType = other.mCalendarAccountType;
         mCalendarMaxReminders = other.mCalendarMaxReminders;
-        mCalendarAllowedReminders = other.mCalendarAllowedReminders;
         mCalendarAllowedAttendeeTypes = other.mCalendarAllowedAttendeeTypes;
         mCalendarAllowedAvailability = other.mCalendarAllowedAvailability;
         mCalendarAccessLevel = other.mCalendarAccessLevel;
@@ -334,7 +337,6 @@ public class CalendarEventModel implements Serializable {
         mCalendarDisplayName = "";
         mCalendarColor = -1;
         mCalendarColorInitialized = false;
-        mCalendarAllowedReminders = null;
         mCalendarAllowedAttendeeTypes = null;
         mCalendarAllowedAvailability = null;
         mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;

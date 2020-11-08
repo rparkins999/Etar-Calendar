@@ -1487,8 +1487,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         // Update the max/allowed reminders with the new calendar properties.
         int maxRemindersColumn = c.getColumnIndexOrThrow(Calendars.MAX_REMINDERS);
         mModel.mCalendarMaxReminders = c.getInt(maxRemindersColumn);
-        int allowedRemindersColumn = c.getColumnIndexOrThrow(Calendars.ALLOWED_REMINDERS);
-        mModel.mCalendarAllowedReminders = c.getString(allowedRemindersColumn);
         int allowedAttendeeTypesColumn
             = c.getColumnIndexOrThrow(Calendars.ALLOWED_ATTENDEE_TYPES);
         mModel.mCalendarAllowedAttendeeTypes = c.getString(allowedAttendeeTypesColumn);

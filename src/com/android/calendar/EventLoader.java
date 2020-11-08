@@ -34,17 +34,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class EventLoader {
 
-    private Context mContext;
-    private Handler mHandler = new Handler();
-    private AtomicInteger mSequenceNumber = new AtomicInteger();
+    private final Context mContext;
+    private final Handler mHandler = new Handler();
+    private final AtomicInteger mSequenceNumber = new AtomicInteger();
 
-    private LinkedBlockingQueue<LoadRequest> mLoaderQueue;
+    private final LinkedBlockingQueue<LoadRequest> mLoaderQueue;
     private LoaderThread mLoaderThread;
-    private ContentResolver mResolver;
+    private final ContentResolver mResolver;
 
     public EventLoader(Context context) {
         mContext = context;
-        mLoaderQueue = new LinkedBlockingQueue<LoadRequest>();
+        mLoaderQueue = new LinkedBlockingQueue<>();
         mResolver = context.getContentResolver();
     }
 
@@ -94,34 +94,9 @@ public class EventLoader {
         }
     }
 
-    /**
-     * Sends a request for the days with events to be marked. Loads "numDays"
-     * worth of days, starting at start, and fills in eventDays to express which
-     * days have events.
-     *
-     * @param startDay   First day to check for events
-     * @param numDays    Days following the start day to check
-     * @param eventDay   Whether or not an event exists on that day
-     * @param uiCallback What to do when done (log data, redraw screen)
-     */
-    void loadEventDaysInBackground(int startDay, int numDays, boolean[] eventDays,
-                                   final Runnable uiCallback) {
-        // Send load request to the background thread
-        LoadEventDaysRequest request = new LoadEventDaysRequest(startDay, numDays,
-                eventDays, uiCallback);
-        try {
-            mLoaderQueue.put(request);
-        } catch (InterruptedException ex) {
-            // The put() method fails with InterruptedException if the
-            // queue is full. This should never happen because the queue
-            // has no limit.
-            Log.e("Cal", "loadEventDaysInBackground() interrupted!");
-        }
-    }
-
-    private static interface LoadRequest {
-        public void processRequest(EventLoader eventLoader);
-        public void skipRequest(EventLoader eventLoader);
+    private interface LoadRequest {
+        void processRequest(EventLoader eventLoader);
+        void skipRequest(EventLoader eventLoader);
     }
 
     private static class ShutdownRequest implements LoadRequest {
@@ -150,26 +125,15 @@ public class EventLoader {
         public boolean[] eventDays;
         public Runnable uiCallback;
 
-        public LoadEventDaysRequest(int startDay, int numDays, boolean[] eventDays,
-                final Runnable uiCallback)
-        {
-            this.startDay = startDay;
-            this.numDays = numDays;
-            this.eventDays = eventDays;
-            this.uiCallback = uiCallback;
-        }
-
         @Override
         public void processRequest(EventLoader eventLoader)
         {
-            final Handler handler = eventLoader.mHandler;
-            ContentResolver cr = eventLoader.mResolver;
 
             // Clear the event days
             Arrays.fill(eventDays, false);
 
             //query which days have events
-            Cursor cursor = EventDays.query(cr, startDay, numDays, PROJECTION);
+            Cursor cursor = EventDays.query(eventLoader.mResolver, startDay, numDays, PROJECTION);
             try {
                 int startDayColumnIndex = cursor.getColumnIndexOrThrow(EventDays.STARTDAY);
                 int endDayColumnIndex = cursor.getColumnIndexOrThrow(EventDays.ENDDAY);
@@ -191,7 +155,7 @@ public class EventLoader {
                     cursor.close();
                 }
             }
-            handler.post(uiCallback);
+            eventLoader.mHandler.post(uiCallback);
         }
 
         @Override

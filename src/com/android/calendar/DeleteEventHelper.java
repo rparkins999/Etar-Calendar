@@ -203,20 +203,18 @@ public class DeleteEventHelper {
      * @param begin the begin time of the event, in UTC milliseconds
      * @param end the end time of the event, in UTC milliseconds
      * @param eventId the event id
-     * @param which one of the values {@see DELETE_SELECTED},
-     *  {@see DELETE_ALL_FOLLOWING}, {@see DELETE_ALL}, or -1
      */
-    public void delete(long begin, long end, long eventId, int which) {
+    public void delete(long begin, long end, long eventId) {
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
-        mService.startQuery(mService.getNextToken(), null, uri, EditEventHelper.EVENT_PROJECTION,
-                null, null, null);
+        mService.startQuery(mService.getNextToken(), null, uri,
+            EditEventHelper.EVENT_PROJECTION, null, null, null);
         mStartMillis = begin;
         mEndMillis = end;
-        mWhichDelete = which;
+        mWhichDelete = -1;
     }
 
-    public void delete(long begin, long end, long eventId, int which, Runnable callback) {
-        delete(begin, end, eventId, which);
+    public void delete(long begin, long end, long eventId, Runnable callback) {
+        delete(begin, end, eventId);
         mCallback = callback;
     }
 

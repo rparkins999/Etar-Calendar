@@ -108,6 +108,7 @@ public class Event implements Cloneable {
         eventProjection.indexOf(Instances.ALL_DAY);
     private static final int PROJECTION_COLOR_INDEX =
         eventProjection.indexOf(Instances.DISPLAY_COLOR);
+    @SuppressWarnings("unused")
     private static final int PROJECTION_TIMEZONE_INDEX =
         eventProjection.indexOf(Instances.EVENT_TIMEZONE);
     private static final int PROJECTION_EVENT_ID_INDEX =
@@ -141,8 +142,6 @@ public class Event implements Cloneable {
     private static final String ALLDAY_WHERE = DISPLAY_AS_ALLDAY + "=1";
     private static String mNoTitleString;
     private static int mNoColorColor;
-
-
     public long id;
     public int color;
     public CharSequence title;
@@ -150,12 +149,10 @@ public class Event implements Cloneable {
     public boolean allDay;
     public String organizer;
     public boolean guestsCanModify;
-
     public int startDay;       // start Julian day
     public int endDay;         // end Julian day
     public int startTime;      // Start and end time are in minutes since midnight
     public int endTime;
-
     public long startMillis;   // UTC milliseconds since the epoch
     public long endMillis;     // UTC milliseconds since the epoch
     public boolean hasAlarm;
@@ -171,27 +168,6 @@ public class Event implements Cloneable {
     // hour in the Day and Week view.
     private int mColumn;
     private int mMaxColumns;
-
-    public static final Event newInstance() {
-        Event e = new Event();
-
-        e.id = 0;
-        e.title = null;
-        e.color = 0;
-        e.location = null;
-        e.allDay = false;
-        e.startDay = 0;
-        e.endDay = 0;
-        e.startTime = 0;
-        e.endTime = 0;
-        e.startMillis = 0;
-        e.endMillis = 0;
-        e.hasAlarm = false;
-        e.isRepeating = false;
-        e.selfAttendeeStatus = Attendees.ATTENDEE_STATUS_NONE;
-
-        return e;
-    }
 
     /**
      * Loads <i>days</i> days worth of instances starting at <i>startDay</i>.
@@ -241,10 +217,10 @@ public class Event implements Cloneable {
                 whereAllday += hideString;
             }
 
-            cEvents = instancesQuery(context.getContentResolver(), EVENT_PROJECTION, startDay,
-                    endDay, where, null, SORT_EVENTS_BY);
-            cAllday = instancesQuery(context.getContentResolver(), EVENT_PROJECTION, startDay,
-                    endDay, whereAllday, null, SORT_ALLDAY_BY);
+            cEvents = instancesQuery(context.getContentResolver(), startDay,
+                    endDay, where, SORT_EVENTS_BY);
+            cAllday = instancesQuery(context.getContentResolver(), startDay,
+                    endDay, whereAllday, SORT_ALLDAY_BY);
 
             // Check if we should return early because there are more recent
             // load requests waiting.
@@ -277,39 +253,29 @@ public class Event implements Cloneable {
      * recurring events.
      *
      * @param cr The ContentResolver to use for the query
-     * @param projection The columns to return
      * @param startDay The start of the time range to query in UTC millis since
      *            epoch
      * @param endDay The end of the time range to query in UTC millis since
      *            epoch
      * @param selection Filter on the query as an SQL WHERE statement
-     * @param selectionArgs Args to replace any '?'s in the selection
      * @param orderBy How to order the rows as an SQL ORDER BY statement
      * @return A Cursor of instances matching the selection
      */
-    private static final Cursor instancesQuery(ContentResolver cr, String[] projection,
-            int startDay, int endDay, String selection, String[] selectionArgs, String orderBy) {
-        String WHERE_CALENDARS_SELECTED = Calendars.VISIBLE + "=?";
-        String[] WHERE_CALENDARS_ARGS = {"1"};
-        String DEFAULT_SORT_ORDER = "begin ASC";
+    private static Cursor instancesQuery(
+        ContentResolver cr, int startDay, int endDay, String selection, String orderBy) {
+        final String WHERE_CALENDARS_SELECTED = Calendars.VISIBLE + "=?";
+        final String[] selectionArgs = {"1"};
 
         Uri.Builder builder = Instances.CONTENT_BY_DAY_URI.buildUpon();
         ContentUris.appendId(builder, startDay);
         ContentUris.appendId(builder, endDay);
         if (TextUtils.isEmpty(selection)) {
             selection = WHERE_CALENDARS_SELECTED;
-            selectionArgs = WHERE_CALENDARS_ARGS;
         } else {
             selection = "(" + selection + ") AND " + WHERE_CALENDARS_SELECTED;
-            if (selectionArgs != null && selectionArgs.length > 0) {
-                selectionArgs = Arrays.copyOf(selectionArgs, selectionArgs.length + 1);
-                selectionArgs[selectionArgs.length - 1] = WHERE_CALENDARS_ARGS[0];
-            } else {
-                selectionArgs = WHERE_CALENDARS_ARGS;
-            }
         }
-        return cr.query(builder.build(), projection, selection, selectionArgs,
-                orderBy == null ? DEFAULT_SORT_ORDER : orderBy);
+        return cr.query(builder.build(), Event.EVENT_PROJECTION, selection, selectionArgs,
+                orderBy == null ? "begin ASC" : orderBy);
     }
 
     /**
@@ -317,12 +283,13 @@ public class Event implements Cloneable {
      *
      * @param events The list of events
      * @param cEvents Events to add to the list
-     * @param context
-     * @param startDay
-     * @param endDay
+     * @param context Context for gfetting resources
+     * @param startDay start day for choosing events from query result
+     * @param endDay end day for choosing events from query result
      */
-    public static void buildEventsFromCursor(
-            ArrayList<Event> events, Cursor cEvents, Context context, int startDay, int endDay) {
+    public static void buildEventsFromCursor(ArrayList<Event> events, Cursor cEvents,
+                                             Context context, int startDay, int endDay)
+    {
         if (cEvents == null || events == null) {
             Log.e(TAG, "buildEventsFromCursor: null cursor or null events list!");
             return;
@@ -390,11 +357,7 @@ public class Event implements Cloneable {
         // Check if this is a repeating event
         String rrule = cEvents.getString(PROJECTION_RRULE_INDEX);
         String rdate = cEvents.getString(PROJECTION_RDATE_INDEX);
-        if (!TextUtils.isEmpty(rrule) || !TextUtils.isEmpty(rdate)) {
-            e.isRepeating = true;
-        } else {
-            e.isRepeating = false;
-        }
+        e.isRepeating = !TextUtils.isEmpty(rrule) || !TextUtils.isEmpty(rdate);
 
         e.selfAttendeeStatus = cEvents.getInt(PROJECTION_SELF_ATTENDEE_STATUS_INDEX);
         return e;
@@ -428,8 +391,8 @@ public class Event implements Cloneable {
 
     private static void doComputePositions(ArrayList<Event> eventsList,
             long minimumDurationMillis, boolean doAlldayEvents) {
-        final ArrayList<Event> activeList = new ArrayList<Event>();
-        final ArrayList<Event> groupList = new ArrayList<Event>();
+        final ArrayList<Event> activeList = new ArrayList<>();
+        final ArrayList<Event> groupList = new ArrayList<>();
 
         if (minimumDurationMillis < 0) {
             minimumDurationMillis = 0;
@@ -643,6 +606,7 @@ public class Event implements Cloneable {
         dest.guestsCanModify = guestsCanModify;
     }
 
+    @SuppressWarnings("unused")
     public final void dump() {
         Log.e("Cal", "+-----------------------------------------+");
         Log.e("Cal", "+        id = " + id);
@@ -656,36 +620,6 @@ public class Event implements Cloneable {
         Log.e("Cal", "+   endTime = " + endTime);
         Log.e("Cal", "+ organizer = " + organizer);
         Log.e("Cal", "+  guestwrt = " + guestsCanModify);
-    }
-
-    public final boolean intersects(int julianDay, int startMinute,
-            int endMinute) {
-        if (endDay < julianDay) {
-            return false;
-        }
-
-        if (startDay > julianDay) {
-            return false;
-        }
-
-        if (endDay == julianDay) {
-            if (endTime < startMinute) {
-                return false;
-            }
-            // An event that ends at the start minute should not be considered
-            // as intersecting the given time span, but don't exclude
-            // zero-length (or very short) events.
-            if (endTime == startMinute
-                    && (startTime != endTime || startDay != endDay)) {
-                return false;
-            }
-        }
-
-        if (startDay == julianDay && startTime > endMinute) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
