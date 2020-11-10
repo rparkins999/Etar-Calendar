@@ -684,6 +684,9 @@ public class VEvent {
                 case "EXDATE":
                     event.mExdate = parseDateList(splitLine, event.mExdate);
                     continue;
+                case "RDATE":
+                    event.mRdate = parseDateList(splitLine, event.mRdate);
+                    continue;
                     // REQUEST-STATUS is ignored because Android doesn't handle it
                     // RELATED-TO is ignored because Android doesn't handle it
                     // RESOURCES is ignored because Android doesn't handle it
