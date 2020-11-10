@@ -506,7 +506,7 @@ public class VEvent {
         }
         String[] dates = splitLine[2].split(",");
         n = dates.length;
-        StringBuilder sb = new StringBuilder(old);
+        StringBuilder sb = (old == null ) ? new StringBuilder() : new StringBuilder(old);
         for (int i = 0; i < n; ++i) {
             String s = dates[i];
             if (tz != null) {
