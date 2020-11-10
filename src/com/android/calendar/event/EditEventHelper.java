@@ -33,8 +33,6 @@ import android.provider.CalendarContract.Reminders;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.text.format.Time;
-import android.text.util.Rfc822Token;
-import android.text.util.Rfc822Tokenizer;
 import android.util.Log;
 import android.view.View;
 
@@ -44,7 +42,6 @@ import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.Utils;
-import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendarcommon2.DateException;
 import com.android.calendarcommon2.EventRecurrence;
 import com.android.calendarcommon2.RecurrenceProcessor;
@@ -53,8 +50,6 @@ import com.android.calendarcommon2.RecurrenceSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TimeZone;
@@ -65,7 +60,7 @@ public class EditEventHelper {
     private static final boolean DEBUG = false;
 
     // Used for parsing rrules for special cases.
-    private EventRecurrence mEventRecurrence = new EventRecurrence();
+    private final EventRecurrence mEventRecurrence = new EventRecurrence();
 
     private static final String NO_EVENT_COLOR = "";
 
@@ -75,7 +70,7 @@ public class EditEventHelper {
             Events.DESCRIPTION,
             Events.EVENT_LOCATION,
             Events.ALL_DAY,
-            Events.HAS_ALARM, // 5
+            Events.HAS_ALARM,
             Events.CALENDAR_ID,
             Events.DTSTART,
             Events.DTEND,
@@ -163,26 +158,21 @@ public class EditEventHelper {
         eventProjection.indexOf(Events.EVENT_END_TIMEZONE);
 
     public static final String[] REMINDERS_PROJECTION = new String[] {
-            Reminders._ID, // 0
-            Reminders.MINUTES, // 1
-            Reminders.METHOD, // 2
+            Reminders._ID,
+            Reminders.MINUTES,
+            Reminders.METHOD,
     };
-    public static final int REMINDERS_INDEX_MINUTES = 1;
-    public static final int REMINDERS_INDEX_METHOD = 2;
+    private static final List<String> reminmdersProjection
+        = Arrays.asList(REMINDERS_PROJECTION);
+    public static final int REMINDERS_INDEX_MINUTES =
+        reminmdersProjection.indexOf(Reminders.MINUTES);
+    public static final int REMINDERS_INDEX_METHOD =
+        reminmdersProjection.indexOf(Reminders.METHOD);
     public static final String REMINDERS_WHERE = Reminders.EVENT_ID + "=?";
 
     // Visible for testing
     static final String ATTENDEES_DELETE_PREFIX = Attendees.EVENT_ID + "=? AND "
             + Attendees.ATTENDEE_EMAIL + " IN (";
-
-    public static final int DOES_NOT_REPEAT = 0;
-    public static final int REPEATS_DAILY = 1;
-    public static final int REPEATS_EVERY_WEEKDAY = 2;
-    public static final int REPEATS_WEEKLY_ON_DAY = 3;
-    public static final int REPEATS_MONTHLY_ON_DAY_COUNT = 4;
-    public static final int REPEATS_MONTHLY_ON_DAY = 5;
-    public static final int REPEATS_YEARLY = 6;
-    public static final int REPEATS_CUSTOM = 7;
 
     protected static final int MODIFY_UNINITIALIZED = 0;
     protected static final int MODIFY_SELECTED = 1;
@@ -197,91 +187,100 @@ public class EditEventHelper {
     // if an uri is provided for an event that doesn't exist in the db.
     protected boolean mEventOk = true;
 
-    public static final int ATTENDEE_ID_NONE = -1;
-    public static final int[] ATTENDEE_VALUES = {
-        Attendees.ATTENDEE_STATUS_NONE,
-        Attendees.ATTENDEE_STATUS_ACCEPTED,
-        Attendees.ATTENDEE_STATUS_TENTATIVE,
-        Attendees.ATTENDEE_STATUS_DECLINED,
-    };
-
-    /**
-     * This is the symbolic name for the key used to pass in the boolean for
-     * creating all-day events that is part of the extra data of the intent.
-     * This is used only for creating new events and is set to true if the
-     * default for the new event should be an all-day event.
-     */
-    public static final String EVENT_ALL_DAY = "allDay";
-
     static final String[] CALENDARS_PROJECTION = new String[] {
-            Calendars._ID, // 0
-            Calendars.CALENDAR_DISPLAY_NAME, // 1
-            Calendars.OWNER_ACCOUNT, // 2
-            Calendars.CALENDAR_COLOR, // 3
-            Calendars.CAN_ORGANIZER_RESPOND, // 4
-            Calendars.CALENDAR_ACCESS_LEVEL, // 5
-            Calendars.VISIBLE, // 6
-            Calendars.MAX_REMINDERS, // 7
-            Calendars.ALLOWED_REMINDERS, // 8
-            Calendars.ALLOWED_ATTENDEE_TYPES, // 9
-            Calendars.ALLOWED_AVAILABILITY, // 10
-            Calendars.ACCOUNT_NAME, // 11
-            Calendars.ACCOUNT_TYPE, //12
+            Calendars._ID,
+            Calendars.CALENDAR_DISPLAY_NAME,
+            Calendars.OWNER_ACCOUNT,
+            Calendars.CALENDAR_COLOR,
+            Calendars.CAN_ORGANIZER_RESPOND,
+            Calendars.CALENDAR_ACCESS_LEVEL,
+            Calendars.VISIBLE,
+            Calendars.ALLOWED_ATTENDEE_TYPES,
+            Calendars.ALLOWED_AVAILABILITY,
+            Calendars.ACCOUNT_NAME,
+            Calendars.ACCOUNT_TYPE,
     };
-    static final int CALENDARS_INDEX_ID = 0;
-    static final int CALENDARS_INDEX_DISPLAY_NAME = 1;
-    static final int CALENDARS_INDEX_OWNER_ACCOUNT = 2;
-    static final int CALENDARS_INDEX_COLOR = 3;
-    static final int CALENDARS_INDEX_CAN_ORGANIZER_RESPOND = 4;
-    static final int CALENDARS_INDEX_ACCESS_LEVEL = 5;
-    static final int CALENDARS_INDEX_VISIBLE = 6;
-    static final int CALENDARS_INDEX_MAX_REMINDERS = 7;
-    static final int CALENDARS_INDEX_ALLOWED_REMINDERS = 8;
-    static final int CALENDARS_INDEX_ALLOWED_ATTENDEE_TYPES = 9;
-    static final int CALENDARS_INDEX_ALLOWED_AVAILABILITY = 10;
-    static final int CALENDARS_INDEX_ACCOUNT_NAME = 11;
-    static final int CALENDARS_INDEX_ACCOUNT_TYPE = 12;
-
-    static final String CALENDARS_WHERE_WRITEABLE_VISIBLE = Calendars.CALENDAR_ACCESS_LEVEL + ">="
-            + Calendars.CAL_ACCESS_CONTRIBUTOR + " AND " + Calendars.VISIBLE + "=1";
-
+    private static final List<String> calendarsProjection
+        = Arrays.asList(CALENDARS_PROJECTION);
+    static final int CALENDARS_INDEX_ID =
+        calendarsProjection.indexOf(Calendars._ID);
+    static final int CALENDARS_INDEX_DISPLAY_NAME =
+        calendarsProjection.indexOf(Calendars.CALENDAR_DISPLAY_NAME);
+    static final int CALENDARS_INDEX_OWNER_ACCOUNT =
+        calendarsProjection.indexOf(Calendars.OWNER_ACCOUNT);
+    static final int CALENDARS_INDEX_COLOR =
+        calendarsProjection.indexOf(Calendars.CALENDAR_COLOR);
+    static final int CALENDARS_INDEX_CAN_ORGANIZER_RESPOND =
+        calendarsProjection.indexOf(Calendars.CAN_ORGANIZER_RESPOND);
+    static final int CALENDARS_INDEX_ACCESS_LEVEL =
+        calendarsProjection.indexOf(Calendars.CALENDAR_ACCESS_LEVEL);
+    static final int CALENDARS_INDEX_VISIBLE =
+        calendarsProjection.indexOf(Calendars.VISIBLE);
+    static final int CALENDARS_INDEX_ALLOWED_ATTENDEE_TYPES =
+        calendarsProjection.indexOf(Calendars.ALLOWED_ATTENDEE_TYPES);
+    static final int CALENDARS_INDEX_ALLOWED_AVAILABILITY =
+        calendarsProjection.indexOf(Calendars.ALLOWED_AVAILABILITY);
+    static final int CALENDARS_INDEX_ACCOUNT_NAME =
+        calendarsProjection.indexOf(Calendars.ACCOUNT_NAME);
+    static final int CALENDARS_INDEX_ACCOUNT_TYPE =
+        calendarsProjection.indexOf(Calendars.ACCOUNT_TYPE);
+    static final String CALENDARS_WHERE_WRITEABLE_VISIBLE
+        = Calendars.CALENDAR_ACCESS_LEVEL + ">="
+          + Calendars.CAL_ACCESS_CONTRIBUTOR + " AND " + Calendars.VISIBLE + "=1";
     static final String CALENDARS_WHERE = Calendars._ID + "=?";
 
     static final String[] COLORS_PROJECTION = new String[] {
-        Colors._ID, // 0
+        Colors._ID,
         Colors.ACCOUNT_NAME,
         Colors.ACCOUNT_TYPE,
-        Colors.COLOR, // 1
-        Colors.COLOR_KEY // 2
+        Colors.COLOR,
+        Colors.COLOR_KEY,
     };
-
-    static final String COLORS_WHERE = Colors.ACCOUNT_NAME + "=? AND " + Colors.ACCOUNT_TYPE +
-        "=? AND " + Colors.COLOR_TYPE + "=" + Colors.TYPE_EVENT;
-
-    static final int COLORS_INDEX_ACCOUNT_NAME = 1;
-    static final int COLORS_INDEX_ACCOUNT_TYPE = 2;
-    static final int COLORS_INDEX_COLOR = 3;
-    static final int COLORS_INDEX_COLOR_KEY = 4;
+    private static final List<String> colorsProjection
+        = Arrays.asList(COLORS_PROJECTION);
+    static final int COLORS_INDEX_ACCOUNT_NAME =
+        colorsProjection.indexOf(Colors.ACCOUNT_NAME);
+    static final int COLORS_INDEX_ACCOUNT_TYPE =
+        colorsProjection.indexOf(Colors.ACCOUNT_TYPE);
+    static final int COLORS_INDEX_COLOR =
+        colorsProjection.indexOf(Colors.COLOR);
+    static final int COLORS_INDEX_COLOR_KEY =
+        colorsProjection.indexOf(Colors.COLOR_KEY);
+    static final String COLORS_WHERE =
+        Colors.ACCOUNT_NAME + "=? AND " + Colors.ACCOUNT_TYPE
+            + "=? AND " + Colors.COLOR_TYPE + "=" + Colors.TYPE_EVENT;
 
     static final String[] ATTENDEES_PROJECTION = new String[] {
-            Attendees._ID, // 0
-            Attendees.ATTENDEE_NAME, // 1
-            Attendees.ATTENDEE_EMAIL, // 2
-            Attendees.ATTENDEE_RELATIONSHIP, // 3
-            Attendees.ATTENDEE_STATUS, // 4
-            Attendees.ATTENDEE_TYPE, // 5
-            Attendees.ATTENDEE_IDENTITY, // 6
-            Attendees.ATTENDEE_ID_NAMESPACE, // 7
+            Attendees._ID,
+            Attendees.ATTENDEE_NAME,
+            Attendees.ATTENDEE_EMAIL,
+            Attendees.ATTENDEE_RELATIONSHIP,
+            Attendees.ATTENDEE_STATUS,
+            Attendees.ATTENDEE_TYPE,
+            Attendees.ATTENDEE_IDENTITY,
+            Attendees.ATTENDEE_ID_NAMESPACE,
     };
-    static final int ATTENDEES_INDEX_ID = 0;
-    static final int ATTENDEES_INDEX_NAME = 1;
-    static final int ATTENDEES_INDEX_EMAIL = 2;
-    static final int ATTENDEES_INDEX_RELATIONSHIP = 3;
-    static final int ATTENDEES_INDEX_STATUS = 4;
-    static final int ATTENDEES_INDEX_TYPE = 5;
-    static final int ATTENDEES_INDEX_IDENTITY = 6;
-    static final int ATTENDEES_INDEX_ID_NAMESPACE = 7;
-    static final String ATTENDEES_WHERE = Attendees.EVENT_ID + "=? AND attendeeEmail IS NOT NULL";
+    private static final List<String> attendessProjection
+        = Arrays.asList(ATTENDEES_PROJECTION);
+    static final int ATTENDEES_INDEX_ID =
+        attendessProjection.indexOf(Attendees._ID);
+    static final int ATTENDEES_INDEX_NAME =
+        attendessProjection.indexOf(Attendees.ATTENDEE_NAME);
+    static final int ATTENDEES_INDEX_EMAIL =
+        attendessProjection.indexOf(Attendees.ATTENDEE_EMAIL);
+    static final int ATTENDEES_INDEX_RELATIONSHIP =
+        attendessProjection.indexOf(Attendees.ATTENDEE_RELATIONSHIP);
+    static final int ATTENDEES_INDEX_STATUS =
+        attendessProjection.indexOf(Attendees.ATTENDEE_STATUS);
+    static final int ATTENDEES_INDEX_TYPE =
+        attendessProjection.indexOf(Attendees.ATTENDEE_TYPE);
+    static final int ATTENDEES_INDEX_IDENTITY =
+        attendessProjection.indexOf(Attendees.ATTENDEE_IDENTITY);
+    static final int ATTENDEES_INDEX_ID_NAMESPACE =
+        attendessProjection.indexOf(Attendees.ATTENDEE_ID_NAMESPACE);
+    static final String ATTENDEES_WHERE
+        = Attendees.EVENT_ID + "=? AND attendeeEmail IS NOT NULL";
+    public static final int ATTENDEE_ID_NONE = -1;
 
     public static class AttendeeItem {
         public boolean mRemoved;
@@ -299,11 +298,6 @@ public class EditEventHelper {
 
     public EditEventHelper(Context context) {
         mService = ((AbstractCalendarActivity)context).getAsyncQueryService();
-    }
-
-    public EditEventHelper(Context context, CalendarEventModel model) {
-        this(context);
-        // TODO: Remove unnecessary constructor.
     }
 
     /**
@@ -335,17 +329,24 @@ public class EditEventHelper {
         if (model == null) {
             Log.e(TAG, "Attempted to save null model.");
             return false;
-        }
-        if (!model.isValid()) {
+        } else if (!model.isValid()) {
             Log.e(TAG, "Attempted to save invalid model.");
             return false;
         }
-        if (originalModel != null && !isSameEvent(model, originalModel)) {
-            Log.e(TAG, "Attempted to update existing event but models didn't refer to the same "
-                    + "event.");
-            return false;
-        }
-        if (originalModel != null && model.isUnchanged(originalModel)) {
+        Uri uri = model.mUri;
+        if (originalModel != null) {
+            if (   (model.mCalendarId != originalModel.mCalendarId)
+                || (model.mId != originalModel.mId))
+            {
+                Log.e(TAG, "Attempted to update existing event but"
+                    + " models didn't refer to the same event.");
+                return false;
+            } else if (!model.eventModified(originalModel)) {
+                // no need to save the event if it hasn't been modified
+                return false;
+            }
+        } else if (uri != null) {
+            Log.e(TAG, "Existing event but no originalModel provided. Aborting save.");
             return false;
         }
 
@@ -353,15 +354,6 @@ public class EditEventHelper {
         int eventIdIndex = -1;
 
         ContentValues values = getContentValuesFromModel(model);
-
-        if (model.mUri != null && originalModel == null) {
-            Log.e(TAG, "Existing event but no originalModel provided. Aborting save.");
-            return false;
-        }
-        Uri uri = null;
-        if (model.mUri != null) {
-            uri = model.mUri;
-        }
 
         // Update the "hasAlarm" field for the event
         ArrayList<ReminderEntry> reminders = model.mReminders;
@@ -377,12 +369,14 @@ public class EditEventHelper {
             values.put(Events.HAS_ATTENDEE_DATA, 1);
             values.put(Events.STATUS, Events.STATUS_CONFIRMED);
             eventIdIndex = ops.size();
-            ContentProviderOperation.Builder b = ContentProviderOperation.newInsert(
-                    Events.CONTENT_URI).withValues(values);
+            ContentProviderOperation.Builder b
+                = ContentProviderOperation.newInsert( Events.CONTENT_URI).withValues(values);
             ops.add(b.build());
             forceSaveReminders = true;
 
-        } else if (TextUtils.isEmpty(model.mRrule) && TextUtils.isEmpty(originalModel.mRrule)) {
+        } else if (   TextUtils.isEmpty(model.mRrule)
+                   && TextUtils.isEmpty(originalModel.mRrule))
+        {
             // Simple update to a non-recurring event
             checkTimeDependentFields(originalModel, model, values, modifyWhich);
             ops.add(ContentProviderOperation.newUpdate(uri).withValues(values).build());
@@ -419,27 +413,29 @@ public class EditEventHelper {
                     ops.add(ContentProviderOperation.newDelete(uri).build());
                 } else {
                     // Update the current repeating event to end at the new start time.  We
-                    // ignore the RRULE returned because the exception event doesn't want one.
+                    // ignore the RRULE returned because the exception event
+                    // doesn't want one.
                     updatePastEvents(ops, originalModel, model.mOriginalStart);
                 }
                 eventIdIndex = ops.size();
                 values.put(Events.STATUS, originalModel.mEventStatus);
-                ops.add(ContentProviderOperation.newInsert(Events.CONTENT_URI).withValues(values)
-                        .build());
+                ops.add(ContentProviderOperation.newInsert(
+                    Events.CONTENT_URI).withValues(values).build());
             } else {
                 if (isFirstEventInSeries(model, originalModel)) {
                     checkTimeDependentFields(originalModel, model, values, modifyWhich);
-                    ContentProviderOperation.Builder b = ContentProviderOperation.newUpdate(uri)
-                            .withValues(values);
+                    ContentProviderOperation.Builder b
+                        = ContentProviderOperation.newUpdate(uri).withValues(values);
                     ops.add(b.build());
                 } else {
                     // We need to update the existing recurrence to end before the exception
                     // event starts.  If the recurrence rule has a COUNT, we need to adjust
                     // that in the original and in the exception.  This call rewrites the
                     // original event's recurrence rule (in "ops"), and returns a new rule
-                    // for the exception.  If the exception explicitly set a new rule, however,
-                    // we don't want to overwrite it.
-                    String newRrule = updatePastEvents(ops, originalModel, model.mOriginalStart);
+                    // for the exception.  If the exception explicitly set a new rule,
+                    // however, we don't want to overwrite it.
+                    String newRrule = updatePastEvents(
+                        ops, originalModel, model.mOriginalStart);
                     if (model.mRrule.equals(originalModel.mRrule)) {
                         values.put(Events.RRULE, newRrule);
                     }
@@ -447,8 +443,8 @@ public class EditEventHelper {
                     // Create a new event with the user-modified fields
                     eventIdIndex = ops.size();
                     values.put(Events.STATUS, originalModel.mEventStatus);
-                    ops.add(ContentProviderOperation.newInsert(Events.CONTENT_URI).withValues(
-                            values).build());
+                    ops.add(ContentProviderOperation.newInsert(
+                        Events.CONTENT_URI).withValues(values).build());
                 }
             }
             forceSaveReminders = true;
@@ -463,8 +459,8 @@ public class EditEventHelper {
                 ops.add(ContentProviderOperation.newDelete(uri).build());
 
                 eventIdIndex = ops.size();
-                ops.add(ContentProviderOperation.newInsert(Events.CONTENT_URI).withValues(values)
-                        .build());
+                ops.add(ContentProviderOperation.newInsert(
+                    Events.CONTENT_URI).withValues(values).build());
                 forceSaveReminders = true;
             } else {
                 checkTimeDependentFields(originalModel, model, values, modifyWhich);
@@ -478,7 +474,7 @@ public class EditEventHelper {
         if (originalModel != null) {
             originalReminders = originalModel.mReminders;
         } else {
-            originalReminders = new ArrayList<ReminderEntry>();
+            originalReminders = new ArrayList<>();
         }
 
         if (newEvent) {
@@ -490,134 +486,131 @@ public class EditEventHelper {
         }
 
         ContentProviderOperation.Builder b;
-        boolean hasAttendeeData = model.mHasAttendeeData;
 
-        if (hasAttendeeData && model.mOwnerAttendeeId == -1) {
-            // Organizer is not an attendee
+        if (model.mHasAttendeeData) {
+            if (model.mOwnerAttendeeId == -1) {
+                // Organizer is not an attendee
 
-            String ownerEmail = model.mOwnerAccount;
-            if (model.mAttendeesList.size() != 0 && Utils.isValidEmail(ownerEmail)) {
-                // Add organizer as attendee since we got some attendees
+                String ownerEmail = model.mOwnerAccount;
+                if (model.mAttendeesList.size() != 0 && Utils.isValidEmail(ownerEmail)) {
+                    // Add organizer as attendee since we got some attendees
+
+                    values.clear();
+                    values.put(Attendees.ATTENDEE_EMAIL, ownerEmail);
+                    values.put(Attendees.ATTENDEE_RELATIONSHIP,
+                        Attendees.RELATIONSHIP_ORGANIZER);
+                    values.put(Attendees.ATTENDEE_TYPE, Attendees.TYPE_REQUIRED);
+                    values.put(Attendees.ATTENDEE_STATUS,
+                        Attendees.ATTENDEE_STATUS_ACCEPTED);
+
+                    if (newEvent) {
+                        b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
+                            .withValues(values);
+                        b.withValueBackReference(Attendees.EVENT_ID, eventIdIndex);
+                    } else {
+                        values.put(Attendees.EVENT_ID, model.mId);
+                        b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
+                            .withValues(values);
+                    }
+                    ops.add(b.build());
+                }
+            } else if (model.mSelfAttendeeStatus != originalModel.mSelfAttendeeStatus) {
+                if (DEBUG) {
+                    Log.d(TAG, "Setting attendee status to "
+                        + model.mSelfAttendeeStatus);
+                }
+                Uri attUri = ContentUris.withAppendedId(
+                    Attendees.CONTENT_URI, model.mOwnerAttendeeId);
 
                 values.clear();
-                values.put(Attendees.ATTENDEE_EMAIL, ownerEmail);
-                values.put(Attendees.ATTENDEE_RELATIONSHIP, Attendees.RELATIONSHIP_ORGANIZER);
-                values.put(Attendees.ATTENDEE_TYPE, Attendees.TYPE_REQUIRED);
-                values.put(Attendees.ATTENDEE_STATUS, Attendees.ATTENDEE_STATUS_ACCEPTED);
-
-                if (newEvent) {
-                    b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
-                            .withValues(values);
-                    b.withValueBackReference(Attendees.EVENT_ID, eventIdIndex);
-                } else {
-                    values.put(Attendees.EVENT_ID, model.mId);
-                    b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
-                            .withValues(values);
-                }
+                values.put(Attendees.ATTENDEE_STATUS, model.mSelfAttendeeStatus);
+                values.put(Attendees.EVENT_ID, model.mId);
+                b = ContentProviderOperation.newUpdate(attUri).withValues(values);
                 ops.add(b.build());
             }
-        } else if (hasAttendeeData &&
-                model.mSelfAttendeeStatus != originalModel.mSelfAttendeeStatus &&
-                model.mOwnerAttendeeId != -1) {
-            if (DEBUG) {
-                Log.d(TAG, "Setting attendee status to " + model.mSelfAttendeeStatus);
-            }
-            Uri attUri = ContentUris.withAppendedId(Attendees.CONTENT_URI, model.mOwnerAttendeeId);
 
-            values.clear();
-            values.put(Attendees.ATTENDEE_STATUS, model.mSelfAttendeeStatus);
-            values.put(Attendees.EVENT_ID, model.mId);
-            b = ContentProviderOperation.newUpdate(attUri).withValues(values);
-            ops.add(b.build());
-        }
+            // TODO: is this the right test? this currently checks if this is
+            // a new event or an existing event. or is this a paranoia check?
+            if ((newEvent || uri != null)) {
+                // Hit the content provider only if this is a new event or the user
+                // has changed it
+                if (   newEvent
+                    || (originalModel == null)
+                    || model.differentAttendees(originalModel))
+                {
+                    // figure out which attendees need to be added and which ones
+                    // need to be deleted. use a linked hash set, so we maintain
+                    // order (but also remove duplicates).
+                    HashMap<String, Attendee> newAttendees = model.mAttendeesList;
+                    LinkedList<String> removedAttendees = new LinkedList<>();
 
-        // TODO: is this the right test? this currently checks if this is
-        // a new event or an existing event. or is this a paranoia check?
-        if (hasAttendeeData && (newEvent || uri != null)) {
-            String attendees = model.getAttendeesString();
-            String originalAttendeesString;
-            if (originalModel != null) {
-                originalAttendeesString = originalModel.getAttendeesString();
-            } else {
-                originalAttendeesString = "";
-            }
-            // Hit the content provider only if this is a new event or the user
-            // has changed it
-            if (   newEvent
-                || (originalModel == null)
-                || model.differentAttendees(originalModel))
-            {
-                // figure out which attendees need to be added and which ones
-                // need to be deleted. use a linked hash set, so we maintain
-                // order (but also remove duplicates).
-                HashMap<String, Attendee> newAttendees = model.mAttendeesList;
-                LinkedList<String> removedAttendees = new LinkedList<>();
+                    // the eventId is only used if eventIdIndex is -1.
+                    // TODO: clean up this code.
+                    long eventId = uri != null ? ContentUris.parseId(uri) : -1;
 
-                // the eventId is only used if eventIdIndex is -1.
-                // TODO: clean up this code.
-                long eventId = uri != null ? ContentUris.parseId(uri) : -1;
-
-                // only compute deltas if this is an existing event.
-                // new events (being inserted into the Events table) won't
-                // have any existing attendees.
-                if (!newEvent) {
-                    removedAttendees.clear();
-                    HashMap<String, Attendee> originalAttendees
-                        = originalModel.mAttendeesList;
-                    for (String originalEmail : originalAttendees.keySet()) {
-                        if (newAttendees.containsKey(originalEmail)) {
-                            // existing attendee. remove from new attendees set.
-                            newAttendees.remove(originalEmail);
-                        } else {
-                            // no longer in attendees. mark as removed.
-                            removedAttendees.add(originalEmail);
-                        }
-                    }
-
-                    // delete removed attendees if necessary
-                    if (removedAttendees.size() > 0) {
-                        b = ContentProviderOperation.newDelete(Attendees.CONTENT_URI);
-
-                        String[] args = new String[removedAttendees.size() + 1];
-                        args[0] = Long.toString(eventId);
-                        int i = 1;
-                        StringBuilder deleteWhere = new StringBuilder(ATTENDEES_DELETE_PREFIX);
-                        for (String removedAttendee : removedAttendees) {
-                            if (i > 1) {
-                                deleteWhere.append(",");
+                    // only compute deltas if this is an existing event.
+                    // new events (being inserted into the Events table) won't
+                    // have any existing attendees.
+                    if (!newEvent) {
+                        removedAttendees.clear();
+                        HashMap<String, Attendee> originalAttendees
+                            = originalModel.mAttendeesList;
+                        for (String originalEmail : originalAttendees.keySet()) {
+                            if (newAttendees.containsKey(originalEmail)) {
+                                // existing attendee. remove from new attendees set.
+                                newAttendees.remove(originalEmail);
+                            } else {
+                                // no longer in attendees. mark as removed.
+                                removedAttendees.add(originalEmail);
                             }
-                            deleteWhere.append("?");
-                            args[i++] = removedAttendee;
                         }
-                        deleteWhere.append(")");
-                        b.withSelection(deleteWhere.toString(), args);
-                        ops.add(b.build());
+
+                        // delete removed attendees if necessary
+                        if (removedAttendees.size() > 0) {
+                            b = ContentProviderOperation.newDelete(Attendees.CONTENT_URI);
+
+                            String[] args = new String[removedAttendees.size() + 1];
+                            args[0] = Long.toString(eventId);
+                            int i = 1;
+                            StringBuilder deleteWhere
+                                = new StringBuilder(ATTENDEES_DELETE_PREFIX);
+                            for (String removedAttendee : removedAttendees) {
+                                if (i > 1) {
+                                    deleteWhere.append(",");
+                                }
+                                deleteWhere.append("?");
+                                args[i++] = removedAttendee;
+                            }
+                            deleteWhere.append(")");
+                            b.withSelection(deleteWhere.toString(), args);
+                            ops.add(b.build());
+                        }
                     }
-                }
 
-                if (newAttendees.size() > 0) {
-                    // Insert the new attendees
-                    for (Attendee attendee : newAttendees.values()) {
-                        values.clear();
-                        values.put(Attendees.ATTENDEE_NAME, attendee.mName);
-                        values.put(Attendees.ATTENDEE_EMAIL, attendee.mEmail);
-                        values.put(Attendees.ATTENDEE_RELATIONSHIP,
+                    if (newAttendees.size() > 0) {
+                        // Insert the new attendees
+                        for (Attendee attendee : newAttendees.values()) {
+                            values.clear();
+                            values.put(Attendees.ATTENDEE_NAME, attendee.mName);
+                            values.put(Attendees.ATTENDEE_EMAIL, attendee.mEmail);
+                            values.put(Attendees.ATTENDEE_RELATIONSHIP,
                                 Attendees.RELATIONSHIP_ATTENDEE);
-                        values.put(Attendees.ATTENDEE_TYPE, attendee.mType);
-                        values.put(Attendees.ATTENDEE_STATUS, attendee.mStatus);
-                        values.put(Attendees.ATTENDEE_IDENTITY, attendee.mIdentity);
-                        values.put(Attendees.ATTENDEE_ID_NAMESPACE, attendee.mIdNamespace);
+                            values.put(Attendees.ATTENDEE_TYPE, attendee.mType);
+                            values.put(Attendees.ATTENDEE_STATUS, attendee.mStatus);
+                            values.put(Attendees.ATTENDEE_IDENTITY, attendee.mIdentity);
+                            values.put(Attendees.ATTENDEE_ID_NAMESPACE, attendee.mIdNamespace);
 
-                        if (newEvent) {
-                            b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
+                            if (newEvent) {
+                                b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
                                     .withValues(values);
-                            b.withValueBackReference(Attendees.EVENT_ID, eventIdIndex);
-                        } else {
-                            values.put(Attendees.EVENT_ID, eventId);
-                            b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
+                                b.withValueBackReference(Attendees.EVENT_ID, eventIdIndex);
+                            } else {
+                                values.put(Attendees.EVENT_ID, eventId);
+                                b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
                                     .withValues(values);
+                            }
+                            ops.add(b.build());
                         }
-                        ops.add(b.build());
                     }
                 }
             }
@@ -628,27 +621,6 @@ public class EditEventHelper {
                 Utils.UNDO_DELAY);
 
         return true;
-    }
-
-    public static LinkedHashSet<Rfc822Token> getAddressesFromList(String list,
-            Rfc822Validator validator) {
-        LinkedHashSet<Rfc822Token> addresses = new LinkedHashSet<Rfc822Token>();
-        Rfc822Tokenizer.tokenize(list, addresses);
-        if (validator == null) {
-            return addresses;
-        }
-
-        // validate the emails, out of paranoia. they should already be
-        // validated on input, but drop any invalid emails just to be safe.
-        Iterator<Rfc822Token> addressIterator = addresses.iterator();
-        while (addressIterator.hasNext()) {
-            Rfc822Token address = addressIterator.next();
-            if (!validator.isValid(address.getAddress())) {
-                Log.v(TAG, "Dropping invalid attendee email address: " + address.getAddress());
-                addressIterator.remove();
-            }
-        }
-        return addresses;
     }
 
     /**
@@ -846,30 +818,6 @@ public class EditEventHelper {
     }
 
     /**
-     * Compares two models to ensure that they refer to the same event. This is
-     * a safety check to make sure an updated event model refers to the same
-     * event as the original model. If the original model is null then this is a
-     * new event or we're forcing an overwrite so we return true in that case.
-     * The important identifiers are the Calendar Id and the Event Id.
-     *
-     * @return
-     */
-    public static boolean isSameEvent(CalendarEventModel model, CalendarEventModel originalModel) {
-        if (originalModel == null) {
-            return true;
-        }
-
-        if (model.mCalendarId != originalModel.mCalendarId) {
-            return false;
-        }
-        if (model.mId != originalModel.mId) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Saves the reminders, if they changed. Returns true if operations to
      * update the database were added.
      *
@@ -923,14 +871,15 @@ public class EditEventHelper {
      * @param reminders the array of reminders set by the user
      * @param originalReminders the original array of reminders
      * @param forceSave if true, then save the reminders even if they didn't change
-     * @return true if operations to update the database were added
      */
-    public static boolean saveRemindersWithBackRef(ArrayList<ContentProviderOperation> ops,
-            int eventIdIndex, ArrayList<ReminderEntry> reminders,
-            ArrayList<ReminderEntry> originalReminders, boolean forceSave) {
+    public static void saveRemindersWithBackRef(
+        ArrayList<ContentProviderOperation> ops, int eventIdIndex,
+        ArrayList<ReminderEntry> reminders, ArrayList<ReminderEntry> originalReminders,
+        boolean forceSave)
+    {
         // If the reminders have not changed, then don't update the database
         if (reminders.equals(originalReminders) && !forceSave) {
-            return false;
+            return;
         }
 
         // Delete all the existing reminders for this event
@@ -954,7 +903,6 @@ public class EditEventHelper {
             b.withValueBackReference(Reminders.EVENT_ID, eventIdIndex);
             ops.add(b.build());
         }
-        return true;
     }
 
     // It's the first event in the series if the start time before being
@@ -1000,97 +948,6 @@ public class EditEventHelper {
     }
 
     /**
-     * Uses the recurrence selection and the model data to build an rrule and
-     * write it to the model.
-     *
-     * @param selection the type of rrule
-     * @param model The event to update
-     * @param weekStart the week start day, specified as java.util.Calendar
-     * constants
-     */
-    static void updateRecurrenceRule(int selection, CalendarEventModel model,
-            int weekStart) {
-        // Make sure we don't have any leftover data from the previous setting
-        EventRecurrence eventRecurrence = new EventRecurrence();
-
-        if (selection == DOES_NOT_REPEAT) {
-            model.mRrule = null;
-            return;
-        } else if (selection == REPEATS_CUSTOM) {
-            // Keep custom recurrence as before.
-            return;
-        } else if (selection == REPEATS_DAILY) {
-            eventRecurrence.freq = EventRecurrence.DAILY;
-        } else if (selection == REPEATS_EVERY_WEEKDAY) {
-            eventRecurrence.freq = EventRecurrence.WEEKLY;
-            int dayCount = 5;
-            int[] byday = new int[dayCount];
-            int[] bydayNum = new int[dayCount];
-
-            byday[0] = EventRecurrence.MO;
-            byday[1] = EventRecurrence.TU;
-            byday[2] = EventRecurrence.WE;
-            byday[3] = EventRecurrence.TH;
-            byday[4] = EventRecurrence.FR;
-            for (int day = 0; day < dayCount; day++) {
-                bydayNum[day] = 0;
-            }
-
-            eventRecurrence.byday = byday;
-            eventRecurrence.bydayNum = bydayNum;
-            eventRecurrence.bydayCount = dayCount;
-        } else if (selection == REPEATS_WEEKLY_ON_DAY) {
-            eventRecurrence.freq = EventRecurrence.WEEKLY;
-            int[] days = new int[1];
-            int dayCount = 1;
-            int[] dayNum = new int[dayCount];
-            Time startTime = new Time(model.mTimezoneStart);
-            startTime.set(model.mStart);
-
-            days[0] = EventRecurrence.timeDay2Day(startTime.weekDay);
-            // not sure why this needs to be zero, but set it for now.
-            dayNum[0] = 0;
-
-            eventRecurrence.byday = days;
-            eventRecurrence.bydayNum = dayNum;
-            eventRecurrence.bydayCount = dayCount;
-        } else if (selection == REPEATS_MONTHLY_ON_DAY) {
-            eventRecurrence.freq = EventRecurrence.MONTHLY;
-            eventRecurrence.bydayCount = 0;
-            eventRecurrence.bymonthdayCount = 1;
-            int[] bymonthday = new int[1];
-            Time startTime = new Time(model.mTimezoneStart);
-            startTime.set(model.mStart);
-            bymonthday[0] = startTime.monthDay;
-            eventRecurrence.bymonthday = bymonthday;
-        } else if (selection == REPEATS_MONTHLY_ON_DAY_COUNT) {
-            eventRecurrence.freq = EventRecurrence.MONTHLY;
-            eventRecurrence.bydayCount = 1;
-            eventRecurrence.bymonthdayCount = 0;
-
-            int[] byday = new int[1];
-            int[] bydayNum = new int[1];
-            Time startTime = new Time(model.mTimezoneStart);
-            startTime.set(model.mStart);
-            // Compute the week number (for example, the "2nd" Monday)
-            int dayCount = 1 + ((startTime.monthDay - 1) / 7);
-            if (dayCount == 5) {
-                dayCount = -1;
-            }
-            bydayNum[0] = dayCount;
-            byday[0] = EventRecurrence.timeDay2Day(startTime.weekDay);
-            eventRecurrence.byday = byday;
-            eventRecurrence.bydayNum = bydayNum;
-        } else if (selection == REPEATS_YEARLY) {
-            eventRecurrence.freq = EventRecurrence.YEARLY;
-        }
-
-        // Set the week start day.
-        eventRecurrence.wkst = EventRecurrence.calendarDay2Day(weekStart);
-        model.mRrule = eventRecurrence.toString();
-    }
-
-    /**
      * Uses an event cursor to fill in the given model This method assumes the
      * cursor used {@link #EVENT_PROJECTION} as it's query projection. It uses
      * the cursor to fill in the given model with all the information available.
@@ -1100,7 +957,8 @@ public class EditEventHelper {
      */
     public static void setModelFromCursor(CalendarEventModel model, Cursor cursor) {
         if (model == null || cursor == null || cursor.getCount() != 1) {
-            Log.wtf(TAG, "Attempted to build non-existent model or from an incorrect query.");
+            Log.wtf(TAG,
+                "Attempted to build non-existent model or from an incorrect query.");
             return;
         }
 
@@ -1168,22 +1026,21 @@ public class EditEventHelper {
      *
      * @param model The model to fill in
      * @param cursor An event cursor that used {@link #CALENDARS_PROJECTION} for the query
-     * @return returns true if model was updated with the info in the cursor.
      */
-    public static boolean setModelFromCalendarCursor(CalendarEventModel model, Cursor cursor) {
+    public static void setModelFromCalendarCursor(CalendarEventModel model, Cursor cursor) {
         if (model == null || cursor == null) {
             Log.wtf(TAG, "Attempted to build non-existent model or from an incorrect query.");
-            return false;
+            return;
         }
 
         if (model.mCalendarId == -1) {
-            return false;
+            return;
         }
 
         if (!model.mModelUpdatedWithEventCursor) {
             Log.wtf(TAG,
                     "Can't update model with a Calendar cursor until it has seen an Event cursor.");
-            return false;
+            return;
         }
 
         cursor.moveToPosition(-1);
@@ -1202,15 +1059,13 @@ public class EditEventHelper {
             model.mCalendarAccountName = cursor.getString(CALENDARS_INDEX_ACCOUNT_NAME);
             model.mCalendarAccountType = cursor.getString(CALENDARS_INDEX_ACCOUNT_TYPE);
 
-            model.mCalendarMaxReminders = cursor.getInt(CALENDARS_INDEX_MAX_REMINDERS);
             model.mCalendarAllowedAttendeeTypes = cursor
                     .getString(CALENDARS_INDEX_ALLOWED_ATTENDEE_TYPES);
             model.mCalendarAllowedAvailability = cursor
                     .getString(CALENDARS_INDEX_ALLOWED_AVAILABILITY);
 
-            return true;
+            return;
        }
-       return false;
     }
 
     public static boolean canModifyEvent(CalendarEventModel model) {
@@ -1253,11 +1108,7 @@ public class EditEventHelper {
 
         // This means we don't have the attendees data so we can't send
         // the list of attendees and the status back to the server
-        if (model.mHasAttendeeData && model.mAttendeesList.size() == 0) {
-            return false;
-        }
-
-        return true;
+        return !model.mHasAttendeeData || model.mAttendeesList.size() != 0;
     }
 
     /**
@@ -1427,18 +1278,7 @@ public class EditEventHelper {
         model.mEnd = newEndTime;
     }
 
-    /**
-     * Takes an e-mail address and returns the domain (everything after the last @)
-     */
-    public static String extractDomain(String email) {
-        int separator = email.lastIndexOf('@');
-        if (separator != -1 && ++separator < email.length()) {
-            return email.substring(separator);
-        }
-        return null;
-    }
-
     public interface EditDoneRunnable extends Runnable {
-        public void setDoneCode(int code);
+        void setDoneCode(int code);
     }
 }

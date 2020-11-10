@@ -56,9 +56,8 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
     private static final long ANIMATE_TODAY_TIMEOUT = 1000;
     // Used to insure minimal time for seeing the click animation before switching views
     private static final int mOnTapDelay = 100;
-    protected static int DEFAULT_QUERY_DAYS = 7 * 8; // 8 weeks
-    // Minimal time for a down touch action before stating the click animation, this insures that
-    // there is no click animation on flings
+    // Minimal time for a down touch action before stating the click animation,
+    // this insures that there is no click animation on flings
     private static int mOnDownDelay;
     private static int mTotalClickDelay;
     // Minimal distance to move the finger in order to cancel the click animation
@@ -72,7 +71,7 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
     protected int mQueryDays;
     protected boolean mIsMiniMonth = true;
     protected int mOrientation = Configuration.ORIENTATION_LANDSCAPE;
-    protected ArrayList<ArrayList<Event>> mEventDayList = new ArrayList<ArrayList<Event>>();
+    protected ArrayList<ArrayList<Event>> mEventDayList = new ArrayList<>();
     protected ArrayList<Event> mEvents = null;
     // Synchronisation object needs to be final, but mClickedView is modified
     private final Object mClickedViewSync = new Object();
@@ -193,7 +192,7 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
         mQueryDays = numDays;
         // Create a new list, this is necessary since the weeks are referencing
         // pieces of the old list
-        ArrayList<ArrayList<Event>> eventDayList = new ArrayList<ArrayList<Event>>();
+        ArrayList<ArrayList<Event>> eventDayList = new ArrayList<>();
         for (int i = 0; i < numDays; i++) {
             eventDayList.add(new ArrayList<Event>());
         }
@@ -272,7 +271,7 @@ public class MonthByWeekAdapter extends SimpleWeeksAdapter {
             v = new MonthWeekEventsView(mContext);
         }
         if (drawingParams == null) {
-            drawingParams = new HashMap<String, Integer>();
+            drawingParams = new HashMap<>();
         }
         drawingParams.clear();
 

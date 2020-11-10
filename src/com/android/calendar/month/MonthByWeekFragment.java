@@ -158,8 +158,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
     private Uri updateUri() {
         SimpleWeekView child = (SimpleWeekView) mListView.getChildAt(0);
         if (child != null) {
-            int julianDay = child.getFirstJulianDay();
-            mFirstLoadedJulianDay = julianDay;
+            mFirstLoadedJulianDay = child.getFirstJulianDay();
         }
         // -1 to ensure we get all day events from any time zone
         mTempTime.setJulianDay(mFirstLoadedJulianDay - 1);
@@ -250,7 +249,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
         mFirstDayOfWeek = Utils.getFirstDayOfWeek(mContext);
         mShowWeekNumber = Utils.getShowWeekNumber(mContext);
 
-        HashMap<String, Integer> weekParams = new HashMap<String, Integer>();
+        HashMap<String, Integer> weekParams = new HashMap<>();
         weekParams.put(SimpleWeeksAdapter.WEEK_PARAMS_NUM_WEEKS, mNumWeeks);
         weekParams.put(SimpleWeeksAdapter.WEEK_PARAMS_SHOW_WEEK, mShowWeekNumber ? 1 : 0);
         weekParams.put(SimpleWeeksAdapter.WEEK_PARAMS_WEEK_START, mFirstDayOfWeek);
@@ -373,7 +372,7 @@ public class MonthByWeekFragment extends SimpleDayPickerFragment implements
                 // result
                 return;
             }
-            ArrayList<Event> events = new ArrayList<Event>();
+            ArrayList<Event> events = new ArrayList<>();
             Event.buildEventsFromCursor(
                     events, data, mContext, mFirstLoadedJulianDay, mLastLoadedJulianDay);
             ((MonthByWeekAdapter) mAdapter).setEvents(mFirstLoadedJulianDay,

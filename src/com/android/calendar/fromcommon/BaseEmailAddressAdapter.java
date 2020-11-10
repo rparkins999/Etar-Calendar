@@ -29,7 +29,6 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-import android.provider.CalendarContract;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.Contacts;
@@ -114,8 +113,8 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
 
     private static class EmailQuery {
         public static final String[] PROJECTION = {
-            Contacts.DISPLAY_NAME,  // 0
-            Email.DATA              // 1
+            Contacts.DISPLAY_NAME,
+            Email.DATA,
         };
         // This looks a bit messy, but it makes the compiler do the work
         // and avoids the maintenance burden of keeping track of the indices by hand.
@@ -188,7 +187,8 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
                     builder.appendQueryParameter(PRIMARY_ACCOUNT_TYPE, mAccount.type);
                 }
                 Uri uri = builder.build();
-                cursor = mContentResolver.query(uri, EmailQuery.PROJECTION, null, null, null);
+                cursor = mContentResolver.query(uri, EmailQuery.PROJECTION,
+                    null, null, null);
                 results.count = cursor.getCount();
             }
             results.values = new Cursor[] { directoryCursor, cursor };
@@ -241,9 +241,8 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
                         .appendQueryParameter(LIMIT_PARAM_KEY,
                                 String.valueOf(getLimit() + ALLOWANCE_FOR_DUPLICATES))
                         .build();
-                Cursor cursor = mContentResolver.query(
-                        uri, EmailQuery.PROJECTION, null, null, null);
-                results.values = cursor;
+                results.values = mContentResolver.query(uri, EmailQuery.PROJECTION,
+                    null, null, null);
             }
             return results;
         }
@@ -374,7 +373,7 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
         if (directoryCursor != null) {
             PackageManager packageManager = getContext().getPackageManager();
             DirectoryPartition preferredDirectory = null;
-            List<DirectoryPartition> directories = new ArrayList<DirectoryPartition>();
+            List<DirectoryPartition> directories = new ArrayList<>();
             while (directoryCursor.moveToNext()) {
                 long id = directoryCursor.getLong(DirectoryListQuery.ID);
 
@@ -396,11 +395,7 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
                         Resources resources =
                                 packageManager.getResourcesForApplication(packageName);
                         partition.directoryType = resources.getString(resourceId);
-                        if (partition.directoryType == null) {
-                            Log.e(TAG, "Cannot resolve directory name: "
-                                    + resourceId + "@" + packageName);
-                        }
-                    } catch (NameNotFoundException e) {
+                   } catch (NameNotFoundException | Resources.NotFoundException e) {
                         Log.e(TAG, "Cannot resolve directory name: "
                                 + resourceId + "@" + packageName, e);
                     }
@@ -427,7 +422,7 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
         }
 
         int count = getPartitionCount();
-        int limit = 0;
+        int limit;
 
         // Since we will be changing several partitions at once, hold the data change
         // notifications
@@ -592,7 +587,7 @@ public abstract class BaseEmailAddressAdapter extends CompositeCursorAdapter imp
         return false;
     }
 
-    private final String makeDisplayString(Cursor cursor) {
+    private String makeDisplayString(Cursor cursor) {
         if (cursor.getColumnName(0).equals(SEARCHING_CURSOR_MARKER)) {
             return "";
         }

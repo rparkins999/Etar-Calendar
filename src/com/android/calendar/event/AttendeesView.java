@@ -29,7 +29,6 @@ package com.android.calendar.event;
  import android.graphics.Paint;
  import android.graphics.drawable.Drawable;
  import android.net.Uri;
- import android.provider.CalendarContract;
  import android.provider.CalendarContract.Attendees;
  import android.provider.ContactsContract.CommonDataKinds.Email;
  import android.provider.ContactsContract.CommonDataKinds.Identity;
@@ -259,7 +258,7 @@ public class AttendeesView extends LinearLayout implements View.OnClickListener 
         // The updateAtendeeView will use the saved photo instead of the default badg
         // thus prevent switching between the two while the
         // most current photo is loaded in the background.
-        mRecycledPhotos = new HashMap<String, Drawable>  ();
+        mRecycledPhotos = new HashMap<>();
         final int size = getChildCount();
         for (int i = 0; i < size; i++) {
             final View view = getChildAt(i);

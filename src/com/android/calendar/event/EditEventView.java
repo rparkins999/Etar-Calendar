@@ -40,12 +40,10 @@ import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 import android.provider.Settings;
-import android.text.InputFilter;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.text.format.Time;
-import android.text.util.Rfc822Tokenizer;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -62,7 +60,6 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.LinearLayout;
-import android.widget.MultiAutoCompleteTextView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ResourceCursorAdapter;
@@ -77,16 +74,12 @@ import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
 import com.android.calendar.EventInfoFragment;
 import com.android.calendar.EventRecurrenceFormatter;
-import com.android.calendar.RecipientAdapter;
 import com.android.calendar.Utils;
 import com.android.calendar.event.EditEventHelper.EditDoneRunnable;
-import com.android.calendar.fromcommon.Rfc822InputFilter;
 import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendar.recurrencepicker.RecurrencePickerDialog;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendarcommon2.EventRecurrence;
-import com.android.ex.chips.BaseRecipientAdapter;
-import com.android.ex.chips.RecipientEditTextView;
 import com.android.timezonepicker.TimeZoneInfo;
 import com.android.timezonepicker.TimeZonePickerDialog;
 import com.android.timezonepicker.TimeZonePickerUtils;
@@ -111,15 +104,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
     private static final String FRAG_TAG_TIME_ZONE_PICKER = "timeZonePickerDialogFragment";
     private static final String FRAG_TAG_RECUR_PICKER = "recurrencePickerDialogFragment";
-    private static StringBuilder mSB = new StringBuilder(50);
-    private static Formatter mF = new Formatter(mSB, Locale.getDefault());
-    /**
-     * From com.google.android.gm.ComposeActivity Implements special address
-     * cleanup rules: The first space key entry following an "@" symbol that is
-     * followed by any combination of letters and symbols, including one+ dots
-     * and zero commas, should insert an extra comma (followed by the space).
-     */
-    private static InputFilter[] sRecipientFilters = new InputFilter[]{new Rfc822InputFilter()};
+    private static final StringBuilder mSB = new StringBuilder(50);
+    private static final Formatter mF = new Formatter(mSB, Locale.getDefault());
     public boolean mIsMultipane;
     ArrayList<View> mEditOnlyList = new ArrayList<>();
     ArrayList<View> mEditViewList = new ArrayList<>();
@@ -164,16 +150,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     View mAttendeesGroup;
     View mStartHomeGroup;
     View mEndHomeGroup;
-    private int[] mOriginalPadding = new int[4];
+    private final int[] mOriginalPadding = new int[4];
     private ProgressDialog mLoadingCalendarsDialog;
     private AlertDialog mNoCalendarsDialog;
 
-    private Activity mActivity;
-    private EditDoneRunnable mDone;
-    private View mView;
+    private final Activity mActivity;
+    private final EditDoneRunnable mDone;
+    private final View mView;
     private CalendarEventModel mModel;
     private Cursor mCalendarsCursor;
-    private Rfc822Validator mEmailValidator;
+    private final Rfc822Validator mEmailValidator;
     private TimePickerDialog mStartTimePickerDialog;
     private TimePickerDialog mEndTimePickerDialog;
     private DatePickerDialog mDatePickerDialog;
@@ -185,8 +171,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private ArrayList<String> mReminderMinuteLabels;
     /**
      * Contents of the "methods" spinner.  The "values" list specifies the method constant
-     * (e.g. {@link Reminders#METHOD_ALERT}) associated with the labels.  Any methods that
-     * aren't allowed by the Calendar will be removed.
+     * (e.g. {@link Reminders#METHOD_ALERT}) associated with the labels.
      */
     private ArrayList<Integer> mReminderMethodValues;
     private ArrayList<String> mReminderMethodLabels;
@@ -203,14 +188,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private int mDefaultReminderMinutes;
     private boolean mSaveAfterQueryComplete = false;
     private TimeZonePickerUtils mTzPickerUtils;
-    private Time mStartTime;
-    private Time mEndTime;
+    private final Time mStartTime;
+    private final Time mEndTime;
     private String mTimezone;
     private boolean mAllDay = false;
     private int mModification = EditEventHelper.MODIFY_UNINITIALIZED;
-    private EventRecurrence mEventRecurrence = new EventRecurrence();
-    private ArrayList<LinearLayout> mReminderItems = new ArrayList<>(0);
-    private ArrayList<ReminderEntry> mUnsupportedReminders = new ArrayList<>();
+    private final EventRecurrence mEventRecurrence = new EventRecurrence();
+    private final ArrayList<LinearLayout> mReminderItems = new ArrayList<>(0);
+    private final ArrayList<ReminderEntry> mUnsupportedReminders = new ArrayList<>();
     private String mRrule;
 
     public EditEventView(Activity activity, View view, EditDoneRunnable done) {
@@ -532,8 +517,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         parent.removeView(reminderItem);
         mReminderItems.remove(reminderItem);
         updateRemindersVisibility(mReminderItems.size());
-        EventViewUtils.updateAddReminderButton(
-            mView, mReminderItems, mModel.mCalendarMaxReminders);
     }
 
     @Override
@@ -736,18 +719,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mReminderMethodValues = loadIntegerArray(r, R.array.reminder_methods_values);
         mReminderMethodLabels = loadStringArray(r, R.array.reminder_methods_labels);
 
-        /* Don't do this. We want to display the reminders even if Android can't do
-          them. TODO maybe in a different colour or something like that
-
-        // Remove any reminder methods that aren't allowed for this calendar.  If this is
-        // a new event, mCalendarAllowedReminders may not be set
-        // the first time we're called.
-        if (mModel.mCalendarAllowedReminders != null) {
-            EventViewUtils.reduceMethodList(mReminderMethodValues, mReminderMethodLabels,
-                    mModel.mCalendarAllowedReminders);
-        } */
-
-        int numReminders = 0;
+       int numReminders = 0;
         if (model.mHasAlarm) {
             ArrayList<ReminderEntry> reminders = model.mReminders;
             numReminders = reminders.size();
@@ -760,8 +732,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
 
             // Create a UI element for each reminder.  We display all of the reminders
-            // we get from the provider, even if the count exceeds the calendar maximum.
-            // (Also, for a new event, we won't have a maxReminders value available.)
+            // we get from the provider.
+            // We don't bother about Calendars.MAX_REMINDERS: Some calendars have
+            // a value other than Integer.MAX_VALUE, but noen of them enforces it.
             //FIXME Why don't we set up a reminderChangedListener
             mUnsupportedReminders.clear();
             for (ReminderEntry re : reminders) {
@@ -771,7 +744,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                         mActivity, mScrollView, this, mReminderItems,
                         mReminderMinuteValues, mReminderMinuteLabels,
                         mReminderMethodValues, mReminderMethodLabels,
-                        re, Integer.MAX_VALUE, null);
+                        re, null);
                 } else {
                     // TODO figure out a way to display unsupported reminders
                     mUnsupportedReminders.add(re);
@@ -780,8 +753,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
 
         updateRemindersVisibility(numReminders);
-        EventViewUtils.updateAddReminderButton(
-            mView, mReminderItems, mModel.mCalendarMaxReminders);
+        View reminderAddButton = mView.findViewById(R.id.reminder_add);
+        if (reminderAddButton != null) {
+            reminderAddButton.setEnabled(true);
+            reminderAddButton.setVisibility(View.VISIBLE);
+        }
     }
 
     /**
@@ -835,7 +811,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mAttendeesGroup.setVisibility(View.GONE);
         }
 
-        mAllDayCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        mAllDayCheckBox.setOnCheckedChangeListener(
+            new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 setAllDayViewsVisibility(isChecked);
@@ -982,9 +959,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     private void sendAccessibilityEvent() {
-        AccessibilityManager am =
-            (AccessibilityManager) mActivity.getSystemService(Service.ACCESSIBILITY_SERVICE);
-        if (!am.isEnabled() || mModel == null) {
+        AccessibilityManager am = (AccessibilityManager) mActivity.getSystemService(
+                Service.ACCESSIBILITY_SERVICE);
+        if ((am == null) || (!am.isEnabled()) || (mModel == null)) {
             return;
         }
         StringBuilder b = new StringBuilder();
@@ -1007,20 +984,21 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         if (v instanceof TextView) {
             CharSequence tv = ((TextView) v).getText();
             if (!TextUtils.isEmpty(tv.toString().trim())) {
-                b.append(tv + PERIOD_SPACE);
+                b.append(tv).append(PERIOD_SPACE);
             }
         } else if (v instanceof RadioGroup) {
             RadioGroup rg = (RadioGroup) v;
             int id = rg.getCheckedRadioButtonId();
             if (id != View.NO_ID) {
-                b.append(((RadioButton) (v.findViewById(id))).getText() + PERIOD_SPACE);
+                b.append(((RadioButton) (v.findViewById(id))).getText())
+                    .append(PERIOD_SPACE);
             }
         } else if (v instanceof Spinner) {
             Spinner s = (Spinner) v;
             if (s.getSelectedItem() instanceof String) {
                 String str = ((String) (s.getSelectedItem())).trim();
                 if (!TextUtils.isEmpty(str)) {
-                    b.append(str + PERIOD_SPACE);
+                    b.append(str).append(PERIOD_SPACE);
                 }
             }
         } else if (v instanceof ViewGroup) {
@@ -1113,7 +1091,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             } else if (Log.isLoggable(TAG, Log.DEBUG)) {
                 Log.d(TAG, "SetCalendarsCursor:Save failed and unable to exit view");
             }
-            return;
         }
     }
 
@@ -1293,29 +1270,15 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     mReminderMinuteValues, mReminderMinuteLabels,
                     mReminderMethodValues, mReminderMethodLabels,
                     ReminderEntry.valueOf(GeneralPreferences.REMINDER_DEFAULT_TIME),
-                    mModel.mCalendarMaxReminders, null);
+                null);
         } else {
             EventViewUtils.addReminder(mActivity, mScrollView, this, mReminderItems,
                     mReminderMinuteValues, mReminderMinuteLabels,
                     mReminderMethodValues, mReminderMethodLabels,
                     ReminderEntry.valueOf(mDefaultReminderMinutes),
-                    mModel.mCalendarMaxReminders, null);
+                null);
         }
         updateRemindersVisibility(mReminderItems.size());
-        EventViewUtils.updateAddReminderButton(mView, mReminderItems, mModel.mCalendarMaxReminders);
-    }
-
-    // From com.google.android.gm.ComposeActivity
-    private MultiAutoCompleteTextView initMultiAutoCompleteTextView(RecipientEditTextView list) {
-        list.setAdapter((BaseRecipientAdapter) new RecipientAdapter(mActivity));
-        list.setOnFocusListShrinkRecipients(false);
-        list.setTokenizer(new Rfc822Tokenizer());
-        list.setValidator(mEmailValidator);
-
-        // NOTE: assumes no other filters are set
-        list.setFilters(sRecipientFilters);
-
-        return list;
     }
 
     private void setDate(TextView view, long millis) {
@@ -1363,7 +1326,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     /**
-     * @param isChecked
+     * @param isChecked true if the All Day button is now checked
      */
     protected void setAllDayViewsVisibility(boolean isChecked) {
         if (isChecked) {
@@ -1450,8 +1413,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        // This is only used for the Calendar spinner in new events, and only fires when the
-        // calendar selection changes or on screen rotation
+        // This is only used for the Calendar spinner in new events,
+        // and only fires when the calendar selection changes or on screen rotation
         Cursor c = (Cursor) parent.getItemAtPosition(position);
         if (c == null) {
             // TODO: can this happen? should we drop this check?
@@ -1485,8 +1448,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         setColorPickerButtonStates(mModel.getCalendarEventColors());
 
         // Update the max/allowed reminders with the new calendar properties.
-        int maxRemindersColumn = c.getColumnIndexOrThrow(Calendars.MAX_REMINDERS);
-        mModel.mCalendarMaxReminders = c.getInt(maxRemindersColumn);
         int allowedAttendeeTypesColumn
             = c.getColumnIndexOrThrow(Calendars.ALLOWED_ATTENDEE_TYPES);
         mModel.mCalendarAllowedAttendeeTypes = c.getString(allowedAttendeeTypesColumn);
@@ -1503,7 +1464,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 mReminderMinuteValues, mReminderMinuteLabels,
                 mReminderMethodValues, mReminderMethodLabels,
                 ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()),
-                mModel.mCalendarMaxReminders, null);
+                null);
         }
         mModel.mHasAlarm = mModel.mReminders.size() != 0;
 
@@ -1568,7 +1529,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             time.setLength(0);
             mSB.setLength(0);
             time.append(DateUtils.formatDateRange(
-                    mActivity, mF, millisEnd, millisEnd, flags, tz)).append(" ").append(tzDisplay);
+                    mActivity, mF, millisEnd, millisEnd, flags, tz))
+                .append(" ").append(tzDisplay);
             mEndTimeHome.setText(time.toString());
 
             flags = DateUtils.FORMAT_ABBREV_ALL | DateUtils.FORMAT_SHOW_DATE
@@ -1622,7 +1584,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
     /* This class is used to update the time buttons. */
     private class TimeListener implements TimePickerDialog.OnTimeSetListener {
-        private View mView;
+        private final View mView;
 
         public TimeListener(View view) {
             mView = view;
@@ -1678,7 +1640,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     private class TimeClickListener implements View.OnClickListener {
-        private Time mTime;
+        private final Time mTime;
 
         public TimeClickListener(Time time) {
             mTime = time;
@@ -1777,7 +1739,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     private class DateClickListener implements View.OnClickListener {
-        private Time mTime;
+        private final Time mTime;
 
         public DateClickListener(Time time) {
             mTime = time;

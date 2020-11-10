@@ -248,7 +248,6 @@ public class EventInfoFragment extends DialogFragment
         Events.HAS_ATTENDEE_DATA,
         Events.ORGANIZER,
         Events.HAS_ALARM,
-        Calendars.MAX_REMINDERS,
         Calendars.ALLOWED_REMINDERS,
         Events.CUSTOM_APP_PACKAGE,
         Events.CUSTOM_APP_URI,
@@ -289,8 +288,6 @@ public class EventInfoFragment extends DialogFragment
         eventProjection.indexOf(Events.ORGANIZER);
     private static final int EVENT_INDEX_HAS_ALARM =
         eventProjection.indexOf(Events.HAS_ALARM);
-    private static final int EVENT_INDEX_MAX_REMINDERS =
-        eventProjection.indexOf(Calendars.MAX_REMINDERS);
     private static final int EVENT_INDEX_ALLOWED_REMINDERS =
         eventProjection.indexOf(Calendars.ALLOWED_REMINDERS);
     private static final int EVENT_INDEX_CUSTOM_APP_PACKAGE =
@@ -374,7 +371,6 @@ public class EventInfoFragment extends DialogFragment
     private int mTentativeUserSetResponse = Attendees.ATTENDEE_STATUS_NONE;
     private boolean mIsRepeating;
     private boolean mHasAlarm;
-    private int mMaxReminders;
     private String mCalendarAllowedReminders;
     // Used to prevent saving changes in event if it is being deleted.
     private boolean mEventDeletionStarted = false;
@@ -986,7 +982,6 @@ public class EventInfoFragment extends DialogFragment
         // we've explicitly been provided reminders (e.g. during rotation).
         mHasAlarm =    (mEventCursor.getInt(EVENT_INDEX_HAS_ALARM) == 1)
                     || (mReminders != null && mReminders.size() > 0);
-        mMaxReminders = mEventCursor.getInt(EVENT_INDEX_MAX_REMINDERS);
         mCalendarAllowedReminders =  mEventCursor.getString(EVENT_INDEX_ALLOWED_REMINDERS);
         return false;
     }
@@ -1674,8 +1669,6 @@ public class EventInfoFragment extends DialogFragment
             ApplicationInfo info;
             try {
                 info = pm.getApplicationInfo(customAppPackage, 0);
-                if (info == null)
-                    break buttonSetup;
             } catch (NameNotFoundException e) {
                 break buttonSetup;
             }
@@ -1692,19 +1685,14 @@ public class EventInfoFragment extends DialogFragment
                 break buttonSetup;
 
             Drawable icon = pm.getApplicationIcon(info);
-            if (icon != null) {
 
-                Drawable[] d = launchButton.getCompoundDrawables();
-                icon.setBounds(0, 0, mCustomAppIconSize, mCustomAppIconSize);
-                launchButton.setCompoundDrawables(icon, d[1], d[2], d[3]);
-            }
+            Drawable[] d = launchButton.getCompoundDrawables();
+            icon.setBounds(0, 0, mCustomAppIconSize, mCustomAppIconSize);
+            launchButton.setCompoundDrawables(icon, d[1], d[2], d[3]);
 
             CharSequence label = pm.getApplicationLabel(info);
-            if (label != null && label.length() != 0) {
+            if (label.length() != 0) {
                 launchButton.setText(label);
-            } else if (icon == null) {
-                // No icon && no label. Hide button?
-                break buttonSetup;
             }
 
             // Launch custom app
@@ -1731,7 +1719,7 @@ public class EventInfoFragment extends DialogFragment
     private void sendAccessibilityEvent() {
         AccessibilityManager am = (AccessibilityManager)
             getActivity().getSystemService(Service.ACCESSIBILITY_SERVICE);
-        if (!am.isEnabled()) {
+        if ((am == null) || !am.isEnabled()) {
             return;
         }
 
@@ -1980,9 +1968,7 @@ public class EventInfoFragment extends DialogFragment
         if (parent != null) {
             parent.removeAllViews();
         }
-        if (mReminderViews != null) {
-            mReminderViews.clear();
-        }
+        mReminderViews.clear();
 
         if (mHasAlarm) {
             ArrayList<ReminderEntry> reminders;
@@ -1999,17 +1985,12 @@ public class EventInfoFragment extends DialogFragment
                     mReminderMinuteLabels, re.getMinutes());
             }
             // Create a UI element for each reminder.
-            // We display all of the reminders we get from the provider,
-            // even if the count exceeds the calendar maximum.
-            // (Also, for a new event, we won't have a maxReminders value available.)
             for (ReminderEntry re : reminders) {
                 EventViewUtils.addReminder(
                     mActivity, mScrollView, this, mReminderViews,
                     mReminderMinuteValues, mReminderMinuteLabels, mReminderMethodValues,
-                    mReminderMethodLabels, re, Integer.MAX_VALUE, mReminderChangeListener);
+                    mReminderMethodLabels, re, mReminderChangeListener);
             }
-            EventViewUtils.updateAddReminderButton(mView, mReminderViews, mMaxReminders);
-            // TODO show unsupported reminder types in some fashion.
         }
     }
 
@@ -2137,7 +2118,6 @@ public class EventInfoFragment extends DialogFragment
         parent.removeView(reminderItem);
         mReminderViews.remove(reminderItem);
         mUserModifiedReminders = true;
-        EventViewUtils.updateAddReminderButton(mView, mReminderViews, mMaxReminders);
     }
 
     /**
@@ -2153,26 +2133,26 @@ public class EventInfoFragment extends DialogFragment
                 mReminderMinuteValues, mReminderMinuteLabels,
                 mReminderMethodValues, mReminderMethodLabels,
                 ReminderEntry.valueOf(GeneralPreferences.REMINDER_DEFAULT_TIME),
-                mMaxReminders, mReminderChangeListener);
+                mReminderChangeListener);
         } else {
             EventViewUtils.addReminder(
                 mActivity, mScrollView, this, mReminderViews,
                 mReminderMinuteValues, mReminderMinuteLabels, mReminderMethodValues,
                 mReminderMethodLabels, ReminderEntry.valueOf(mDefaultReminderMinutes),
-                mMaxReminders, mReminderChangeListener);
+                mReminderChangeListener);
         }
-
-        EventViewUtils.updateAddReminderButton(mView, mReminderViews, mMaxReminders);
     }
 
     synchronized private void prepareReminders() {
         // Nothing to do if we've already built these lists _and_ we aren't
         // removing not allowed methods
-        if (mReminderMinuteValues != null && mReminderMinuteLabels != null
-                && mReminderMethodValues != null && mReminderMethodLabels != null
-                && mCalendarAllowedReminders == null) {
-            return;
-        }
+        if (   (mReminderMinuteValues != null)
+            && (mReminderMinuteLabels != null)
+            && (mReminderMethodValues != null)
+            && (mReminderMethodLabels != null)
+            && (mCalendarAllowedReminders == null))
+        {  return; }
+
         // Load the labels and corresponding numeric values for the minutes
         // and methods lists from the assets.  If we're switching calendars,
         // we need to clear and re-populate the lists

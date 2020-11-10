@@ -95,8 +95,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private static final String TAG = "EditEventActivity";
     private static final String COLOR_PICKER_DIALOG_TAG = "ColorPickerDialog";
 
-    private static final int REQUEST_CODE_COLOR_PICKER = 0;
-
     private static final String BUNDLE_KEY_MODEL = "key_model";
     private static final String BUNDLE_KEY_EDIT_STATE = "key_edit_state";
     private static final String BUNDLE_KEY_EVENT = "key_event";
@@ -105,8 +103,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private static final String BUNDLE_KEY_SHOW_COLOR_PALETTE = "show_color_palette";
     private static final String BUNDLE_KEY_DELETE_DIALOG_VISIBLE =
         "key_delete_dialog_visible";
-
-    private static final String BUNDLE_KEY_DATE_BUTTON_CLICKED = "date_button_clicked";
 
     private static final boolean DEBUG = false;
 
@@ -137,11 +133,11 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private EventBundle mEventBundle;
     private ArrayList<ReminderEntry> mReminders;
     private int mEventColor;
-    private boolean mEventColorInitialized = false;
+    private boolean mEventColorInitialized;
     private EventColorPickerDialog mColorPickerDialog;
     private AppCompatActivity mActivity;
     private boolean mSaveOnDetach = true;
-    private boolean mIsReadOnly = false;
+    private boolean mIsReadOnly;
     private boolean mShowColorPalette = false;
     private DeleteEventHelper mDeleteHelper;
     private boolean mIsPaused = true;
@@ -271,7 +267,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             onActionBarItemSelected(v.getId());
         }
     };
-    private View.OnClickListener mOnColorPickerClicked = new View.OnClickListener() {
+    private final View.OnClickListener mOnColorPickerClicked = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             int[] colors = mModel.getCalendarEventColors();
@@ -338,7 +334,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         mActivity = (AppCompatActivity) activity;
-        mHelper = new EditEventHelper(activity, null);
+        mHelper = new EditEventHelper(activity);
         mHandler = new QueryHandler(activity.getContentResolver());
         mInputMethodManager = (InputMethodManager)
             activity.getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -723,6 +719,18 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
      *
      * @param itemId the button or menu item id
      * @return whether the event was handled here
+     *
+     * for recurring events, we need to test these cases:-
+     * make non-recurring event recurring
+     * make recurring event non-recurring
+     * try to make non-first occurrence of recurring event non-recurring
+     * delete recurring event
+     * delete first ocurrence of recurring event
+     * delete internal occurrence of recurring event
+     * delete last occurrence of recurring event
+     * modify first occurrence of  recurring event
+     * modify internal occurrence of recurring event
+     * modify last occurrence of recurring event
      */
     private boolean onActionBarItemSelected(int itemId) {
         if (   (itemId == R.id.action_cancel)
@@ -831,7 +839,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
 
             // Do one more check to make sure this remains at the end of the list
             if (!isFirstEventInSeries) {
-                items[itemIndex++] = mActivity.getText(R.string.modify_all_following);
+                items[itemIndex] = mActivity.getText(R.string.modify_all_following);
             }
 
             // Display the modification dialog.

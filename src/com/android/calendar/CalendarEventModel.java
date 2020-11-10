@@ -38,6 +38,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import ws.xsoh.etar.R;
@@ -110,12 +111,6 @@ public class CalendarEventModel implements Serializable {
     private boolean mCalendarColorInitialized = false;
     public String mCalendarAccountName;
     public String mCalendarAccountType;
-    public int mCalendarMaxReminders;
-    // The original code removed any reminders not allowed for the calendar.
-    // However this is a mistake: even if this device cannot do some types
-    // of reminder, we may export an ICS file to, or synchronise with,
-    // a device which can.
-    // public String mCalendarAllowedReminders;
     public String mCalendarAllowedAttendeeTypes;
     public String mCalendarAllowedAvailability;
     public int mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
@@ -197,7 +192,6 @@ public class CalendarEventModel implements Serializable {
         mCalendarColorInitialized = other.mCalendarColorInitialized;
         mCalendarAccountName = other.mCalendarAccountName;
         mCalendarAccountType = other.mCalendarAccountType;
-        mCalendarMaxReminders = other.mCalendarMaxReminders;
         mCalendarAllowedAttendeeTypes = other.mCalendarAllowedAttendeeTypes;
         mCalendarAllowedAvailability = other.mCalendarAllowedAvailability;
         mCalendarAccessLevel = other.mCalendarAccessLevel;
@@ -415,7 +409,8 @@ public class CalendarEventModel implements Serializable {
         final int prime = 31;
         int result = 1;
         result = prime * result + (mAllDay ? 1231 : 1237);
-        result = prime * result + ((mAttendeesList == null) ? 0 : getAttendeesString().hashCode());
+        result = prime * result +
+            ((mAttendeesList == null) ? 0 : getAttendeesString().hashCode());
         result = prime * result + (int) (mCalendarId ^ (mCalendarId >>> 32));
         result = prime * result + ((mDescription == null) ? 0 : mDescription.hashCode());
         result = prime * result + ((mDuration == null) ? 0 : mDuration.hashCode());
@@ -546,75 +541,71 @@ public class CalendarEventModel implements Serializable {
      * @param originalModel the model to compare with
      * @return true if the model is unchanged, false otherwise
      */
-    public boolean isUnchanged(CalendarEventModel originalModel) {
+    public boolean eventModified(CalendarEventModel originalModel) {
         if (this == originalModel) {
-            return true;
+            return false;
         }
         if (originalModel == null) {
-            return false;
+            return true;
         }
 
         if (originalModelFieldsDiffer(originalModel)) {
-            return false;
+            return true;
         }
 
         if (TextUtils.isEmpty(mLocation)) {
             if (!TextUtils.isEmpty(originalModel.mLocation)) {
-                return false;
+                return true;
             }
         } else if (!mLocation.equals(originalModel.mLocation)) {
-            return false;
+            return true;
         }
 
         if (TextUtils.isEmpty(mTitle)) {
             if (!TextUtils.isEmpty(originalModel.mTitle)) {
-                return false;
+                return true;
             }
         } else if (!mTitle.equals(originalModel.mTitle)) {
-            return false;
+            return true;
         }
 
         if (TextUtils.isEmpty(mDescription)) {
             if (!TextUtils.isEmpty(originalModel.mDescription)) {
-                return false;
+                return true;
             }
         } else if (!mDescription.equals(originalModel.mDescription)) {
-            return false;
+            return true;
         }
 
         if (TextUtils.isEmpty(mDuration)) {
             if (!TextUtils.isEmpty(originalModel.mDuration)) {
-                return false;
+                return true;
             }
         } else if (!mDuration.equals(originalModel.mDuration)) {
-            return false;
+            return true;
         }
 
         if (mEnd != mOriginalEnd) {
-            return false;
+            return true;
         }
         if (mStart != mOriginalStart) {
-            return false;
+            return true;
         }
 
         // If this changed the original id and it's not just an exception to the
         // original event
         if (mOriginalId != originalModel.mOriginalId && mOriginalId != originalModel.mId) {
-            return false;
+            return true;
         }
 
         if (TextUtils.isEmpty(mRrule)) {
             // if the rrule is no longer empty check if this is an exception
-            if (!TextUtils.isEmpty(originalModel.mRrule)) {
-                boolean syncIdNotReferenced = mOriginalSyncId == null
-                    || !mOriginalSyncId.equals(originalModel.mSyncId);
-                boolean localIdNotReferenced = mOriginalId == -1
-                    || !(mOriginalId == originalModel.mId);
-                return !syncIdNotReferenced || !localIdNotReferenced;
-            } else {
-                return true;
-            }
-        } else return mRrule.equals(originalModel.mRrule);
+            return (   (!TextUtils.isEmpty(originalModel.mRrule))
+                    && (   ((mOriginalSyncId == null)
+                        || !mOriginalSyncId.equals(originalModel.mSyncId))
+                    && (   (mOriginalId == -1)
+                        || !(mOriginalId == originalModel.mId))));
+        } else return !mRrule.equals(originalModel.mRrule);
     }
 
     /**
@@ -627,152 +618,40 @@ public class CalendarEventModel implements Serializable {
      * @return true if these fields are unchanged, false otherwise
      */
     protected boolean originalModelFieldsDiffer(CalendarEventModel originalModel) {
-        if (mAllDay != originalModel.mAllDay) {
-            return true;
-        }
-        if (mAttendeesList == null) {
-            if (originalModel.mAttendeesList != null) {
-                return true;
-            }
-        } else if (differentAttendees(originalModel)) {
-            return true;
-        }
-
-        if (mCalendarId != originalModel.mCalendarId) {
-            return true;
-        }
-        if (mCalendarColor != originalModel.mCalendarColor) {
-            return true;
-        }
-        if (mCalendarColorInitialized != originalModel.mCalendarColorInitialized) {
-            return true;
-        }
-        if (mGuestsCanInviteOthers != originalModel.mGuestsCanInviteOthers) {
-            return true;
-        }
-        if (mGuestsCanModify != originalModel.mGuestsCanModify) {
-            return true;
-        }
-        if (mGuestsCanSeeGuests != originalModel.mGuestsCanSeeGuests) {
-            return true;
-        }
-        if (mOrganizerCanRespond != originalModel.mOrganizerCanRespond) {
-            return true;
-        }
-        if (mCalendarAccessLevel != originalModel.mCalendarAccessLevel) {
-            return true;
-        }
-        if (mModelUpdatedWithEventCursor != originalModel.mModelUpdatedWithEventCursor) {
-            return true;
-        }
-        if (mHasAlarm != originalModel.mHasAlarm) {
-            return true;
-        }
-        if (mHasAttendeeData != originalModel.mHasAttendeeData) {
-            return true;
-        }
-        if (mId != originalModel.mId) {
-            return true;
-        }
-        if (mIsOrganizer != originalModel.mIsOrganizer) {
-            return true;
-        }
-
-        if (mOrganizer == null) {
-            if (originalModel.mOrganizer != null) {
-                return true;
-            }
-        } else if (!mOrganizer.equals(originalModel.mOrganizer)) {
-            return true;
-        }
-
-        if (mOwnerAccount == null) {
-            if (originalModel.mOwnerAccount != null) {
-                return true;
-            }
-        } else if (!mOwnerAccount.equals(originalModel.mOwnerAccount)) {
-            return true;
-        }
-
-        if (mReminders == null) {
-            if (originalModel.mReminders != null) {
-                return true;
-            }
-        } else if (!mReminders.equals(originalModel.mReminders)) {
-            return true;
-        }
-
-        if (mSelfAttendeeStatus != originalModel.mSelfAttendeeStatus) {
-            return true;
-        }
-        if (mOwnerAttendeeId != originalModel.mOwnerAttendeeId) {
-            return true;
-        }
-        if (mSyncAccountName == null) {
-            if (originalModel.mSyncAccountName != null) {
-                return true;
-            }
-        } else if (!mSyncAccountName.equals(originalModel.mSyncAccountName)) {
-            return true;
-        }
-
-        if (mSyncAccountType == null) {
-            if (originalModel.mSyncAccountType != null) {
-                return true;
-            }
-        } else if (!mSyncAccountType.equals(originalModel.mSyncAccountType)) {
-            return true;
-        }
-
-        if (mSyncId == null) {
-            if (originalModel.mSyncId != null) {
-                return true;
-            }
-        } else if (!mSyncId.equals(originalModel.mSyncId)) {
-            return true;
-        }
-
-        if (mTimezoneStart == null) {
-            if (originalModel.mTimezoneStart != null) {
-                return true;
-            }
-        } else if (!mTimezoneStart.equals(originalModel.mTimezoneStart)) {
-            return true;
-        }
-
-        if (mTimezoneEnd == null) {
-            if (originalModel.mTimezoneEnd != null) {
-                return true;
-            }
-        } else if (!mTimezoneEnd.equals(originalModel.mTimezoneEnd)) {
-            return true;
-        }
-
-        if (mAvailability != originalModel.mAvailability) {
-            return true;
-        }
-
-        if (mUri == null) {
-            if (originalModel.mUri != null) {
-                return true;
-            }
-        } else if (!mUri.equals(originalModel.mUri)) {
-            return true;
-        }
-
-        if (mAccessLevel != originalModel.mAccessLevel) {
-            return true;
-        }
-
-        if (mEventStatus != originalModel.mEventStatus) {
-            return true;
-        }
-
-        if (mEventColor != originalModel.mEventColor) {
-            return true;
-        }
-
-        return mEventColorInitialized != originalModel.mEventColorInitialized;
+        return (   (mAllDay != originalModel.mAllDay)
+                || (  (mAttendeesList == null)
+                    ? (originalModel.mAttendeesList != null)
+                    : differentAttendees(originalModel))
+                || (mCalendarId != originalModel.mCalendarId)
+                || (mCalendarColor != originalModel.mCalendarColor)
+                || (mCalendarColorInitialized != originalModel.mCalendarColorInitialized)
+                || (mGuestsCanInviteOthers != originalModel.mGuestsCanInviteOthers)
+                || (mGuestsCanModify != originalModel.mGuestsCanModify)
+                || (mGuestsCanSeeGuests != originalModel.mGuestsCanSeeGuests)
+                || (mOrganizerCanRespond != originalModel.mOrganizerCanRespond)
+                || (mCalendarAccessLevel != originalModel.mCalendarAccessLevel)
+                || (mModelUpdatedWithEventCursor !=
+                        originalModel.mModelUpdatedWithEventCursor)
+                || (mHasAlarm != originalModel.mHasAlarm)
+                || (mHasAttendeeData != originalModel.mHasAttendeeData)
+                || (mId != originalModel.mId)
+                || (mIsOrganizer != originalModel.mIsOrganizer)
+                || (!Objects.equals(mOrganizer, originalModel.mOrganizer))
+                || (!Objects.equals(mOwnerAccount, originalModel.mOwnerAccount))
+                || (!Objects.equals(mReminders, originalModel.mReminders))
+                || (mSelfAttendeeStatus != originalModel.mSelfAttendeeStatus)
+                || (mOwnerAttendeeId != originalModel.mOwnerAttendeeId)
+                || (!Objects.equals(mSyncAccountName, originalModel.mSyncAccountName))
+                || (!Objects.equals(mSyncAccountType, originalModel.mSyncAccountType))
+                || (!Objects.equals(mSyncId, originalModel.mSyncId))
+                || (!Objects.equals(mTimezoneStart, originalModel.mTimezoneStart))
+                || (!Objects.equals(mTimezoneEnd, originalModel.mTimezoneEnd))
+                || (mAvailability != originalModel.mAvailability)
+                || (!Objects.equals(mUri, originalModel.mUri))
+                || (mAccessLevel != originalModel.mAccessLevel)
+                || (mEventStatus != originalModel.mEventStatus)
+                || (mEventColor != originalModel.mEventColor)
+                || (mEventColorInitialized != originalModel.mEventColorInitialized));
     }
 
     /**
@@ -856,10 +735,6 @@ public class CalendarEventModel implements Serializable {
                 Attendees.TYPE_NONE);
         }
 
-        public Attendee(String name, String email, int status) {
-            this(name, email, status, Attendees.TYPE_NONE);
-        }
-
         public Attendee(String name, String email, int status, int type) {
             this(name, email, status, type, null, null);
         }
@@ -894,14 +769,6 @@ public class CalendarEventModel implements Serializable {
             }
             Attendee other = (Attendee) obj;
             return TextUtils.equals(mEmail, other.mEmail);
-        }
-
-        String getDisplayName() {
-            if (TextUtils.isEmpty(mName)) {
-                return mEmail;
-            } else {
-                return mName;
-            }
         }
     }
 
@@ -954,6 +821,23 @@ public class CalendarEventModel implements Serializable {
             return mMinutes * 10 + mMethod;
         }
 
+        /**
+         * Test if another reminder has "the same" method as this one
+         * @param other the reminder to compare with
+         * @return true if the methods are "the same"
+         */
+        private boolean methodsMatch(ReminderEntry other) {
+            // Treat ALERT and DEFAULT as equivalent.  This is useful during the
+            // "has anything changed" test, so that if DEFAULT is present,
+            // but we don't change anything, the internal conversion of
+            // DEFAULT to ALERT doesn't force a database update.
+            return    (other.mMethod == mMethod)
+                   || (    (other.mMethod == Reminders.METHOD_DEFAULT)
+                        && (mMethod == Reminders.METHOD_ALERT))
+                   || (    (other.mMethod == Reminders.METHOD_ALERT)
+                        && (mMethod == Reminders.METHOD_DEFAULT));
+        }
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) {
@@ -962,22 +846,10 @@ public class CalendarEventModel implements Serializable {
             if (!(obj instanceof ReminderEntry)) {
                 return false;
             }
+            ReminderEntry other = (ReminderEntry) obj;
+            return (   (mMinutes == other.mMinutes)
+                    && methodsMatch(other));
 
-            ReminderEntry re = (ReminderEntry) obj;
-
-            if (re.mMinutes != mMinutes) {
-                return false;
-            }
-
-            // Treat ALERT and DEFAULT as equivalent.  This is useful during the
-            // "has anything changed" test, so that if DEFAULT is present,
-            // but we don't change anything, the internal conversion of
-            // DEFAULT to ALERT doesn't force a database update.
-            return    (re.mMethod == mMethod)
-                   || (    (re.mMethod == Reminders.METHOD_DEFAULT)
-                        && (mMethod == Reminders.METHOD_ALERT))
-                   || (    (re.mMethod == Reminders.METHOD_ALERT)
-                        && (mMethod == Reminders.METHOD_DEFAULT));
         }
 
         /**
@@ -990,11 +862,12 @@ public class CalendarEventModel implements Serializable {
         public int offsetTo(ReminderEntry other) {
             // mMinutes is the time before the event.
             int offset = mMinutes - other.mMinutes;
-            if (   (other.mMethod != mMethod)
-                || (offset <= 0)) {
-                return -1;
-            } else {
+            if (   (offset > 0)
+                && methodsMatch(other))
+            {
                 return offset;
+            } else {
+                return -1;
             }
         }
 

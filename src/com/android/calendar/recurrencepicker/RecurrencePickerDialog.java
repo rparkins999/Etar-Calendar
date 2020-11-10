@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -67,6 +69,21 @@ import java.util.Calendar;
 
 import ws.xsoh.etar.R;
 
+/* FIXME When first setting recurrence, the interval shows weekly but can't be
+ *  modified until recurrence is enabled: this is poor UI design.
+ *
+ * FIXME Click on an occurrence of a recurring event:
+ *  it asks you if you want to modify all occurrences or this and future ones.
+ *  a) just modifying this one and making it an exception doesn't seem to be supported
+ *  b) if you click outside the box, all occurrences are deleted!!!
+ *
+ * FIXME Changing the time of this and future events creates a whole set of new ones
+ *
+ * FIXME Deleting recurring event asks again if you want to delete
+ *  all of them or this and future oens
+ *
+ * FIXME Delete this and future events doesn't work
+ */
 public class RecurrencePickerDialog extends DialogFragment implements OnItemSelectedListener,
         OnCheckedChangeListener, OnClickListener,
         android.widget.RadioGroup.OnCheckedChangeListener, DatePickerDialog.OnDateSetListener {

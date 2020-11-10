@@ -17,6 +17,7 @@
  */
 package com.android.calendar.event;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
@@ -35,10 +36,10 @@ import java.util.ArrayList;
 
 import ws.xsoh.etar.R;
 
+// This class is never instantiated: it's just a wrapper for soem static methods.
 public class EventViewUtils {
     private static final String TAG = "EventViewUtils";
 
-    // This class is never instantiated: it's just a wrapper for soem static methods.
     private EventViewUtils() {
     }
 
@@ -230,20 +231,17 @@ public class EventViewUtils {
      * FIXME some calendars can have any integer value for the minutes.
      *  We should handle this and not force one of a fixed set of values.
      */
-    public static boolean addReminder(
+    public static void addReminder(
         Activity activity, View view, View.OnClickListener listener,
         ArrayList<LinearLayout> items, ArrayList<Integer> minuteValues,
         ArrayList<String> minuteLabels, ArrayList<Integer> methodValues,
-        ArrayList<String> methodLabels, ReminderEntry newReminder, int maxReminders,
+        ArrayList<String> methodLabels, ReminderEntry newReminder,
         OnItemSelectedListener onItemSelected)
     {
-        if (items.size() >= maxReminders) {
-            return false;
-        }
 
         LayoutInflater inflater = activity.getLayoutInflater();
         LinearLayout parent = (LinearLayout) view.findViewById(R.id.reminder_items_container);
-        LinearLayout reminderItem =
+        @SuppressLint("InflateParams") LinearLayout reminderItem =
             (LinearLayout) inflater.inflate(R.layout.edit_reminder_item,null);
         parent.addView(reminderItem);
 
@@ -282,25 +280,5 @@ public class EventViewUtils {
         }
 
         items.add(reminderItem);
-
-        return true;
-    }
-
-    /**
-     * Enables/disables the 'add reminder' button depending on the current number of
-     * reminders.
-     */
-    public static void updateAddReminderButton(View view, ArrayList<LinearLayout> reminders,
-            int maxReminders) {
-        View reminderAddButton = view.findViewById(R.id.reminder_add);
-        if (reminderAddButton != null) {
-            if (reminders.size() >= maxReminders) {
-                reminderAddButton.setEnabled(false);
-                reminderAddButton.setVisibility(View.GONE);
-            } else {
-                reminderAddButton.setEnabled(true);
-                reminderAddButton.setVisibility(View.VISIBLE);
-            }
-        }
     }
 }

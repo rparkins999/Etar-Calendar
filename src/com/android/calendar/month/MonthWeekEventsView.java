@@ -92,8 +92,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
     private static int mTopPaddingWeekNumber = 4;
     private static int mSidePaddingWeekNumber = 12;
     private static int mDaySeparatorInnerWidth = 1;
-    private static int mMinWeekWidth = 50;
-    private static int mLunarPaddingLunar = 2;
     private static int mEventYOffsetPortrait = 2;
     private static int mEventSquareWidth = 3;
     private static int mEventSquareHeight = 10;
@@ -185,6 +183,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
      * views width not being set correctly yet).
      */
     public void createDna(ArrayList<Event> unsortedEvents) {
+        int mMinWeekWidth = 50;
         if (unsortedEvents == null || mWidth <= mMinWeekWidth || getContext() == null) {
             // Stash the list of events for use when this view is ready, or
             // just clear it if a null set has been passed to this view
@@ -226,7 +225,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
                         + sortedEvents.size() + " days=" + mNumDays);
             }
             mEvents = null;
-            return;
         }
     }
 
@@ -528,16 +526,14 @@ public class MonthWeekEventsView extends SimpleWeekView {
             offset++;
         }
         if (mFocusDay[i]) {
-            while (++i < mOddMonth.length && mFocusDay[i])
-                ;
+            while (++i < mOddMonth.length && mFocusDay[i]) { ; }
             r.right = computeDayLeftPosition(i - offset);
             r.left = 0;
             p.setColor(mMonthBGFocusMonthColor);
             canvas.drawRect(r, p);
             // compute left edge for i, set up r, draw
         } else if (mFocusDay[(i = mFocusDay.length - 1)]) {
-            while (--i >= offset && mFocusDay[i])
-                ;
+            while (--i >= offset && mFocusDay[i]) { ; }
             i++;
             // compute left edge for i, set up r, draw
             r.right = mWidth;
@@ -545,16 +541,14 @@ public class MonthWeekEventsView extends SimpleWeekView {
             p.setColor(mMonthBGFocusMonthColor);
             canvas.drawRect(r, p);
         } else if (!mOddMonth[i]) {
-            while (++i < mOddMonth.length && !mOddMonth[i])
-                ;
+            while (++i < mOddMonth.length && !mOddMonth[i]) { ; }
             r.right = computeDayLeftPosition(i - offset);
             r.left = 0;
             p.setColor(mMonthBGOtherColor);
             canvas.drawRect(r, p);
             // compute left edge for i, set up r, draw
         } else if (!mOddMonth[(i = mOddMonth.length - 1)]) {
-            while (--i >= offset && !mOddMonth[i])
-                ;
+            while (--i >= offset && !mOddMonth[i]) { ; }
             i++;
             // compute left edge for i, set up r, draw
             r.right = mWidth;
@@ -592,7 +586,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
         int i = 0;
         int offset = -1;
         int todayIndex = mTodayIndex;
-        int x = 0;
+        int x;
         int numCount = mNumDays;
         if (mShowWeekNum) {
             x = mSidePaddingWeekNumber + mPadding;
@@ -658,7 +652,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
                     }
                 }
 
-                ArrayList<String> infos = new ArrayList<String>();
+                ArrayList<String> infos = new ArrayList<>();
                 LunarUtils.get(getContext(), year, month, monthDay,
                         LunarUtils.FORMAT_LUNAR_SHORT | LunarUtils.FORMAT_MULTI_FESTIVAL, false,
                         infos);
@@ -673,8 +667,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
                         String info = infos.get(index);
                         if (TextUtils.isEmpty(info)) continue;
 
-                        int infoX = 0;
-                        int infoY = 0;
+                        int infoX;
+                        int infoY;
+                        int mLunarPaddingLunar = 2;
                         if (mOrientation == Configuration.ORIENTATION_LANDSCAPE) {
                             infoX = x - mMonthNumHeight - mTopPaddingMonthNumber;
                             infoY = y + (mMonthNumHeight + mLunarPaddingLunar) * num;
@@ -707,25 +702,24 @@ public class MonthWeekEventsView extends SimpleWeekView {
     }
 
     protected class DayEventSorter {
-        private final EventFormat virtualFormat = new EventFormat(0, 0);
-        private LinkedList<FormattedEventBase> mRemainingEvents;
-        private BoundariesSetter mFixedHeightBoundaries;
-        private FormattedEventBase mVirtualEvent;
+        private final LinkedList<FormattedEventBase> mRemainingEvents;
+        private final BoundariesSetter mFixedHeightBoundaries;
+        private final FormattedEventBase mVirtualEvent;
         private int mListSize;
         private int mMinItems;
         public DayEventSorter(BoundariesSetter boundariesSetter) {
             mRemainingEvents = new LinkedList<>();
             mFixedHeightBoundaries = boundariesSetter;
+            EventFormat virtualFormat = new EventFormat(0, 0);
             mVirtualEvent = new NullFormattedEvent(virtualFormat, boundariesSetter);
         }
 
         /**
          * Adds event to list of remaining events putting events spanning most days first.
-         * @param remainingEvents
-         * @param event
          */
-        protected void sortedAddRemainingEventToList(LinkedList<FormattedEventBase> remainingEvents,
-                                                     FormattedEventBase event) {
+        protected void sortedAddRemainingEventToList
+        (LinkedList<FormattedEventBase> remainingEvents,  FormattedEventBase event)
+        {
             int eventSpan = event.getFormat().getTotalSpan();
             if (eventSpan > 1) {
                 ListIterator<FormattedEventBase> iterator = remainingEvents.listIterator();
@@ -839,9 +833,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
     protected class WeekEventFormatter {
         private List<ArrayList<FormattedEventBase>> mFormattedEvents;
-        private DayBoxBoundaries mBoxBoundaries;
-        private BoundariesSetter mFullDayBoundaries;
-        private BoundariesSetter mRegularBoundaries;
+        private final DayBoxBoundaries mBoxBoundaries;
+        private final BoundariesSetter mFullDayBoundaries;
+        private final BoundariesSetter mRegularBoundaries;
 
         public WeekEventFormatter(DayBoxBoundaries boxBoundaries) {
             mBoxBoundaries = boxBoundaries;
@@ -875,9 +869,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         /**
-         * Creates DayEventFormatters for each day and formats each day to prepare it for drawing.
-         * @param availableSpace
-         * @return
+         * Creates DayEventFormatters for each day
+         * and formats each day to prepare it for drawing.
          */
         protected ArrayList<DayEventFormatter> formatDays(int availableSpace, ViewDetailsPreferences.Preferences preferences) {
             int dayIndex = 0;
@@ -997,7 +990,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
      */
     protected class DayEventFormatter {
         public ArrayList<FormattedEventBase> mEventDay;
-        private int mDay;
+        private final int mDay;
         private ViewDetailsPreferences.Preferences mViewPreferences;
         //members initialized by the init function:
         private int mFullDayEventsCount;
@@ -1023,14 +1016,12 @@ public class MonthWeekEventsView extends SimpleWeekView {
             for (int i = 0; i < mMaxNumberOfLines + 1; i++) {
                 mEventsByHeight.add(new ArrayList<FormattedEventBase>());
             }
-            ListIterator<FormattedEventBase> iterator = mEventDay.listIterator();
-            while (iterator.hasNext()) {
-                FormattedEventBase event = iterator.next();
+            for (FormattedEventBase event : mEventDay) {
                 final int eventHeight = event.getFormat().getEventLines();
                 if (eventHeight > 0) {
                     mVisibleEvents++;
                     if (event.isBordered()) {
-                    mFullDayEventsCount++;
+                        mFullDayEventsCount++;
                     }
                 }
                 mEventsByHeight.get(eventHeight).add(event);
@@ -1039,7 +1030,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Checks if event should be skipped (in case if it was already drawn)
-         * @param event
+         * @param event terh event to check
          * @return True if event should be skipped
          */
         protected boolean eventShouldBeSkipped(FormattedEventBase event) {
@@ -1049,8 +1040,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
         /**
          * Draws all events in a given day and more events indicator if needed.
          * As a result of this call boxBoundaries will be set to next day.
-         * @param canvas
-         * @param boxBoundaries
          */
         public void drawDay(Canvas canvas, DayBoxBoundaries boxBoundaries) {
             for (FormattedEventBase event : mEventDay) {
@@ -1068,9 +1057,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         /**
-         * Disables showing of time in a day handled by this class in case if it doesn't fit
-         * availableSpace
-         * @param availableSpace
+         * Disables showing of time in a day handled by this class in case
+         * if it doesn't fit availableSpace
          */
         protected void hideTimeRangeIfNeeded(int availableSpace) {
             if (mViewPreferences.isTimeShownBelow()
@@ -1096,8 +1084,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         /**
-         * Reduces height of last numberOfEventsToReduce events with highest possible height by one
-         * @param numberOfEventsToReduce
+         * Reduces height of last numberOfEventsToReduce events
+         * with highest possible height by one
          */
         protected void reduceHeightOfEvents(int numberOfEventsToReduce) {
             final int nonReducedEvents = getNumberOfHighestEvents() - numberOfEventsToReduce;
@@ -1114,7 +1102,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Returns number of events with highest allowed height
-         * @return
          */
         protected int getNumberOfHighestEvents() {
             return mEventsByHeight.get(mMaxNumberOfLines).size();
@@ -1127,7 +1114,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Reduces height of events in order to allow all of them to fit the screen
-         * @param availableSpace
          */
         protected void fitAllItemsOnScrean(int availableSpace) {
             final int maxNumberOfLines = getMaxNumberOfLines(availableSpace);
@@ -1156,9 +1142,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         /**
-         * After reducing height of events to minimum, reduces their count in order to fit most of
-         * the events in availableSpace (and let enough space to display "more events" indication)
-         * @param availableSpace
+         * After reducing height of events to minimum, reduces their count in order
+         * to fit most of the events in availableSpace (and let enough space
+         * to display "more events" indication)
          */
         protected void reduceNumberOfEventsToFit(int availableSpace) {
             reduceHeightOfEventsToOne();
@@ -1166,7 +1152,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
             if (!moreLinesWillBeDisplayed())  {
                 height += mExtrasHeight;
             }
-            ListIterator<FormattedEventBase> backIterator = mEventDay.listIterator(mEventDay.size());
+            ListIterator<FormattedEventBase> backIterator
+                = mEventDay.listIterator(mEventDay.size());
             while ((height > availableSpace) && backIterator.hasPrevious()) {
                 FormattedEventBase event = backIterator.previous();
                 if (event == null || event.getFormat().getEventLines() == 0) {
@@ -1182,7 +1169,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Formats day according to the layout given at class description
-         * @param availableSpace
          */
         public void formatDay(int availableSpace) {
             hideTimeRangeIfNeeded(availableSpace);
@@ -1196,10 +1182,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
 
         /**
-         * Checks if all events can fit the screen (assumes that in the worst case they need to be
-         * capped at one line per event)
-         * @param availableSpace
-         * @return
+         * Checks if all events can fit the screen (assumes that in the worst case
+         * they need to be capped at one line per event)
          */
         protected boolean willAllItemsFitOnScreen(int availableSpace) {
             return (getOverheadHeight() + mVisibleEvents * mEventHeight <= availableSpace);
@@ -1207,7 +1191,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Checks how many lines all events would take
-         * @return
          */
         protected int getTotalEventLines() {
             int lines = 0;
@@ -1227,7 +1210,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Returns the amount of space required to fit all spacings between events
-         * @return
          */
         protected int getOverheadHeight() {
             return getHeightOfMoreLine() + mFullDayEventsCount * mBorderSpace * 2
@@ -1241,7 +1223,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Returns Current height required to fit all events
-         * @return
          */
         protected int getEventsHeight() {
             return getOverheadHeight()
@@ -1256,10 +1237,10 @@ public class MonthWeekEventsView extends SimpleWeekView {
      */
     protected class DayBoxBoundaries {
         private int mX;
-        private int mY;
+        private final int mY;
         private int mRightEdge;
         private int mYOffset;
-        private int mXWidth;
+        private final int mXWidth;
 
         public DayBoxBoundaries() {
             mXWidth = mWidth / mNumDays;
@@ -1292,7 +1273,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
             mXPadding = xPadding;
         }
         public abstract void setRectangle(Rect rect, int spanningDays, int numberOfLines);
-        public void setRightEdge(Rect rect) {;}
+        public void setRightEdge(Rect rect) {}
         public int getY() { return mBoxBoundaries.getY(); }
 
         public int getTextX() {
@@ -1373,10 +1354,9 @@ public class MonthWeekEventsView extends SimpleWeekView {
      */
     protected static class EventFormat {
         private int mLines;
-        private int[] mDaySpan;
+        private final int[] mDaySpan;
         private int mYIndex;
         private boolean mPartiallyHidden;
-        private final int Y_INDEX_NOT_SET = -1;
 
         public EventFormat(int day, int weekDays) {
             mDaySpan = new int[weekDays];
@@ -1384,14 +1364,13 @@ public class MonthWeekEventsView extends SimpleWeekView {
                 mDaySpan[day] = 1;
             }
             mLines = 1;
-            mYIndex = Y_INDEX_NOT_SET;
+            mYIndex = -1;
             mPartiallyHidden = false;
         }
 
         /**
          * Returns information about how many event lines are above this event
          * If y-order is not yet determined returns -1
-         * @return
          */
         public int getYIndex() { return mYIndex;}
         public void setYIndex(int index) { mYIndex = index;}
@@ -1428,7 +1407,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * If event is visible, sets new value of event lines
-         * @param lines
          */
         public void setEventLines(int lines) {
             if (mLines != 0) {
@@ -1499,21 +1477,21 @@ public class MonthWeekEventsView extends SimpleWeekView {
 
         /**
          * Null object won't be drawn
-         * @param canvas
-         * @param preferences
-         * @param day
+
          */
         public void draw(Canvas canvas, ViewDetailsPreferences.Preferences preferences, int day) { /*nop*/ }
         public boolean containsEvent(Event event) { return false; }
     }
 
     protected class FormattedEvent extends FormattedEventBase {
-        private Event mEvent;
+        private final Event mEvent;
         private DynamicLayout mTextLayout;
         // We need a private Rect here because we need to preserve it
         // to catch touches on the event.
-        private Rect mRect = new Rect();
-        public FormattedEvent(Event event, EventFormat format, BoundariesSetter boundaries) {
+        private final Rect mRect = new Rect();
+        public FormattedEvent(
+            Event event, EventFormat format, BoundariesSetter boundaries)
+        {
             super(format, boundaries);
             mEvent = event;
         }
@@ -1720,7 +1698,7 @@ public class MonthWeekEventsView extends SimpleWeekView {
      * non-conflicting times in the event color and times with conflicting
      * events in the dna conflict color defined in colors.
      *
-     * @param canvas
+
      */
     protected void drawDNA(Canvas canvas) {
         // Draw event and conflict times
@@ -1816,9 +1794,10 @@ public class MonthWeekEventsView extends SimpleWeekView {
         }
         if (event.getAction() != MotionEvent.ACTION_HOVER_EXIT) {
             Time hover = getDayFromLocation(event.getX());
-            if (hover != null
-                    && (mLastHoverTime == null || Time.compare(hover, mLastHoverTime) != 0)) {
-                Long millis = hover.toMillis(true);
+            if (   (hover != null)
+                 && (mLastHoverTime == null || Time.compare(hover, mLastHoverTime) != 0))
+            {
+                long millis = hover.toMillis(true);
                 String date = Utils.formatDateRange(context, millis, millis,
                         DateUtils.FORMAT_SHOW_DATE);
                 AccessibilityEvent accessEvent = AccessibilityEvent
@@ -1832,7 +1811,8 @@ public class MonthWeekEventsView extends SimpleWeekView {
                     List<CharSequence> text = accessEvent.getText();
                     for (Event e : events) {
                         text.add(e.getTitleAndLocation() + ". ");
-                        int flags = DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_YEAR;
+                        int flags
+                            = DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_YEAR;
                         if (!e.allDay) {
                             flags |= DateUtils.FORMAT_SHOW_TIME;
                             if (DateFormat.is24HourFormat(context)) {
@@ -1853,7 +1833,6 @@ public class MonthWeekEventsView extends SimpleWeekView {
     }
 
     public long getClickedEventId(float xLocation, float yLocation) {
-        long id = -1;
         for (DayEventFormatter f : mDayFormatters) {
             for (FormattedEventBase b : f.mEventDay) {
                 if (b instanceof FormattedEvent) {

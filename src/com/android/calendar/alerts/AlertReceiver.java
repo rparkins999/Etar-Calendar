@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2020
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -242,7 +244,7 @@ public class AlertReceiver extends BroadcastReceiver {
         Notification n = buildBasicNotification(new Notification.Builder(context),
                 context, title, summaryText, startMillis, endMillis, eventId, notificationId,
                 doPopup, priority, false);
-        return new NotificationWrapper(n, notificationId, eventId, startMillis, endMillis, doPopup);
+        return new NotificationWrapper(n, eventId, startMillis, endMillis);
     }
 
     public static boolean isResolveIntent(Context context, Intent intent) {
@@ -383,8 +385,8 @@ public class AlertReceiver extends BroadcastReceiver {
         expandedBuilder.bigText(text);
         notification = expandedBuilder.build();
 
-        return new NotificationWrapper(notification, notificationId, eventId, startMillis,
-                endMillis, doPopup);
+        return new NotificationWrapper(notification, eventId, startMillis,
+                endMillis);
     }
 
     /**
@@ -494,8 +496,8 @@ public class AlertReceiver extends BroadcastReceiver {
         NotificationWrapper nw = new NotificationWrapper(n);
         if (AlertService.DEBUG) {
             for (AlertService.NotificationInfo info : notificationInfos) {
-                nw.add(new NotificationWrapper(null, 0, info.eventId, info.startMillis,
-                        info.endMillis, false));
+                nw.add(new NotificationWrapper(null, info.eventId, info.startMillis,
+                        info.endMillis));
             }
         }
         return nw;
