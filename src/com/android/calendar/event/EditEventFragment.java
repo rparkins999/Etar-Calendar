@@ -133,7 +133,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private EventBundle mEventBundle;
     private ArrayList<ReminderEntry> mReminders;
     private int mEventColor;
-    private boolean mEventColorInitialized;
+    private final boolean mEventColorInitialized;
     private EventColorPickerDialog mColorPickerDialog;
     private AppCompatActivity mActivity;
     private boolean mSaveOnDetach = true;
@@ -261,12 +261,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         }
     }
     private final Done mOnDone = new Done();
-    private final View.OnClickListener mActionBarListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            onActionBarItemSelected(v.getId());
-        }
-    };
     private final View.OnClickListener mOnColorPickerClicked = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -307,13 +301,14 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
 
     public EditEventFragment() {
         this(null, null, false, -1,
-            false, null);
+            false);
     }
 
     @SuppressLint("ValidFragment")
-    public EditEventFragment(ActionInfo actionInfo, ArrayList<ReminderEntry> reminders,
-                             boolean eventColorInitialized, int eventColor,
-                             boolean readOnly, Intent intent) {
+    public EditEventFragment(
+        ActionInfo actionInfo, ArrayList<ReminderEntry> reminders,
+        boolean eventColorInitialized, int eventColor, boolean readOnly)
+    {
         mActionInfo = actionInfo;
         mIsReadOnly = readOnly;
         mReminders = reminders;
@@ -858,8 +853,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
                                 mModification = notSynced ? Utils.MODIFY_ALL
                                         : Utils.MODIFY_SELECTED;
                                 if (mModification == Utils.MODIFY_SELECTED) {
-                                    mModel.mOriginalSyncId = notSynced
-                                        ? null : mModel.mSyncId;
+                                    mModel.mOriginalSyncId = mModel.mSyncId;
                                     mModel.mOriginalId = mModel.mId;
                                 }
                             } else if (which == 1) {

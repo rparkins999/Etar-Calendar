@@ -44,8 +44,6 @@ public class EditEventActivity extends AbstractCalendarActivity {
     private static final boolean DEBUG = false;
     private static final String BUNDLE_KEY_EVENT_ID = "key_event_id";
 
-    private Intent mIntent;
-
     public CalendarEventModel mModel;
 
     private final DynamicTheme dynamicTheme = new DynamicTheme();
@@ -54,7 +52,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
         super.onCreate(icicle);
 
         dynamicTheme.onCreate(this);
-        mIntent = getIntent();
+        Intent mIntent = getIntent();
         setContentView(R.layout.simple_frame_layout_material);
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
@@ -108,7 +106,7 @@ public class EditEventActivity extends AbstractCalendarActivity {
                    (actionInfo.eventId == -1)
                 && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
             editFragment = new EditEventFragment(actionInfo, mModel.mReminders,
-                mModel.mEventColorInitialized, mModel.mEventColor, readOnly, mIntent);
+                mModel.mEventColorInitialized, mModel.mEventColor, readOnly);
             editFragment.setModel(mModel);
             editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
                     CalendarController.EVENT_EDIT_ON_LAUNCH, false);
