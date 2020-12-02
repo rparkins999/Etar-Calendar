@@ -46,7 +46,6 @@ import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.event.EditEventActivity;
-import com.android.calendar.event.EditEventFragment;
 
 import ws.xsoh.etar.R;
 
@@ -78,7 +77,6 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
             eventsChanged();
         }
     };
-    private EditEventFragment mEditEventFragment;
     private long mCurrentEventId = -1;
     private String mQuery;
     private SearchView mSearchView;
@@ -182,27 +180,15 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
     }
 
     private void editEvent(ActionInfo actionInfo) {
-        if (mShowEventDetailsWithAgenda) {
-            FragmentManager fragmentManager = getFragmentManager();
-            FragmentTransaction ft = fragmentManager.beginTransaction();
-            EditEventFragment mEditEventFragment = new EditEventFragment(actionInfo,
-                null, false, 0,
-                false, getIntent());
-
-
-            ft.replace(R.id.agenda_event_info, mEditEventFragment);
-            ft.commit();
-        } else {
-            Intent intent = new Intent(Intent.ACTION_EDIT);
-            Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, actionInfo.eventId);
-            intent.setData(eventUri);
-            intent.setClass(this, EditEventActivity.class);
-            intent.putExtra(EXTRA_EVENT_BEGIN_TIME,
-                    actionInfo.startTime != null ? actionInfo.startTime.toMillis(true) : -1);
-            intent.putExtra(
-                    EXTRA_EVENT_END_TIME, actionInfo.endTime != null ? actionInfo.endTime.toMillis(true) : -1);
-            startActivity(intent);
-        }
+        Intent intent = new Intent(Intent.ACTION_EDIT);
+        Uri eventUri = ContentUris.withAppendedId(Events.CONTENT_URI, actionInfo.eventId);
+        intent.setData(eventUri);
+        intent.setClass(this, EditEventActivity.class);
+        intent.putExtra(EXTRA_EVENT_BEGIN_TIME,
+                actionInfo.startTime != null ? actionInfo.startTime.toMillis(true) : -1);
+        intent.putExtra(
+                EXTRA_EVENT_END_TIME, actionInfo.endTime != null ? actionInfo.endTime.toMillis(true) : -1);
+        startActivity(intent);
         mCurrentEventId = actionInfo.eventId;
     }
 
@@ -231,15 +217,6 @@ public class SearchActivity extends AppCompatActivity implements CalendarControl
 
     private void deleteEvent(long eventId, long startMillis, long endMillis) {
         mDeleteEventHelper.delete(startMillis, endMillis, eventId);
-        if (mIsMultipane && mEditEventFragment != null
-                && eventId == mCurrentEventId) {
-            FragmentManager fragmentManager = getFragmentManager();
-            FragmentTransaction ft = fragmentManager.beginTransaction();
-            ft.remove(mEditEventFragment);
-            ft.commit();
-            mEditEventFragment = null;
-            mCurrentEventId = -1;
-        }
     }
 
     @Override

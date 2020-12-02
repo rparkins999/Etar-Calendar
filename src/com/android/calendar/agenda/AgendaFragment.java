@@ -42,7 +42,6 @@ import com.android.calendar.CalendarController.ControllerAction;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.StickyHeaderListView;
 import com.android.calendar.Utils;
-import com.android.calendar.event.EditEventFragment;
 import com.android.calendar.settings.GeneralPreferences;
 
 import java.util.Date;
@@ -112,7 +111,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Actio
         mTime.switchTimezone(mTimeZone);
         mActivity = activity;
         if (mOnAttachedInfo != null) {
-            showEventInfo(mOnAttachedInfo, mOnAttachAllDay, true);
+            showEventInfo(mOnAttachedInfo, mOnAttachAllDay);
             mOnAttachedInfo = null;
         }
     }
@@ -314,7 +313,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Actio
         AgendaAdapter.ViewHolder vh = mAgendaListView.getSelectedViewHolder();
         // Make sure that on the first time the event info is shown to recreate it
         Log.d(TAG, "selected viewholder is null: " + (vh == null));
-        showEventInfo(event, vh != null ? vh.allDay : false, mForceReplace);
+        showEventInfo(event, vh != null ? vh.allDay : false);
         mForceReplace = false;
     }
 
@@ -364,7 +363,7 @@ public class AgendaFragment extends Fragment implements CalendarController.Actio
     }
 
     // Shows the selected event in the Agenda view
-    private void showEventInfo(ActionInfo actionInfo, boolean allDay, boolean replaceFragment) {
+    private void showEventInfo(ActionInfo actionInfo, boolean allDay) {
 
         // Ignore unknown events
         if (actionInfo.eventId == -1) {
@@ -373,37 +372,6 @@ public class AgendaFragment extends Fragment implements CalendarController.Actio
         }
 
         mLastShownEventId = actionInfo.eventId;
-
-        // Create a fragment to show the event to the side of the agenda list
-        if (mShowEventDetailsWithAgenda) {
-            FragmentManager fragmentManager = getFragmentManager();
-            if (fragmentManager == null) {
-                // Got a goto event before the fragment finished attaching,
-                // stash the event and handle it later.
-                mOnAttachedInfo = actionInfo;
-                mOnAttachAllDay = allDay;
-                return;
-            }
-            FragmentTransaction ft = fragmentManager.beginTransaction();
-
-            if (allDay) {
-                actionInfo.startTime.timezone = Time.TIMEZONE_UTC;
-                actionInfo.endTime.timezone = Time.TIMEZONE_UTC;
-            }
-
-            if (DEBUG) {
-                Log.d(TAG, "***");
-                Log.d(TAG, "showEventInfo: start: " + new Date(actionInfo.startTime.toMillis(true)));
-                Log.d(TAG, "showEventInfo: end: " + new Date(actionInfo.endTime.toMillis(true)));
-                Log.d(TAG, "showEventInfo: all day: " + allDay);
-                Log.d(TAG, "***");
-            }
-
-            ft.replace(R.id.agenda_event_info, new EditEventFragment(
-                actionInfo, null, false, 0,
-                    false, getActivity().getIntent()));
-            ft.commit();
-        }
     }
 
     // OnScrollListener implementation to update the date on the pull-down menu of the app

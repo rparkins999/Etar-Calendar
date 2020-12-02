@@ -20,7 +20,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.android.calendar.event.EditEventFragment;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendar.settings.ViewDetailsPreferences;
 
@@ -45,7 +44,6 @@ public class CalendarApplication extends Application {
      * aren't using it.
      * We need synchronisation here because an event can be removed from this list
      * in a thread other than the UI thread.
-     * {@link EditEventFragment#onDeleteRunnable}
      */
     public static final List<CalendarEventModel> mEvents
         = Collections.synchronizedList(new LinkedList<CalendarEventModel>());
