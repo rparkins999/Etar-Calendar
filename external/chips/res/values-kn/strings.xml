@@ -23,7 +23,7 @@
     <string name="accessbility_suggestion_dropdown_opened" msgid="9015267358421989409">"ಸಂಪರ್ಕ ಸಲಹೆಗಳನ್ನು ತೆರೆಯಲಾಗಿದೆ"</string>
     <string name="accessbility_suggestion_dropdown_closed" msgid="91481373431329121">"ಯಾವುದೇ ಸಲಹೆಗಳು ಲಭ್ಯವಿಲ್ಲ"</string>
     <string name="dropdown_delete_button_desc" msgid="4359394656487762022">"ಸ್ವೀಕೃತದಾರರಿಂದ <xliff:g id="CONTACT">%s</xliff:g> ತೆಗೆದುಹಾಕಿ"</string>
-    <string name="chips_action_copy" msgid="6984158516334578792">"ನಕಲಿಸು"</string>
+    <string name="chips_action_copy" msgid="6984158516334578792">"ನಕಲಿಸಿ"</string>
     <string name="chips_action_cancel" msgid="2582257014578396781">"ರದ್ದುಮಾಡಿ"</string>
     <string name="chips_permission_text" msgid="5601284803674008863">"ಸಂಪರ್ಕಗಳ ಸಲಹೆಗಳನ್ನು ಅನುಮತಿಸಿ"</string>
 </resources>
