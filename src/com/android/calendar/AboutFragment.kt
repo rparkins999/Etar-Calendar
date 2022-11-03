@@ -40,7 +40,8 @@ class AboutFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.findViewById<TextView>(R.id.version).text = getVersionNumber()
+        view.findViewById<TextView>(R.id.version).text = getVersionNumber() + getString(R.string.preferences_build_time) + getString(R.string.build_time)
+        view.findViewById<TextView>(R.id.committed).text = getString(R.string.build_git)
 
         val year = Calendar.getInstance().get(Calendar.YEAR).toString()
         view.findViewById<TextView>(R.id.copyright).text = getString(R.string.app_copyright, year, year)

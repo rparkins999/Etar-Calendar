@@ -1,3 +1,11 @@
+def gitdata = new ByteArrayOutputStream()
+// change this line to /* if not using git
+exec {
+    commandLine "git", "--no-pager", "show", "--date=format:%a %b %d %H:%M:%S %Z %Y", "-s", "--format=from commit %H of %ad"
+    standardOutput = gitdata;
+}
+//*/
+
 buildscript {
     ext.kotlin_version = '1.3.72'
     repositories {
@@ -200,10 +208,16 @@ android {
         release {
             // TODO: could be enabled for ProGuard minimization
             minifyEnabled false
+            delete("build/intermediates/incremental/mergeReleaseResources/merger.xml")
+            resValue("string", 'build_time', "${(new Date()).toString()}")
+            resValue("string", 'build_git', "${gitdata.toString()}")
         }
 
         debug {
             minifyEnabled false
+            delete("build/intermediates/incremental/mergeDebugResources/merger.xml")
+            resValue("string", 'build_time', "${(new Date()).toString()}")
+            resValue("string", 'build_git', "${gitdata.toString()}")
 
             applicationIdSuffix ".debug"
         }
