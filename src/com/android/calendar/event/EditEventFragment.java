@@ -49,6 +49,7 @@ import android.provider.CalendarContract.Colors;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.app.ActivityCompat;
@@ -84,7 +85,6 @@ import com.android.colorpicker.HsvColorComparator;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -95,13 +95,13 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private static final String TAG = "EditEventActivity";
     private static final String COLOR_PICKER_DIALOG_TAG = "ColorPickerDialog";
 
-    private static final String BUNDLE_KEY_MODEL = "key_model";
-    private static final String BUNDLE_KEY_EDIT_STATE = "key_edit_state";
-    private static final String BUNDLE_KEY_EVENT = "key_event";
-    private static final String BUNDLE_KEY_READ_ONLY = "key_read_only";
-    private static final String BUNDLE_KEY_EDIT_ON_LAUNCH = "key_edit_on_launch";
-    private static final String BUNDLE_KEY_SHOW_COLOR_PALETTE = "show_color_palette";
-    private static final String BUNDLE_KEY_DELETE_DIALOG_VISIBLE =
+    private static final String BUNDLE_MODEL = "key_model";
+    private static final String BUNDLE_EDIT_STATE = "key_edit_state";
+    private static final String BUNDLE_READ_ONLY = "key_read_only";
+    private static final String BUNDLE_EDIT_ON_LAUNCH = "key_edit_on_launch";
+    private static final String BUNDLE_SHOW_COLOR_PALETTE =
+        "show_color_palette";
+    private static final String BUNDLE_DELETE_DIALOG_VISIBLE =
         "key_delete_dialog_visible";
 
     private static final boolean DEBUG = false;
@@ -113,7 +113,8 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private static final int TOKEN_COLORS = 1 << 4;
 
     private static final int TOKEN_ALL =
-        TOKEN_EVENT | TOKEN_ATTENDEES | TOKEN_REMINDERS | TOKEN_CALENDARS | TOKEN_COLORS;
+        TOKEN_EVENT | TOKEN_ATTENDEES | TOKEN_REMINDERS
+            | TOKEN_CALENDARS | TOKEN_COLORS;
     private static final int TOKEN_UNINITIALIZED = 1 << 31;
     /**
      * A bitfield of TOKEN_* to keep track which query hasn't been completed
@@ -121,7 +122,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
      * view.
      */
     private int mOutstandingQueries = TOKEN_UNINITIALIZED;
-    private final ActionInfo mActionInfo;
     public boolean mShowModifyDialogOnLaunch = false;
     private EditEventHelper mHelper;
     private CalendarEventModel mModel;
@@ -130,13 +130,11 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private QueryHandler mHandler;
     private int mModification = Utils.MODIFY_UNINITIALIZED;
     private AlertDialog mModifyDialog;
-    private EventBundle mEventBundle;
     private ArrayList<ReminderEntry> mReminders;
     private int mEventColor;
     private final boolean mEventColorInitialized;
     private EventColorPickerDialog mColorPickerDialog;
     private AppCompatActivity mActivity;
-    private boolean mSaveOnDetach = true;
     private boolean mIsReadOnly;
     private boolean mShowColorPalette = false;
     private DeleteEventHelper mDeleteHelper;
@@ -156,7 +154,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         public void run() {
             // We only want this to get called once, either because the user
             // pressed back/home or one of the buttons on screen
-            mSaveOnDetach = false;
             if (mModification == Utils.MODIFY_UNINITIALIZED) {
                 // If this is uninitialized the user hit back, the only
                 // changeable item is response to default to all events.
@@ -300,29 +297,21 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     }
 
     public EditEventFragment() {
-        this(null, null, false, -1,
-            false);
+        this(null, null, false);
     }
 
     @SuppressLint("ValidFragment")
-    public EditEventFragment(
-        ActionInfo actionInfo, ArrayList<ReminderEntry> reminders,
-        boolean eventColorInitialized, int eventColor, boolean readOnly)
-    {
-        mActionInfo = actionInfo;
-        mIsReadOnly = readOnly;
-        mReminders = reminders;
-        mEventColorInitialized = eventColorInitialized;
-        if (eventColorInitialized) {
-            mEventColor = eventColor;
-        }
-        setHasOptionsMenu(true);
-    }
-
-    // This gets called immediately after creating the fragment
-    public void setModel(CalendarEventModel model)
+    public EditEventFragment(@NonNull CalendarEventModel model,
+                             @NonNull ActionInfo actionInfo, boolean readOnly)
     {
         mModel = model;
+        mIsReadOnly = readOnly;
+        mReminders = mModel.mReminders;
+        mEventColorInitialized = mModel.mEventColorInitialized;
+        if (mModel.mEventColorInitialized) {
+            mEventColor = mModel.mEventColor;
+        }
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -349,105 +338,54 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         if (!havePermission(Manifest.permission.READ_CONTACTS)) {
             ActivityCompat.requestPermissions(
                 mActivity,
-                new String[] { Manifest.permission.READ_CONTACTS }, 0);
+                new String[] { Manifest.permission.READ_CONTACTS },
+                0);
         }
     }
 
     // This is called after onCreate().
     @SuppressLint("InflateParams")
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(
+        LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
+    {
         if (savedInstanceState != null) {
-            if (savedInstanceState.containsKey(BUNDLE_KEY_MODEL)) {
+            if (savedInstanceState.containsKey(BUNDLE_MODEL)) {
                 mModel = (CalendarEventModel)
-                    savedInstanceState.getSerializable(BUNDLE_KEY_MODEL);
+                    savedInstanceState.getSerializable(BUNDLE_MODEL);
             }
-            if (savedInstanceState.containsKey(BUNDLE_KEY_EDIT_STATE)) {
-                mModification = savedInstanceState.getInt(BUNDLE_KEY_EDIT_STATE);
+            if (savedInstanceState.containsKey(BUNDLE_EDIT_STATE)) {
+                mModification = savedInstanceState.getInt(BUNDLE_EDIT_STATE);
             }
-            if (savedInstanceState.containsKey(BUNDLE_KEY_EDIT_ON_LAUNCH)) {
+            if (savedInstanceState.containsKey(BUNDLE_EDIT_ON_LAUNCH)) {
                 mShowModifyDialogOnLaunch = savedInstanceState
-                    .getBoolean(BUNDLE_KEY_EDIT_ON_LAUNCH);
+                    .getBoolean(BUNDLE_EDIT_ON_LAUNCH);
             }
-            if (savedInstanceState.containsKey(BUNDLE_KEY_EVENT)) {
-                mEventBundle =
-                    (EventBundle) savedInstanceState.getSerializable(BUNDLE_KEY_EVENT);
+            if (savedInstanceState.containsKey(BUNDLE_READ_ONLY)) {
+                mIsReadOnly =
+                    savedInstanceState.getBoolean(BUNDLE_READ_ONLY);
             }
-            if (savedInstanceState.containsKey(BUNDLE_KEY_READ_ONLY)) {
-                mIsReadOnly = savedInstanceState.getBoolean(BUNDLE_KEY_READ_ONLY);
-            }
-            if (savedInstanceState.containsKey(BUNDLE_KEY_SHOW_COLOR_PALETTE)) {
+            if (savedInstanceState.containsKey(BUNDLE_SHOW_COLOR_PALETTE)) {
                 mShowColorPalette =
-                    savedInstanceState.getBoolean(BUNDLE_KEY_SHOW_COLOR_PALETTE);
+                    savedInstanceState.getBoolean(BUNDLE_SHOW_COLOR_PALETTE);
             }
             mDeleteDialogVisible =
                 savedInstanceState.getBoolean(
-                    BUNDLE_KEY_DELETE_DIALOG_VISIBLE,false);
+                    BUNDLE_DELETE_DIALOG_VISIBLE,false);
         }
         View view;
         // "InflateParams": root needs to be null to prevent
         // IllegalStateException: The specified child already has a parent.
         if (mIsReadOnly) {
-            view = inflater.inflate(R.layout.edit_event_single_column, null);
+            view = inflater.inflate(
+                R.layout.edit_event_single_column, null);
         } else {
             view = inflater.inflate(R.layout.edit_event, null);
         }
         mView = new EditEventView(mActivity, view, mOnDone);
 
         if (havePermission(Manifest.permission.READ_CALENDAR)) {
-            if (mModel == null) {
-                mModel = new CalendarEventModel();
-                if (mActionInfo != null) {
-                    if (mActionInfo.startTime != null) {
-                        mModel.mStart = mActionInfo.startTime.toMillis(true);
-                        mModel.mEnd = mModel.mStart;
-                    }
-                    if (mActionInfo.endTime != null) {
-                        mModel.mEnd = mActionInfo.endTime.toMillis(true);
-                    }
-                    if (mActionInfo.calendarId != -1) {
-                        mModel.mCalendarId = mActionInfo.calendarId;
-                    }
-                    if (mActionInfo.eventId != -1) {
-                        mModel.mId = mActionInfo.eventId;
-                        mModel.mUri = ContentUris.withAppendedId(
-                            Events.CONTENT_URI, mActionInfo.eventId);
-                    } else {
-                        // New event. All day?
-                        mModel.mAllDay =
-                            mActionInfo.extraLong ==
-                                CalendarController.EXTRA_CREATE_ALL_DAY;
-                    }
-                } else if (mEventBundle != null) {
-                    if (mEventBundle.id != -1) {
-                        mModel.mId = mEventBundle.id;
-                        mModel.mUri = ContentUris.withAppendedId(
-                            Events.CONTENT_URI, mEventBundle.id);
-                    }
-                    mModel.mStart = mEventBundle.start;
-                    mModel.mEnd = mEventBundle.end;
-                }
-                mModel.mOriginalStart = mModel.mStart;
-                mModel.mOriginalEnd = mModel.mEnd;
-                mModel.mSelfAttendeeStatus = Attendees.ATTENDEE_STATUS_ACCEPTED;
-                if (mReminders != null) {
-                    mModel.mReminders = mReminders;
-                }
-                if (mEventColorInitialized) {
-                    mModel.setEventColor(mEventColor);
-                }
-            }
 
-            if (mModel.mStart <= 0) {
-                // use a default value instead
-                mModel.mStart =
-                    mHelper.constructDefaultStartTime(System.currentTimeMillis());
-            }
-            if (mModel.mEnd < mModel.mStart) {
-                // use a default value instead
-                mModel.mEnd = mHelper.constructDefaultEndTime(mModel.mStart, mActivity);
-            }
 
             // Kick off the query for the event
             boolean newEvent = mModel.mUri == null;
@@ -468,19 +406,24 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
                     Log.d(TAG, "startQuery: Editing a new event.");
                 }
 
-                // Start a query in the background to read the list of calendars and colors
-                mHandler.startQuery(TOKEN_CALENDARS, null, Calendars.CONTENT_URI,
+                // Start queries in the background
+                // to read the lists of calendars and colors
+                mHandler.startQuery(TOKEN_CALENDARS, null,
+                    Calendars.CONTENT_URI,
                     EditEventHelper.CALENDARS_PROJECTION,
                     EditEventHelper.CALENDARS_WHERE_WRITEABLE_VISIBLE,
                     null /* selection args */,
                     null /* sort order */);
-                // mHandler.onQueryComplete will be called when a query completes.
+                // mHandler.onQueryComplete will be called
+                // when a query completes.
 
-                mHandler.startQuery(TOKEN_COLORS, null, Colors.CONTENT_URI,
+                mHandler.startQuery(TOKEN_COLORS, null,
+                    Colors.CONTENT_URI,
                     EditEventHelper.COLORS_PROJECTION,
                     Colors.COLOR_TYPE + "=" + Colors.TYPE_EVENT,
                     null, null);
-                // mHandler.onQueryComplete will be called when a query completes.
+                // mHandler.onQueryComplete will be called
+                // when a query completes.
 
                 mModification = Utils.MODIFY_ALL;
                 mView.setModification(mModification);
@@ -534,7 +477,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         if (mDismissOnResume) {
             mHandler.post(onDeleteRunnable);
         }
-        // Display the "delete confirmation" or "edit response helper" dialog if needed
+        // Display the "delete confirmation" dialog if needed
         if (mDeleteDialogVisible) {
             startDeleteHelper();
         }
@@ -900,24 +843,10 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
 
     @Override
     public void onPause() {
-        if (   mSaveOnDetach
-            && (mActivity != null)
-            && (!mIsReadOnly)
-            && (!mActivity.isChangingConfigurations())
-            && mView.prepareForSave())
-        {
-            mOnDone.setDoneCode(Utils.DONE_SAVE);
-            mOnDone.run();
-        }
-        if (   (mActivity != null)
-            && (havePermission(Manifest.permission.READ_CONTACTS)))
-        {
-            mActivity.finish();
-        }
         mIsPaused = true;
-        // Remove event deletion alert box since it is being rebuild in OnResume.
-        // This is done to get the same behavior on OnResume since the AlertDialog
-        // is gone on rotation but not if you press the HOME key.
+        // Remove event deletion alert box since it is being rebuilt in
+        // OnResume. This is done to get the same behavior on OnResume since the
+        // AlertDialog is gone on rotation but not if you press the HOME key.
         if (mDeleteDialogVisible && mDeleteHelper != null) {
             mDeleteHelper.dismissAlertDialog();
             mDeleteHelper = null;
@@ -947,43 +876,22 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         mView.prepareForSave();
-        outState.putSerializable(BUNDLE_KEY_MODEL, mModel);
-        outState.putInt(BUNDLE_KEY_EDIT_STATE, mModification);
-        if (mEventBundle == null && mActionInfo != null) {
-            mEventBundle = new EventBundle();
-            mEventBundle.id = mActionInfo.eventId;
-            if (mActionInfo.startTime != null) {
-                mEventBundle.start = mActionInfo.startTime.toMillis(true);
-            }
-            if (mActionInfo.endTime != null) {
-                mEventBundle.end = mActionInfo.endTime.toMillis(true);
-            }
-        }
-        outState.putBoolean(BUNDLE_KEY_EDIT_ON_LAUNCH, mShowModifyDialogOnLaunch);
-        outState.putSerializable(BUNDLE_KEY_EVENT, mEventBundle);
-        outState.putBoolean(BUNDLE_KEY_READ_ONLY, mIsReadOnly);
-        outState.putBoolean(BUNDLE_KEY_SHOW_COLOR_PALETTE, mView.isColorPaletteVisible());
-        outState.putBoolean(BUNDLE_KEY_DELETE_DIALOG_VISIBLE, mDeleteDialogVisible);
+        outState.putSerializable(BUNDLE_MODEL, mModel);
+        outState.putInt(BUNDLE_EDIT_STATE, mModification);
+        outState.putBoolean(BUNDLE_EDIT_ON_LAUNCH, mShowModifyDialogOnLaunch);
+        outState.putBoolean(BUNDLE_READ_ONLY, mIsReadOnly);
+        outState.putBoolean(BUNDLE_SHOW_COLOR_PALETTE,
+            mView.isColorPaletteVisible());
+        outState.putBoolean(BUNDLE_DELETE_DIALOG_VISIBLE, mDeleteDialogVisible);
     }
 
     @Override
     public long getSupportedActionTypes() {
-        return CalendarController.ControllerAction.USER_HOME;
+        return 0;
     }
 
     @Override
     public void handleAction(CalendarController.ActionInfo actionInfo) {
-        // It's currently unclear if we want to save the event or not when home
-        // is pressed. When creating a new event we shouldn't save since we
-        // can't get the id of the new event easily.
-        if (   (actionInfo.actionType == CalendarController.ControllerAction.GO_TO)
-            && mSaveOnDetach)
-        {
-            if (mView != null && mView.prepareForSave()) {
-                mOnDone.setDoneCode(Utils.DONE_SAVE);
-                mOnDone.run();
-            }
-        }
     }
 
     @Override
@@ -994,13 +902,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             mModel.setEventColor(color);
             mView.updateHeadlineColor(mModel, color);
         }
-    }
-
-    private static class EventBundle implements Serializable {
-        private static final long serialVersionUID = 1L;
-        long id = -1;
-        long start = -1;
-        long end = -1;
     }
 
     private void setModelIfDone(int queryType) {
@@ -1023,15 +924,29 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         }
     }
 
+    /* The alleged "leak" here isn't actually a memory leak at all.
+     * A real memory leak occurs when the memory is *never* reclaimed, or at
+     * least not until the device is rebooted or a long running application
+     * is closed.
+     * This case is simply a delayed garbage collection: the enclosing Activity
+     * will not be garbage-collected until the handler has run and exited.
+     * For handlers which just encapsulate a background task
+     * or which call back into the enclosing Activity
+     * (which therefore needs to stay around) this is not a problem.
+     */
+    @SuppressLint("HandlerLeak")
     private class QueryHandler extends AsyncQueryHandler {
         public QueryHandler(ContentResolver cr) {
             super(cr);
         }
 
         // We don't override startQuery()
-        // onQueryComplete() is responsible for closing the cursor that is passed to it.
+        // onQueryComplete() is responsible for closing
+        // the cursor that is passed to it.
         @Override
-        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+        protected void onQueryComplete(
+            int token, Object cookie, Cursor cursor)
+        {
             // If the query didn't return a cursor for some reason return
             if (cursor == null) {
                 return;
@@ -1051,7 +966,6 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
                         // was deleted.
                         cursor.close();
                         mOnDone.setDoneCode(Utils.DONE_EXIT);
-                        mSaveOnDetach = false;
                         mOnDone.run();
                         return;
                     }

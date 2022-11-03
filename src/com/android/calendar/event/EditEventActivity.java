@@ -24,6 +24,8 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
+
+import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.view.MenuItem;
 
@@ -40,8 +42,6 @@ import ws.xsoh.etar.R;
 public class EditEventActivity extends AbstractCalendarActivity {
     public static final String EXTRA_EVENT_REMINDERS = "reminders";
     public static final String EXTRA_READ_ONLY = "read_only";
-    private static final String TAG = "EditEventActivity";
-    private static final boolean DEBUG = false;
     private static final String BUNDLE_KEY_EVENT_ID = "key_event_id";
 
     public CalendarEventModel mModel;
@@ -60,6 +60,28 @@ public class EditEventActivity extends AbstractCalendarActivity {
         synchronized (CalendarApplication.mEvents) {
             try {
                 mModel = CalendarApplication.mEvents.remove(0);
+                // FIXME check if this can ever happen
+                if (mModel.mStart <= 0) {
+                    // use a default value instead
+                    long now = System.currentTimeMillis();
+                    Time defaultStart = new Time();
+                    defaultStart.set(now);
+                    defaultStart.second = 0;
+                    defaultStart.minute = 30;
+                    long defaultStartMillis =
+                        defaultStart.toMillis(false);
+                    if (now < defaultStartMillis) {
+                        mModel.mStart = defaultStartMillis;
+                    } else {
+                        mModel.mStart =
+                            defaultStartMillis + 30 * DateUtils.MINUTE_IN_MILLIS;
+                    }
+                }
+                if (mModel.mEnd < mModel.mStart) {
+                    // use a default value instead
+                    mModel.mEnd = mModel.mStart
+                        + Utils.getDefaultEventDurationInMillis(this);
+                }
             } catch (IndexOutOfBoundsException ignore) {
                 mModel = null;
             }
@@ -87,27 +109,28 @@ public class EditEventActivity extends AbstractCalendarActivity {
         if (Utils.getConfigBool(this, R.bool.multiple_pane_config)) {
             getSupportActionBar().setDisplayOptions(
                     ActionBar.DISPLAY_SHOW_TITLE,
-                    ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME
-                            | ActionBar.DISPLAY_SHOW_TITLE);
+                    ActionBar.DISPLAY_HOME_AS_UP
+                        | ActionBar.DISPLAY_SHOW_HOME
+                        | ActionBar.DISPLAY_SHOW_TITLE);
             getSupportActionBar().setTitle(
                 mModel.mId == -1 ? R.string.event_create : R.string.event_edit);
-        }
-        else {
-            getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,
-                    ActionBar.DISPLAY_HOME_AS_UP | ActionBar.DISPLAY_SHOW_HOME|
-                    ActionBar.DISPLAY_SHOW_TITLE | ActionBar.DISPLAY_SHOW_CUSTOM);
+        } else {
+            getSupportActionBar().setDisplayOptions(
+                ActionBar.DISPLAY_SHOW_CUSTOM,
+                    ActionBar.DISPLAY_HOME_AS_UP
+                        | ActionBar.DISPLAY_SHOW_HOME
+                        | ActionBar.DISPLAY_SHOW_TITLE
+                        | ActionBar.DISPLAY_SHOW_CUSTOM);
         }
 
-        EditEventFragment editFragment =
-            (EditEventFragment) getFragmentManager().findFragmentById(R.id.body_frame);
+        EditEventFragment editFragment = (EditEventFragment)
+            getFragmentManager().findFragmentById(R.id.body_frame);
         if (editFragment == null) {
 
             boolean readOnly =
                    (actionInfo.eventId == -1)
                 && mIntent.getBooleanExtra(EXTRA_READ_ONLY, false);
-            editFragment = new EditEventFragment(actionInfo, mModel.mReminders,
-                mModel.mEventColorInitialized, mModel.mEventColor, readOnly);
-            editFragment.setModel(mModel);
+            editFragment = new EditEventFragment(mModel, actionInfo, readOnly);
             editFragment.mShowModifyDialogOnLaunch = mIntent.getBooleanExtra(
                     CalendarController.EVENT_EDIT_ON_LAUNCH, false);
 
