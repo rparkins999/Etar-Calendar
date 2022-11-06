@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2020
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private AlertDialog mModifyDialog;
     private ArrayList<ReminderEntry> mReminders;
     private int mEventColor;
-    private final boolean mEventColorInitialized;
+    private boolean mEventColorInitialized;
     private EventColorPickerDialog mColorPickerDialog;
     private AppCompatActivity mActivity;
     private boolean mIsReadOnly;
@@ -306,10 +306,14 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     {
         mModel = model;
         mIsReadOnly = readOnly;
-        mReminders = mModel.mReminders;
-        mEventColorInitialized = mModel.mEventColorInitialized;
-        if (mModel.mEventColorInitialized) {
-            mEventColor = mModel.mEventColor;
+        if (mModel != null) {
+            mReminders = mModel.mReminders;
+            mEventColorInitialized = mModel.mEventColorInitialized;
+            if (mModel.mEventColorInitialized) {
+                mEventColor = mModel.mEventColor;
+            }
+        } else {
+            mEventColorInitialized = false;
         }
         setHasOptionsMenu(true);
     }
@@ -353,6 +357,10 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             if (savedInstanceState.containsKey(BUNDLE_MODEL)) {
                 mModel = (CalendarEventModel)
                     savedInstanceState.getSerializable(BUNDLE_MODEL);
+                mEventColorInitialized = mModel.mEventColorInitialized;
+                if (mModel.mEventColorInitialized) {
+                    mEventColor = mModel.mEventColor;
+                }
             }
             if (savedInstanceState.containsKey(BUNDLE_EDIT_STATE)) {
                 mModification = savedInstanceState.getInt(BUNDLE_EDIT_STATE);
@@ -928,10 +936,10 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
      * A real memory leak occurs when the memory is *never* reclaimed, or at
      * least not until the device is rebooted or a long running application
      * is closed.
-     * This case is simply a delayed garbage collection: the enclosing Activity
+     * This case is simply a delayed garbage collection: the Activity
      * will not be garbage-collected until the handler has run and exited.
      * For handlers which just encapsulate a background task
-     * or which call back into the enclosing Activity
+     * or which call back into the Activity
      * (which therefore needs to stay around) this is not a problem.
      */
     @SuppressLint("HandlerLeak")
