@@ -45,6 +45,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/CalendarTheme.WithoutActionBar"
+            android:screenOrientation="fullSensor"
             android:windowSoftInputMode="adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -70,6 +71,7 @@
         </activity>
 
         <activity android:name="com.android.calendar.EventInfoActivity"
+            android:screenOrientation="fullSensor"
             android:parentActivityName="com.android.calendar.AllInOneActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -85,6 +87,7 @@
         </activity>
 
         <activity android:name="com.android.calendar.event.EditEventActivity"
+            android:screenOrientation="fullSensor"
             android:theme="@style/Base.CalendarAppThemeWithActionBar">
         </activity>
 
@@ -109,6 +112,7 @@
             android:name="com.android.calendar.GoogleCalendarUriIntentFilter"
             android:configChanges="orientation|keyboardHidden"
             android:label="@string/app_label"
+            android:screenOrientation="fullSensor"
             android:theme="@android:style/Theme.NoDisplay">
 
             <intent-filter
@@ -139,6 +143,7 @@
         <activity
             android:name="com.android.calendar.settings.SettingsActivity"
             android:label="@string/preferences_title"
+            android:screenOrientation="fullSensor"
             android:parentActivityName="com.android.calendar.AllInOneActivity" />
 
         <!-- Declarations for search -->
@@ -152,6 +157,7 @@
             android:label="@string/search_title"
             android:launchMode="singleTop"
             android:theme="@style/CalendarTheme.WithActionBar"
+            android:screenOrientation="fullSensor"
             android:windowSoftInputMode="stateAlwaysHidden">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH"/>
@@ -161,6 +167,7 @@
 
         <activity android:name="com.android.calendar.ImportActivity"
             android:theme="@android:style/Theme.NoDisplay"
+            android:screenOrientation="fullSensor"
             android:launchMode="singleTop">
              <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -192,6 +199,7 @@
             android:name="com.android.calendar.alerts.AlertActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
+            android:screenOrientation="fullSensor"
             android:theme="@android:style/Theme.Holo.Dialog" />
 
         <activity
@@ -199,12 +207,14 @@
             android:excludeFromRecents="true"
             android:label="@string/quick_response_dialog_title"
             android:launchMode="singleInstance"
+            android:screenOrientation="fullSensor"
             android:theme="@android:style/Theme.Holo.Dialog" />
 
         <activity
             android:name="com.android.calendar.alerts.SnoozeDelayActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
+            android:screenOrientation="fullSensor"
             android:theme="@android:style/Theme.Holo.Dialog" />
 
         <receiver android:name="com.android.calendar.alerts.AlertReceiver">
