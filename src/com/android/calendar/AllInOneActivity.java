@@ -94,6 +94,7 @@ import static android.provider.CalendarContract.Attendees.ATTENDEE_STATUS;
 import static android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY;
 import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
+import static com.android.calendar.DayView.MILLIS_PER_HOUR;
 
 public class AllInOneActivity extends AbstractCalendarActivity implements ActionHandler,
         OnSharedPreferenceChangeListener, SearchView.OnQueryTextListener, SearchView.OnSuggestionListener, NavigationView.OnNavigationItemSelectedListener {
@@ -488,10 +489,11 @@ public class AllInOneActivity extends AbstractCalendarActivity implements Action
             @Override
             public void onClick(View v) {
                 //Create new Event
+                long startMillis = DayView.mSelectionTime.toMillis(true);
                 mController.sendEventActionWithExtra(
                     this, ControllerAction.CREATE_EVENT, -1,
-                    DayView.mSelectionTime.toMillis(true),
-                    0, 0, 0,
+                    startMillis,
+                    startMillis + MILLIS_PER_HOUR, 0, 0,
                     (DayView.mSelectionAllday ? 0x10L: 0L), -1);
             }
         });
