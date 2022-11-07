@@ -15,9 +15,9 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- This is the app label used for alert notifications -->
-    <string name="standalone_app_label" translatable="false">Etar</string>
+    <string name="standalone_app_label" translatable="false">Etar Calendar</string>
     <!-- This is the label underneath the icon for Calendar -->
-    <string name="app_label">Calendar</string>
+    <string name="app_label">Etar Calendar</string>
 
     <!-- Shared Labels. These labels are shared among the activities. -->
     <skip/>
@@ -560,13 +560,13 @@
 
     <!-- About dialog strings -->
     <string name="app_authors" translatable="false">The Etar Project and Richard Parkins</string>
-    <string name="app_authors_url" translatable="false">https://github.com/Etar-Group/Etar-Calendar/graphs/contributors</string>
-    <string name="app_changelog" translatable="false">https://github.com/Etar-Group/Etar-Calendar/releases</string>
-    <string name="app_copyright">\u00a9 2015-<xliff:g>%s</xliff:g> The Etar Project. Portions \u00a9 2005-<xliff:g>%s</xliff:g> The Android Open Source Project.</string>
-    <string name="app_issues_url" translatable="false">https://github.com/Etar-Group/Etar-Calendar/issues</string>
+    <string name="app_authors_url" translatable="false">https://github.com/rparkins999/Etar-Calendar/graphs/contributors</string>
+    <string name="app_changelog" translatable="false">https://github.com/rparkins999/Etar-Calendar/releases</string>
+    <string name="app_copyright">\u00a9 2015-<xliff:g>%s</xliff:g> The Etar Project. Portions \u00a9 2005-<xliff:g>%s</xliff:g> The Android Open Source Project. Portions \u00a9 2020-<xliff:g>%s</xliff:g> Richard Parkins.</string>
+    <string name="app_issues_url" translatable="false">https://github.com/rparkins999/Etar-Calendar/issues</string>
     <string name="app_license" translatable="false">GPLv3</string>
     <string name="app_license_url" translatable="false">https://www.gnu.org/licenses/gpl-3.0.html</string>
-    <string name="app_source_url" translatable="false">https://github.com/Etar-Group/Etar-Calendar</string>
+    <string name="app_source_url" translatable="false">https://github.com/rparkins999/Etar-Calendar</string>
     <string name="authors">Authors</string>
     <string name="changelog">Changelog</string>
     <string name="license">License</string>
@@ -798,7 +798,7 @@
     <string name="preferences_list_add_offline_button">Add calendar</string>
     <string name="preferences_list_add_offline_name">Name</string>
     <string name="preferences_list_add_offline_cancel">Cancel</string>
-    <string name="preferences_menu_about">About Etar</string>
+    <string name="preferences_menu_about">About Etar Calendar</string>
 
     <string name="offline_account_name">Offline Calendar</string>
 

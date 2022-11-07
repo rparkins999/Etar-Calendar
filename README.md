@@ -2,7 +2,7 @@
 # Etar Calendar
 Etar (from Arabic:  `إِيتَار`)  is an open source material designed calendar made for everyone!
 
-This version is only available from this github repository. It has various modifications whih I (raprkins999) consider to be User Interface improvements.
+This version is only available from this github repository. It has various modifications which I (rparkins999) consider to be User Interface improvements.
 
 ![Etar Calendar](metadata/animation.gif)
 
@@ -23,7 +23,7 @@ this app would be just a dream. So thanks to them!
 - Support offline calendar
 - -Agenda widget.- (disabled until #373 and #374 are fixed. Use [Calendar Widget](https://f-droid.org/de/packages/com.plusonelabs.calendar/) as an alternative.)
 
-## How to use Etar
+## How to use Etar Calendar
 Store your calendar on the phone only:
   - Create an offline calendar.
 
@@ -54,7 +54,7 @@ an event to which calendar it should be added.
 
 ## Contribute
 ### Translations
-Interested in helping to translate Etar? Contribute here: https://hosted.weblate.org/projects/etar-calendar/strings/
+Interested in helping to translate this version of Etar Calendar? Fork this repository, add your translations, and submit a pull request.
 
 ##### Google Play app description:
 You can update/add your own language and all artwork files [here](metadata)
@@ -74,6 +74,8 @@ Copyright (c) 2005-2013, The Android Open Source Project
 Copyright (c) 2013, Dominik Schürmann
 
 Copyright (c) 2015-, The Etar Project
+
+Copyright (c) 2020-, Richard Parkins
 
 Licensed under the GPLv3: https://www.gnu.org/licenses/gpl-3.0.html
 Except where otherwise noted.

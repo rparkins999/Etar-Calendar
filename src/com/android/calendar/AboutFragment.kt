@@ -44,7 +44,7 @@ class AboutFragment : Fragment() {
         view.findViewById<TextView>(R.id.committed).text = getString(R.string.build_git)
 
         val year = Calendar.getInstance().get(Calendar.YEAR).toString()
-        view.findViewById<TextView>(R.id.copyright).text = getString(R.string.app_copyright, year, year)
+        view.findViewById<TextView>(R.id.copyright).text = getString(R.string.app_copyright, year, year, year)
 
         view.findViewById<LinearLayout>(R.id.authorsLayout).setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.app_authors_url))))
