@@ -80,9 +80,9 @@ import com.android.calendar.fromcommon.Rfc822Validator;
 import com.android.calendar.recurrencepicker.RecurrencePickerDialog;
 import com.android.calendar.settings.GeneralPreferences;
 import com.android.calendarcommon2.EventRecurrence;
-import com.android.timezonepicker.TimeZoneInfo;
-import com.android.timezonepicker.TimeZonePickerDialog;
-import com.android.timezonepicker.TimeZonePickerUtils;
+import com.android.calendar.timezonepicker.TimeZoneInfo;
+import com.android.calendar.timezonepicker.TimeZonePickerDialog;
+import com.android.calendar.timezonepicker.TimeZonePickerUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;

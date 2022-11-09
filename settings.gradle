@@ -1,4 +1,3 @@
 include ':external:calendar'
 include ':external:colorpicker'
-include ':external:timezonepicker'
 include ':external:chips'

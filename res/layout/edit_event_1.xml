@@ -296,36 +296,6 @@
             android:gravity="end|center_vertical" />
     </LinearLayout>
 
-    <!-- ALL DAY -->
-    <LinearLayout
-        android:id="@+id/all_day_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:gravity="center_vertical"
-        android:minHeight="24dip"
-        android:orientation="horizontal">
-        <CheckBox
-            android:id="@+id/is_all_day"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="16dip"
-            android:layout_marginEnd="8dip"
-            android:contentDescription="@string/accessibility_all_day"
-            android:gravity="center_vertical" />
-        <TextView
-            android:id="@+id/is_all_day_label"
-            style="@style/TextAppearance.EditEvent_Small"
-            android:layout_width="0dip"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical|start"
-            android:layout_marginStart="-6dip"
-            android:layout_weight="1"
-            android:gravity="center_vertical|start"
-            android:text="@string/edit_event_all_day_label" />
-    </LinearLayout>
-
     <!-- TIME ZONE - Read-only textview version -->
     <LinearLayout
         android:id="@+id/timezone_textview_row"
@@ -362,6 +332,36 @@
             android:gravity="start|center_vertical" />
     </LinearLayout>
 
+
+    <!-- ALL DAY -->
+    <LinearLayout
+        android:id="@+id/all_day_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dip"
+        android:gravity="center_vertical"
+        android:minHeight="24dip"
+        android:orientation="horizontal">
+        <CheckBox
+            android:id="@+id/is_all_day"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="16dip"
+            android:layout_marginEnd="8dip"
+            android:contentDescription="@string/accessibility_all_day"
+            android:gravity="center_vertical" />
+        <TextView
+            android:id="@+id/is_all_day_label"
+            style="@style/TextAppearance.EditEvent_Small"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="-6dip"
+            android:layout_weight="1"
+            android:gravity="center_vertical|start"
+            android:text="@string/edit_event_all_day_label" />
+    </LinearLayout>
 
     <View
         style="@style/EditEventSeparator"/>

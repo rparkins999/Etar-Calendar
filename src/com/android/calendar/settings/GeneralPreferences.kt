@@ -41,8 +41,8 @@ import androidx.preference.*
 import com.android.calendar.*
 import com.android.calendar.alerts.AlertReceiver
 import com.android.calendar.event.EventViewUtils
-import com.android.timezonepicker.TimeZoneInfo
-import com.android.timezonepicker.TimeZonePickerUtils
+import com.android.calendar.timezonepicker.TimeZoneInfo
+import com.android.calendar.timezonepicker.TimeZonePickerUtils
 import ws.xsoh.etar.R
 import java.util.*
 

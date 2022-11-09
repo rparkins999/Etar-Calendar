@@ -269,6 +269,20 @@
             android:layout_marginRight="24dip" />
     </TableRow>
 
+    <!-- TIME ZONE - Read/write version with button to launch picker -->
+    <TableRow
+        android:id="@+id/timezone_button_row">
+        <TextView
+            android:id="@+id/timezone_label"
+            style="@style/TextAppearance.EditEvent_Label"
+            android:text="@string/timezone_label" />
+        <Button
+            android:id="@+id/timezone_button"
+            style="@style/TextAppearance.EditEvent_SpinnerButton"
+            android:contentDescription="@string/accessibility_pick_time_zone"
+            android:gravity="left|center_vertical" />
+    </TableRow>
+
     <!-- ALL DAY -->
     <TableRow
         android:id="@+id/all_day_row">
@@ -285,20 +299,6 @@
             android:contentDescription="@string/accessibility_all_day"
             android:gravity="center_vertical"
             android:paddingLeft="8dip" />
-    </TableRow>
-
-    <!-- TIME ZONE - Read/write version with button to launch picker -->
-    <TableRow
-        android:id="@+id/timezone_button_row">
-        <TextView
-            android:id="@+id/timezone_label"
-            style="@style/TextAppearance.EditEvent_Label"
-            android:text="@string/timezone_label" />
-        <Button
-            android:id="@+id/timezone_button"
-            style="@style/TextAppearance.EditEvent_SpinnerButton"
-            android:contentDescription="@string/accessibility_pick_time_zone"
-            android:gravity="left|center_vertical" />
     </TableRow>
 
     <!-- RESPONSE -->
