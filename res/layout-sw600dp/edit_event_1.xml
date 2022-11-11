@@ -201,6 +201,35 @@
         </LinearLayout>
     </TableRow>
 
+    <!-- TIME ZONE - Read-only textview version -->
+    <TableRow
+        android:id="@+id/start_timezone_textview_row"
+        android:focusable="true"
+        android:visibility="gone">
+        <TextView
+            style="@style/TextAppearance.EditEvent_Label"
+            android:text="@string/timezone_label" />
+        <TextView
+            android:id="@+id/start_timezone_textView"
+            style="@style/TextAppearance.EditEvent_Value"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip" />
+    </TableRow>
+
+    <!-- TIME ZONE - Read/write version with button to launch picker -->
+    <TableRow
+        android:id="@+id/start_timezone_button_row">
+        <TextView
+            android:id="@+id/start_timezone_label"
+            style="@style/TextAppearance.EditEvent_Label"
+            android:text="@string/timezone_label" />
+        <Button
+            android:id="@+id/start_timezone_button"
+            style="@style/TextAppearance.EditEvent_SpinnerButton"
+            android:contentDescription="@string/accessibility_pick_time_zone"
+            android:gravity="start|center_vertical" />
+    </TableRow>
+
     <!-- TO - Read/write version which launches the date/time pickers -->
     <TableRow
         android:id="@+id/to_row">
@@ -256,14 +285,14 @@
 
     <!-- TIME ZONE - Read-only textview version -->
     <TableRow
-        android:id="@+id/timezone_textview_row"
+        android:id="@+id/end_timezone_textview_row"
         android:focusable="true"
         android:visibility="gone">
         <TextView
             style="@style/TextAppearance.EditEvent_Label"
             android:text="@string/timezone_label" />
         <TextView
-            android:id="@+id/timezone_textView"
+            android:id="@+id/end_timezone_textView"
             style="@style/TextAppearance.EditEvent_Value"
             android:layout_marginLeft="24dip"
             android:layout_marginRight="24dip" />
@@ -271,13 +300,13 @@
 
     <!-- TIME ZONE - Read/write version with button to launch picker -->
     <TableRow
-        android:id="@+id/timezone_button_row">
+        android:id="@+id/end_timezone_button_row">
         <TextView
-            android:id="@+id/timezone_label"
+            android:id="@+id/end_timezone_label"
             style="@style/TextAppearance.EditEvent_Label"
             android:text="@string/timezone_label" />
         <Button
-            android:id="@+id/timezone_button"
+            android:id="@+id/end_timezone_button"
             style="@style/TextAppearance.EditEvent_SpinnerButton"
             android:contentDescription="@string/accessibility_pick_time_zone"
             android:gravity="left|center_vertical" />

@@ -951,6 +951,12 @@ public class EditEventHelper {
         } else {
             model.mTimezoneStart = tz;
         }
+        tz = cursor.getString(EVENT_INDEX_END_TIMEZONE);
+        if (TextUtils.isEmpty(tz)) {
+            model.mTimezoneEnd = model.mTimezoneStart;
+        } else {
+            model.mTimezoneEnd = tz;
+        }
         String rRule = cursor.getString(EVENT_INDEX_RRULE);
         model.mRrule = rRule;
         model.mSyncId = cursor.getString(EVENT_INDEX_SYNC_ID);
@@ -1095,12 +1101,16 @@ public class EditEventHelper {
         String title = model.mTitle;
         boolean isAllDay = model.mAllDay;
         String rrule = model.mRrule;
-        String timezone = model.mTimezoneStart;
-        if (timezone == null) {
-            timezone = TimeZone.getDefault().getID();
+        String startTimezone = model.mTimezoneStart;
+        if (startTimezone == null) {
+            startTimezone = TimeZone.getDefault().getID();
         }
-        Time startTime = new Time(timezone);
-        Time endTime = new Time(timezone);
+        String endTimezone = model.mTimezoneEnd;
+        if (endTimezone == null) {
+            endTimezone = startTimezone;
+        }
+        Time startTime = new Time(startTimezone);
+        Time endTime = new Time(startTimezone);
 
         startTime.set(model.mStart);
         endTime.set(model.mEnd);
@@ -1114,17 +1124,17 @@ public class EditEventHelper {
         if (isAllDay) {
             // Reset start and end time, ensure at least 1 day duration, and set
             // the timezone to UTC, as required for all-day events.
-            timezone = Time.TIMEZONE_UTC;
+            startTimezone = Time.TIMEZONE_UTC;
             startTime.hour = 0;
             startTime.minute = 0;
             startTime.second = 0;
-            startTime.timezone = timezone;
+            startTime.timezone = startTimezone;
             startMillis = startTime.normalize(true);
 
             endTime.hour = 0;
             endTime.minute = 0;
             endTime.second = 0;
-            endTime.timezone = timezone;
+            endTime.timezone = startTimezone;
             endMillis = endTime.normalize(true);
             if (endMillis < startMillis + DateUtils.DAY_IN_MILLIS) {
                 // EditEventView#fillModelFromUI() should treat this case, but we want to ensure
@@ -1137,7 +1147,8 @@ public class EditEventHelper {
         }
 
         values.put(Events.CALENDAR_ID, calendarId);
-        values.put(Events.EVENT_TIMEZONE, timezone);
+        values.put(Events.EVENT_TIMEZONE, startTimezone);
+        values.put(Events.EVENT_END_TIMEZONE, endTimezone);
         values.put(Events.TITLE, title);
         values.put(Events.ALL_DAY, isAllDay ? 1 : 0);
         values.put(Events.DTSTART, startMillis);

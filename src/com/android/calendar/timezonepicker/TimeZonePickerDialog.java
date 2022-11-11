@@ -29,8 +29,10 @@ public class TimeZonePickerDialog extends DialogFragment implements
         TimeZonePickerView.OnTimeZoneSetListener {
     public static final String TAG = TimeZonePickerDialog.class.getSimpleName();
 
-    public static final String BUNDLE_START_TIME_MILLIS = "bundle_event_start_time";
-    public static final String BUNDLE_TIME_ZONE = "bundle_event_time_zone";
+    public static final String BUNDLE_EVENT_TIME_MILLIS = "bundle_event_time_millis";
+    public static final String BUNDLE_EVENT_TIME_ZONE = "bundle_event_time_zone";
+    public static final String BUNDLE_EVENT_IS_START = "bundle_event_is_start"; // boolean, true-> start, false -> end
+    private boolean mIsStart = true;
 
     private static final String KEY_HAS_RESULTS = "has_results";
     private static final String KEY_LAST_FILTER_STRING = "last_filter_string";
@@ -40,10 +42,9 @@ public class TimeZonePickerDialog extends DialogFragment implements
 
     private OnTimeZoneSetListener mTimeZoneSetListener;
     private TimeZonePickerView mView;
-    private boolean mHasCachedResults = false;
 
     public interface OnTimeZoneSetListener {
-        void onTimeZoneSet(TimeZoneInfo tzi);
+        void onTimeZoneSet(TimeZoneInfo tzi, boolean isStart);
     }
 
     public void setOnTimeZoneSetListener(OnTimeZoneSetListener l) {
@@ -61,8 +62,9 @@ public class TimeZonePickerDialog extends DialogFragment implements
         String timeZone = null;
         Bundle b = getArguments();
         if (b != null) {
-            timeMillis = b.getLong(BUNDLE_START_TIME_MILLIS);
-            timeZone = b.getString(BUNDLE_TIME_ZONE);
+            timeMillis = b.getLong(BUNDLE_EVENT_TIME_MILLIS);
+            timeZone = b.getString(BUNDLE_EVENT_TIME_ZONE);
+            mIsStart = b.getBoolean(BUNDLE_EVENT_IS_START);
         }
         boolean hideFilterSearch = false;
 
@@ -102,7 +104,7 @@ public class TimeZonePickerDialog extends DialogFragment implements
     @Override
     public void onTimeZoneSet(TimeZoneInfo tzi) {
         if (mTimeZoneSetListener != null) {
-            mTimeZoneSetListener.onTimeZoneSet(tzi);
+            mTimeZoneSetListener.onTimeZoneSet(tzi, mIsStart);
         }
         dismiss();
     }
