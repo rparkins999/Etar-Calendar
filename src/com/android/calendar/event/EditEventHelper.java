@@ -1110,7 +1110,7 @@ public class EditEventHelper {
             endTimezone = startTimezone;
         }
         Time startTime = new Time(startTimezone);
-        Time endTime = new Time(startTimezone);
+        Time endTime = new Time(endTimezone);
 
         startTime.set(model.mStart);
         endTime.set(model.mEnd);

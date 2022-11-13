@@ -383,18 +383,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     // Fills in the date and time fields
-    private void populateWhen() {
-        long startMillis = mStartTime.toMillis(false /* use isDst */);
-        long endMillis = mEndTime.toMillis(false /* use isDst */);
-        setDate(mStartDateButton, startMillis);
-        setDate(mEndDateButton, endMillis);
-
-        setTime(mStartTimeButton, startMillis);
-        setTime(mEndTimeButton, endMillis);
-
+    private void setDateTimeListeners() {
         mStartDateButton.setOnClickListener(new DateClickListener(mStartTime));
         mEndDateButton.setOnClickListener(new DateClickListener(mEndTime));
-
         mStartTimeButton.setOnClickListener(new TimeClickListener(mStartTime));
         mEndTimeButton.setOnClickListener(new TimeClickListener(mEndTime));
     }
@@ -435,7 +426,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             long timeMillis = mEndTime.normalize(true);
             fixEndTimeZone(timeMillis, tzi.mTzId);
         }
-        updateHomeTime();
+        updateTimes();
     }
 
     private void showTimezoneDialog(boolean isStart) {
@@ -667,7 +658,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         } else {
             mStartTime.timezone = mStartTimezone;
-            mEndTime.timezone = mStartTimezone;
+            mEndTime.timezone = mEndTimezone;
             mModel.mStart = mStartTime.toMillis(true);
             mModel.mEnd = mEndTime.toMillis(true);
         }
@@ -861,11 +852,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         } else {
             mAllDayCheckBox.setChecked(false);
         }
-        // On a rotation we need to update the views but onCheckedChanged
-        // doesn't get called
-        if (prevAllDay == mAllDayCheckBox.isChecked()) {
-            setAllDayViewsVisibility(prevAllDay);
-        }
 
         fixStartTimeZone(mStartTime.normalize(true),
                          mStartTime.timezone);
@@ -960,7 +946,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             updateHeadlineColor(model, model.getEventColor());
         }
 
-        populateWhen();
+        setDateTimeListeners();
         populateRepeats();
         updateAttendees(model.mAttendeesList);
 
@@ -1209,7 +1195,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     public void setModification(int modifyWhich) {
         mModification = modifyWhich;
         updateView();
-        updateHomeTime();
     }
 
     private int findSelectedCalendarPosition(Cursor calendarsCursor, long calendarId) {
@@ -1314,51 +1299,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         updateRemindersVisibility(mReminderItems.size());
     }
 
-    private void setDate(TextView view, long millis) {
-        int flags = DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_YEAR
-                | DateUtils.FORMAT_SHOW_WEEKDAY | DateUtils.FORMAT_ABBREV_MONTH
-                | DateUtils.FORMAT_ABBREV_WEEKDAY;
-
-        // Unfortunately, DateUtils doesn't support a timezone other than the
-        // default timezone provided by the system, so we have this ugly hack
-        // here to trick it into formatting our time correctly. In order to
-        // prevent all sorts of craziness, we synchronize on the TimeZone class
-        // to prevent other threads from reading an incorrect timezone from
-        // calls to TimeZone#getDefault()
-        // TODO fix this if/when DateUtils allows for passing in a timezone
-        String dateString;
-        synchronized (TimeZone.class) {
-            TimeZone.setDefault(TimeZone.getTimeZone(mStartTimezone));
-            dateString = DateUtils.formatDateTime(mActivity, millis, flags);
-            // setting the default back to null restores the correct behavior
-            TimeZone.setDefault(null);
-        }
-        view.setText(dateString);
-    }
-
-    private void setTime(TextView view, long millis) {
-        int flags = DateUtils.FORMAT_SHOW_TIME;
-        if (DateFormat.is24HourFormat(mActivity)) {
-            flags |= DateUtils.FORMAT_24HOUR;
-        }
-
-        // Unfortunately, DateUtils doesn't support a timezone other than the
-        // default timezone provided by the system, so we have this ugly hack
-        // here to trick it into formatting our time correctly. In order to
-        // prevent all sorts of craziness, we synchronize on the TimeZone class
-        // to prevent other threads from reading an incorrect timezone from
-        // calls to TimeZone#getDefault()
-        // TODO fix this if/when DateUtils allows for passing in a timezone
-        String timeString;
-        synchronized (TimeZone.class) {
-            TimeZone.setDefault(TimeZone.getTimeZone(mStartTimezone));
-            timeString = DateUtils.formatDateTime(mActivity, millis, flags);
-            TimeZone.setDefault(null);
-        }
-        view.setText(timeString);
-    }
-
-    /**
+   /**
      * @param isChecked true if the All Day button is now checked
      */
     protected void setAllDayViewsVisibility(boolean isChecked) {
@@ -1368,35 +1309,19 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     mEndTime.monthDay--;
                 }
 
-                long endMillis = mEndTime.normalize(true);
-
                 // Do not allow an event to have an end time
                 // before the
                 // start time.
                 if (mEndTime.before(mStartTime)) {
                     mEndTime.set(mStartTime);
-                    endMillis = mEndTime.normalize(true);
                 }
-                setDate(mEndDateButton, endMillis);
-                setTime(mEndTimeButton, endMillis);
             }
-
-            mStartTimeButton.setVisibility(View.GONE);
-            mEndTimeButton.setVisibility(View.GONE);
-            mStartTimezoneRow.setVisibility(View.GONE);
         } else {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
                 if (mAllDay != isChecked) {
                     mEndTime.monthDay++;
                 }
-
-                long endMillis = mEndTime.normalize(true);
-                setDate(mEndDateButton, endMillis);
-                setTime(mEndTimeButton, endMillis);
             }
-            mStartTimeButton.setVisibility(View.VISIBLE);
-            mEndTimeButton.setVisibility(View.VISIBLE);
-            mStartTimezoneRow.setVisibility(View.VISIBLE);
         }
 
         // If this is a new event, and if availability has not yet been
@@ -1422,7 +1347,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
 
         mAllDay = isChecked;
-        updateHomeTime();
+        updateTimes();
     }
 
     public void setColorPickerButtonStates(int[] colorArray) {
@@ -1511,40 +1436,54 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         prepareAccess();
     }
 
-    /**
-     * Checks if the start and end times for this event should be displayed in
-     * the Calendar app's time zone as well and formats and displays them.
+    /* This sets the displayed times and dates.
+     * If the event is all day, only the start and end date
+     * (it can be a multiple day event) are shown, but no times.
+     * if the start zone isn't in the local time zone,
+     * the start date and time in the local time zone are shown.
+     * if the end zone isn't in the local time zone,
+     * the end date and time in the local time zone are shown.
      */
-    /* redundant calls
-    setModelIfDone -> setModel -> setAllDayViewsVisibility
-    -> updateHomeTime
-    setModelIfDone -> setModel -> updateView -> setViewStates
-     -> setAllDayViewsVisibility -> updateHomeTime
-    setModelIfDone -> setModification -> updateView -> setViewStates
-     -> setAllDayViewsVisibility -> updateHomeTime
-    setModelIfDone -> setModification -> updateHomeTime
-     */
-    /*
-    nonlocal time zone not displayed correctly
-     */
-    private void updateHomeTime() {
+    private void updateTimes() {
+        long millisStart = mStartTime.toMillis(false);
+        long millisEnd = mEndTime.toMillis(false);
+        int dateFlags = DateUtils.FORMAT_ABBREV_ALL
+            | DateUtils.FORMAT_SHOW_DATE
+            | DateUtils.FORMAT_SHOW_YEAR
+            | DateUtils.FORMAT_SHOW_WEEKDAY;
+        int timeFlags = DateUtils.FORMAT_SHOW_TIME;
+        boolean is24Format = DateFormat.is24HourFormat(mActivity);
+        if (is24Format) {
+            timeFlags |= DateUtils.FORMAT_24HOUR;
+        }
+        mSB.setLength(0);
+        mStartDateButton.setText(DateUtils.formatDateRange(
+            mActivity, mF, millisStart, millisStart,
+            dateFlags, mStartTimezone).toString());
+        mSB.setLength(0);
+        mEndDateButton.setText(DateUtils.formatDateRange(
+            mActivity, mF, millisEnd, millisEnd,
+            dateFlags, mEndTimezone).toString());
         if (mAllDayCheckBox.isChecked()) {
+            mStartTimeButton.setVisibility(View.GONE);
             mStartHomeGroup.setVisibility(View.GONE);
-            mEndHomeGroup.setVisibility(View.GONE);
             mStartTimezoneRow.setVisibility(View.GONE);
+            mEndTimeButton.setVisibility(View.GONE);
+            mEndHomeGroup.setVisibility(View.GONE);
             mEndTimezoneRow.setVisibility(View.GONE);
         } else {
+            mStartTimeButton.setVisibility(View.VISIBLE);
+            mSB.setLength(0);
+            mStartTimeButton.setText(DateUtils.formatDateRange(
+                mActivity, mF, millisStart, millisStart,
+                timeFlags, mStartTimezone).toString());
             mStartTimezoneRow.setVisibility(View.VISIBLE);
+            mEndTimeButton.setVisibility(View.VISIBLE);
+            mSB.setLength(0);
+            mEndTimeButton.setText(DateUtils.formatDateRange(
+                mActivity, mF, millisEnd, millisEnd,
+                timeFlags, mEndTimezone).toString());
             mEndTimezoneRow.setVisibility(View.VISIBLE);
-            int dateFlags = DateUtils.FORMAT_ABBREV_ALL
-                | DateUtils.FORMAT_SHOW_DATE
-                | DateUtils.FORMAT_SHOW_YEAR
-                | DateUtils.FORMAT_SHOW_WEEKDAY;
-            int timeFlags = DateUtils.FORMAT_SHOW_TIME;
-            boolean is24Format = DateFormat.is24HourFormat(mActivity);
-            if (is24Format) {
-                timeFlags |= DateUtils.FORMAT_24HOUR;
-            }
             boolean isDSTStart = mStartTime.isDst != 0;
             boolean isDSTEnd = mEndTime.isDst != 0;
             String tz = Utils.getTimeZone(mActivity, null);
@@ -1552,9 +1491,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             if (mStartTime.gmtoff == gmtoff) {
                 mStartHomeGroup.setVisibility(View.GONE);
             } else { // show local start date and time
-                long millisStart =
-                    mStartTime.toMillis(false);
-                // Update the start date and times
                 mSB.setLength(0);
                 mStartDateHome.setText(DateUtils.formatDateRange(
                         mActivity, mF, millisStart, millisStart,
@@ -1574,7 +1510,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             if (mEndTime.gmtoff == gmtoff) {
                 mEndHomeGroup.setVisibility(View.GONE);
             } else {
-                long millisEnd = mEndTime.toMillis(false);
                 mSB.setLength(0);
                 mEndDateHome.setText(DateUtils.formatDateRange(
                     mActivity, mF, millisEnd, millisEnd,
@@ -1665,7 +1600,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
             } else {
                 // The end time was changed.
-                startMillis = startTime.toMillis(true);
                 endTime.hour = hourOfDay;
                 endTime.minute = minute;
 
@@ -1679,10 +1613,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             endMillis = endTime.normalize(true);
             fixEndTimeZone(endMillis, endTime.timezone);
 
-            setDate(mEndDateButton, endMillis);
-            setTime(mStartTimeButton, startMillis);
-            setTime(mEndTimeButton, endMillis);
-            updateHomeTime();
+            updateTimes();
         }
     }
 
@@ -1774,12 +1705,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
             fixStartTimeZone(startMillis, startTime.timezone);
             fixEndTimeZone(endMillis, endTime.timezone);
-
-            setDate(mStartDateButton, startMillis);
-            setDate(mEndDateButton, endMillis);
-            setTime(mEndTimeButton, endMillis); // In case end time had to be
-            // reset
-            updateHomeTime();
+            updateTimes();
         }
     }
 
