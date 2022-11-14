@@ -497,9 +497,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
      * true otherwise.
      */
     public boolean prepareForSave() {
-        if (mModel == null || (mCalendarsCursor == null && mModel.mUri == null)) {
-            return false;
-        }
+        if (   (mModel == null)
+            || (   (mCalendarsCursor == null)
+                && (mModel.mId < 0)))
+        { return false; }
         return fillModelFromUI();
     }
 
@@ -614,7 +615,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
 
         // If this was a new event we need to fill in the Calendar information
-        if (mModel.mUri == null) {
+        if (mModel.mId < 0) {
             mModel.mCalendarId = mCalendarsSpinner.getSelectedItemId();
             int calendarCursorPosition = mCalendarsSpinner.getSelectedItemPosition();
             if (mCalendarsCursor.moveToPosition(calendarCursorPosition)) {
@@ -927,7 +928,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mResponseGroup.setVisibility(View.GONE);
         }
 
-        if (model.mUri != null) {
+        if (model.mId >= 0) {
             // This is an existing event so hide the calendar spinner
             // since we can't change the calendar.
             View calendarGroup = mView.findViewById(R.id.calendar_selector_group);
@@ -957,7 +958,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     }
 
     public void updateHeadlineColor(CalendarEventModel model, int displayColor) {
-        if (model.mUri != null) {
+        if (model.mId >= 0) {
             if (mIsMultipane) {
                 mView.findViewById(R.id.calendar_textview_with_colorpicker)
                     .setBackgroundColor(displayColor);
@@ -1171,7 +1172,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                             mOriginalPadding[3]);
                 }
             }
-            if (mModel.mUri == null) {
+            if (mModel.mId < 0) {
                 mCalendarSelectorGroup.setVisibility(View.VISIBLE);
                 mCalendarStaticGroup.setVisibility(View.GONE);
             } else {
@@ -1326,7 +1327,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         // If this is a new event, and if availability has not yet been
         // explicitly set, toggle busy/available as the inverse of all day.
-        if (mModel.mUri == null && !mAvailabilityExplicitlySet) {
+        if (mModel.mId < 0 && !mAvailabilityExplicitlySet) {
             // Values are from R.arrays.availability_values.
             // 0 = busy
             // 1 = available

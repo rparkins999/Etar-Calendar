@@ -170,13 +170,13 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             {
                 int stringResource;
                 if (!mModel.mAttendeesList.isEmpty()) {
-                    if (mModel.mUri != null) {
+                    if (mModel.mId >= 0) {
                         stringResource = R.string.saving_event_with_guest;
                     } else {
                         stringResource = R.string.creating_event_with_guest;
                     }
                 } else {
-                    if (mModel.mUri != null) {
+                    if (mModel.mId >= 0) {
                         stringResource = R.string.saving_event;
                     } else {
                         stringResource = R.string.creating_event;
@@ -396,16 +396,18 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
 
 
             // Kick off the query for the event
-            boolean newEvent = mModel.mUri == null;
+            boolean newEvent = mModel.mId < 0;
             if (!newEvent) {
                 mModel.mCalendarAccessLevel = Calendars.CAL_ACCESS_NONE;
                 mOutstandingQueries = TOKEN_ALL;
+                Uri uri = ContentUris.withAppendedId(
+                    Events.CONTENT_URI, mModel.mId);
                 if (DEBUG) {
                     Log.d(TAG, "startQuery: uri for event is "
-                        + mModel.mUri.toString());
+                        + uri);
                 }
                 mHandler.startQuery(
-                    TOKEN_EVENT, null, mModel.mUri,
+                    TOKEN_EVENT, null, uri,
                     EditEventHelper.EVENT_PROJECTION,
                     null, null, null);
             } else {
@@ -528,7 +530,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             m.setEnabled(true);
             m.setVisible(true);
         }
-        if (mModel.mUri == null) {
+        if (mModel.mId < 0) {
             MenuItem m = menu.findItem(R.id.info_action_delete);
             m.setEnabled(false);
             m.setVisible(false);

@@ -339,8 +339,7 @@ public class EventInfoFragment extends DialogFragment
     private int mWindowStyle = DIALOG_WINDOW_STYLE;
     private int mCurrentQuery = 0;
     private View mView;
-    private Uri mUri;
-    private long mEventId;
+    private long mEventId = -1; // not a valid index
     private Cursor mEventCursor;
     private Cursor mAttendeesCursor;
     private Cursor mCalendarsCursor;
@@ -456,12 +455,17 @@ public class EventInfoFragment extends DialogFragment
     private final DynamicTheme mDynamicTheme = new DynamicTheme();
 
 
-    @SuppressLint("ValidFragment")
+    // This is currently required by the fragment manager.
     @SuppressWarnings("deprecation")
-    public EventInfoFragment(Context context, Uri uri, long startMillis, long endMillis,
-                             int attendeeResponse, boolean isDialog, int windowStyle,
-                             ArrayList<ReminderEntry> reminders) {
+    public EventInfoFragment() {
+    }
 
+    @SuppressLint("ValidFragment")
+    public EventInfoFragment(
+        Context context, long eventId, long startMillis, long endMillis,
+        int attendeeResponse, boolean isDialog, int windowStyle,
+        ArrayList<ReminderEntry> reminders)
+    {
         Resources r = context.getResources();
         if (mScale == 0) {
             mScale = context.getResources().getDisplayMetrics().density;
@@ -478,7 +482,6 @@ public class EventInfoFragment extends DialogFragment
         mIsDialog = isDialog;
 
         setStyle(DialogFragment.STYLE_NO_TITLE, 0);
-        mUri = uri;
         mStartMillis = startMillis;
         mEndMillis = endMillis;
         mAttendeeResponseFromIntent = attendeeResponse;
@@ -488,21 +491,6 @@ public class EventInfoFragment extends DialogFragment
         // This may be used to explicitly show certain reminders already known
         // about, such as during configuration changes.
         mReminders = reminders;
-    }
-
-    // This is currently required by the fragment manager.
-    @SuppressWarnings("deprecation")
-    public EventInfoFragment() {
-    }
-
-    @SuppressLint("ValidFragment")
-    public EventInfoFragment(
-        Context context, long eventId, long startMillis, long endMillis,
-        int attendeeResponse, boolean isDialog, int windowStyle,
-        ArrayList<ReminderEntry> reminders)
-    {
-        this(context, ContentUris.withAppendedId(Events.CONTENT_URI, eventId), startMillis,
-                endMillis, attendeeResponse, isDialog, windowStyle, reminders);
         mEventId = eventId;
     }
 
@@ -670,10 +658,9 @@ public class EventInfoFragment extends DialogFragment
             }
 
             mReminders = Utils.readRemindersFromBundle(savedInstanceState);
-            if (mUri == null) {
+            if (mEventId < 0) {
                 // restore event ID from bundle
                 mEventId = savedInstanceState.getLong(BUNDLE_KEY_EVENT_ID);
-                mUri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventId);
                 mStartMillis = savedInstanceState.getLong(BUNDLE_KEY_START_MILLIS);
                 mEndMillis = savedInstanceState.getLong(BUNDLE_KEY_END_MILLIS);
             }
@@ -741,7 +728,7 @@ public class EventInfoFragment extends DialogFragment
 
         // start loading the data
 
-        mHandler.startQuery(TOKEN_QUERY_EVENT, null, mUri, EVENT_PROJECTION,
+        mHandler.startQuery(TOKEN_QUERY_EVENT, null, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), EVENT_PROJECTION,
             null, null, null);
 
         View b = mView.findViewById(R.id.delete);
@@ -1178,7 +1165,6 @@ public class EventInfoFragment extends DialogFragment
         VCalendar calendar = new VCalendar();
         CalendarEventModel event = new CalendarEventModel();
         mEventCursor.moveToFirst();
-        event.mUri = mUri;
         event.mId = mEventId;
         event.mStart = mStartMillis;
         event.mEnd = mEndMillis;
@@ -1324,8 +1310,7 @@ public class EventInfoFragment extends DialogFragment
         } else {
             values.put(Events.EVENT_COLOR_KEY, NO_EVENT_COLOR);
         }
-        Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventId);
-        mHandler.startUpdate(mHandler.getNextToken(), null, uri, values,
+        mHandler.startUpdate(mHandler.getNextToken(), null, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), values,
                 null, null, Utils.UNDO_DELAY);
         return true;
     }
@@ -2104,7 +2089,7 @@ public class EventInfoFragment extends DialogFragment
 
     public void reloadEvents() {
         if (mHandler != null) {
-            mHandler.startQuery(TOKEN_QUERY_EVENT, null, mUri, EVENT_PROJECTION,
+            mHandler.startQuery(TOKEN_QUERY_EVENT, null, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), EVENT_PROJECTION,
                     null, null, null);
         }
     }

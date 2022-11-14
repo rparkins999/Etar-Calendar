@@ -333,7 +333,8 @@ public class EditEventHelper {
             Log.e(TAG, "Attempted to save invalid model.");
             return false;
         }
-        Uri uri = model.mUri;
+        Uri uri = ContentUris.withAppendedId(
+            Events.CONTENT_URI, model.mId);
         if (originalModel != null) {
             if (   (model.mCalendarId != originalModel.mCalendarId)
                 || (model.mId != originalModel.mId))
@@ -345,7 +346,7 @@ public class EditEventHelper {
                 // no need to save the event if it hasn't been modified
                 return false;
             }
-        } else if (uri != null) {
+        } else if (model.mId >= 0) {
             Log.e(TAG, "Existing event but no originalModel provided. Aborting save.");
             return false;
         }
@@ -364,7 +365,7 @@ public class EditEventHelper {
             values.put(Events.UID_2445, model.mUid);
         }
 
-        if (uri == null) {
+        if (model.mId < 0) {
             // Add hasAttendeeData for a new event
             values.put(Events.HAS_ATTENDEE_DATA, 1);
             values.put(Events.STATUS, Events.STATUS_CONFIRMED);
@@ -480,7 +481,7 @@ public class EditEventHelper {
         if (newEvent) {
             saveRemindersWithBackRef(ops, eventIdIndex, reminders, originalReminders,
                     forceSaveReminders);
-        } else if (uri != null) {
+        } else if (model.mId >= 0) {
             long eventId = ContentUris.parseId(uri);
             saveReminders(ops, eventId, reminders, originalReminders, forceSaveReminders);
         }
@@ -531,7 +532,7 @@ public class EditEventHelper {
 
             // TODO: is this the right test? this currently checks if this is
             // a new event or an existing event. or is this a paranoia check?
-            if ((newEvent || uri != null)) {
+            if ((newEvent || model.mId >= 0)) {
                 // Hit the content provider only if this is a new event or the user
                 // has changed it
                 if (   newEvent
@@ -543,10 +544,6 @@ public class EditEventHelper {
                     // order (but also remove duplicates).
                     HashMap<String, Attendee> newAttendees = model.mAttendeesList;
                     LinkedList<String> removedAttendees = new LinkedList<>();
-
-                    // the eventId is only used if eventIdIndex is -1.
-                    // TODO: clean up this code.
-                    long eventId = uri != null ? ContentUris.parseId(uri) : -1;
 
                     // only compute deltas if this is an existing event.
                     // new events (being inserted into the Events table) won't
@@ -570,7 +567,7 @@ public class EditEventHelper {
                             b = ContentProviderOperation.newDelete(Attendees.CONTENT_URI);
 
                             String[] args = new String[removedAttendees.size() + 1];
-                            args[0] = Long.toString(eventId);
+                            args[0] = Long.toString(model.mId);
                             int i = 1;
                             StringBuilder deleteWhere
                                 = new StringBuilder(ATTENDEES_DELETE_PREFIX);
@@ -605,7 +602,7 @@ public class EditEventHelper {
                                     .withValues(values);
                                 b.withValueBackReference(Attendees.EVENT_ID, eventIdIndex);
                             } else {
-                                values.put(Attendees.EVENT_ID, eventId);
+                                values.put(Attendees.EVENT_ID, model.mId);
                                 b = ContentProviderOperation.newInsert(Attendees.CONTENT_URI)
                                     .withValues(values);
                             }
@@ -780,7 +777,9 @@ public class EditEventHelper {
         updateValues.put(Events.RRULE, origRecurrence.toString());
         updateValues.put(Events.DTSTART, dtstart.normalize(true));
         ContentProviderOperation.Builder b =
-                ContentProviderOperation.newUpdate(originalModel.mUri)
+                ContentProviderOperation.newUpdate(
+                        ContentUris.withAppendedId(
+                            Events.CONTENT_URI, originalModel.mId))
                 .withValues(updateValues);
         ops.add(b.build());
 

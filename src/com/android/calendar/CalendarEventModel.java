@@ -55,11 +55,6 @@ import static com.android.calendar.event.EditEventActivity.EXTRA_EVENT_REMINDERS
  */
 public class CalendarEventModel implements Serializable {
     /**
-     * The uri of the event in the db. This should only be null for a new event
-     * or an event read from an ical file, or an event which has been deleted.
-     */
-    public Uri mUri = null;
-    /**
      * The event ID of the event in the db.
      * This should only be null for new events.
      */
@@ -161,7 +156,6 @@ public class CalendarEventModel implements Serializable {
 
     // copy constructor
     public CalendarEventModel(CalendarEventModel other) {
-        mUri = other.mUri;
         mId = other.mId;
         mOriginalId = other.mOriginalId;
         mUid = other.mUid;
@@ -249,19 +243,12 @@ public class CalendarEventModel implements Serializable {
         if (intent == null) {
             return;
         }
-        Uri uri = intent.getData();
-        if (uri != null) { mUri = uri; }
-        long value = -1;
         try {
-            value = Long.parseLong(mUri.getLastPathSegment());
+            mId = Long.parseLong(intent.getData().getLastPathSegment());
         } catch (NullPointerException | NumberFormatException ignored) { }
-        if (value >= 0) {
-            // Not a new event, we only need the Uri
-            // since we get everything else from the database
-            mId = value;
-        } else {
+        if (mId < 0) {
             // Get everything that can be sent for a new event (and nothing else).
-            value = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
+            long value = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
             if (value >= 0) { mStart = value; }
             value = intent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
             if (value >= 0) { mEnd = value; }
@@ -445,7 +432,6 @@ public class CalendarEventModel implements Serializable {
         result = prime * result + ((mTimezoneEnd == null) ? 0 : mTimezoneEnd.hashCode());
         result = prime * result + ((mTitle == null) ? 0 : mTitle.hashCode());
         result = prime * result + (mAvailability);
-        result = prime * result + ((mUri == null) ? 0 : mUri.hashCode());
         result = prime * result + mAccessLevel;
         result = prime * result + mEventStatus;
         return result;
@@ -647,7 +633,6 @@ public class CalendarEventModel implements Serializable {
                 || (!Objects.equals(mTimezoneStart, originalModel.mTimezoneStart))
                 || (!Objects.equals(mTimezoneEnd, originalModel.mTimezoneEnd))
                 || (mAvailability != originalModel.mAvailability)
-                || (!Objects.equals(mUri, originalModel.mUri))
                 || (mAccessLevel != originalModel.mAccessLevel)
                 || (mEventStatus != originalModel.mEventStatus)
                 || (mEventColor != originalModel.mEventColor)
