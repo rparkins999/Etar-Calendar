@@ -5049,6 +5049,15 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                     continue;
                 }
 
+                /* Should we check the X-coordinate to avoid
+                 * selecting an event which covers parts of two days
+                 * if we click outside it
+                 * Example:
+                 *  | Day 1 | Day 2 |
+                 *  | X  EEE|EEEEEEE|
+                 * If we click at X, does it select event E?
+                 * Currently it does.
+                 */
                 if (event.startDay <= mClickedDay && event.endDay >= mClickedDay) {
                     if (event.top < y && event.bottom > y) {
                         // If the touch is inside the event rectangle, then
