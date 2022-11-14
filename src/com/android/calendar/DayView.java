@@ -5050,15 +5050,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 }
 
                 if (event.startDay <= mClickedDay && event.endDay >= mClickedDay) {
-                    float numRectangles = mShowAllAllDayEvents ? mMaxAlldayEvents
-                        : mMaxUnexpandedAlldayEventCount;
-                    float height = drawHeight / numRectangles;
-                    if (height > MAX_HEIGHT_OF_ONE_ALLDAY_EVENT) {
-                        height = MAX_HEIGHT_OF_ONE_ALLDAY_EVENT;
-                    }
-                    float eventTop = yOffset + height * event.getColumn();
-                    float eventBottom = eventTop + height;
-                    if (eventTop < y && eventBottom > y) {
+                    if (event.top < y && event.bottom > y) {
                         // If the touch is inside the event rectangle, then
                         // add the event.
                         mSelectedEvents.add(event);
@@ -5066,10 +5058,10 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                         break;
                     } else {
                         // Find the closest event
-                        if (eventTop >= y) {
-                            yDistance = eventTop - y;
+                        if (event.top >= y) {
+                            yDistance = event.top - y;
                         } else {
-                            yDistance = y - eventBottom;
+                            yDistance = y - event.bottom;
                         }
                         if (yDistance < minYdistance) {
                             minYdistance = yDistance;
