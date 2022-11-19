@@ -29,8 +29,8 @@ import android.util.SparseIntArray
 import androidx.appcompat.app.AlertDialog
 import com.android.calendar.AsyncQueryService
 import com.android.calendar.Utils
-import com.android.colorpicker.ColorPickerSwatch.OnColorSelectedListener
-import com.android.colorpicker.HsvColorComparator
+import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener
+import com.android.calendar.colorpicker.HsvColorComparator
 import ws.xsoh.etar.R
 import java.util.*
 
@@ -105,7 +105,7 @@ class CalendarColorPickerDialogX : ColorPickerDialogX() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = super.onCreateDialog(savedInstanceState)
-        queryService = QueryService(activity!!)
+        queryService = QueryService(requireActivity())
         if (mColors == null) {
             startQuery()
         }
@@ -192,7 +192,7 @@ class CalendarColorPickerDialogX : ColorPickerDialogX() {
     }
 
     private fun useDefaultColors() {
-        val warningDialog = AlertDialog.Builder(activity!!)
+        val warningDialog = AlertDialog.Builder(requireActivity())
                 .setTitle(R.string.preferences_calendar_color_warning_title)
                 .setMessage(R.string.preferences_calendar_color_warning_message)
                 .setPositiveButton(R.string.preferences_calendar_color_warning_button) { dialogInterface, _ ->

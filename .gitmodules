@@ -1,7 +1,3 @@
-[submodule "external/colorpicker"]
-	path = external/colorpicker
-	url = https://github.com/Etar-Group/android_frameworks_opt_colorpicker.git
-	branch = rebase
 [submodule "external/calendar"]
 	path = external/calendar
 	url = https://github.com/Etar-Group/android_frameworks_opt_calendar.git

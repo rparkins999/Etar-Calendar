@@ -17,6 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="color_picker_default_title" msgid="1248663997452044787">"Veldu lit"</string>
+    <string name="color_swatch_description" msgid="2883438431173736180">"Litur <xliff:g id="COLOR_INDEX">%1$d</xliff:g>"</string>
+    <string name="color_swatch_description_selected" msgid="5020921249944943124">"Liturinn <xliff:g id="COLOR_INDEX">%1$d</xliff:g> valinn"</string>
     <string name="hint_time_zone_search" msgid="804776560897143016">"Sláðu inn heiti lands"</string>
     <string name="searchview_description_clear" msgid="1603860069305867810">"Hreinsa fyrirspurn"</string>
     <string name="no_results_found" msgid="5475293015394772651">"Engar niðurstöður fundust"</string>
