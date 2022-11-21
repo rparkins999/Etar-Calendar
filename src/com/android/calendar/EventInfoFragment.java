@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2020
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.DialogFragment;
-import android.app.FragmentManager;
 import android.app.Service;
 import android.content.ActivityNotFoundException;
 import android.content.ContentProviderOperation;
@@ -128,6 +127,7 @@ import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 import static com.android.calendar.CalendarController.EVENT_EDIT_ON_LAUNCH;
 
+@SuppressLint("ValidFragment")
 public class EventInfoFragment extends DialogFragment
     implements OnCheckedChangeListener, CalendarController.ActionHandler, OnClickListener,
     DeleteEventHelper.DeleteNotifyListener, OnColorSelectedListener
@@ -136,7 +136,6 @@ public class EventInfoFragment extends DialogFragment
     public static final boolean DEBUG = false;
 
     public static final String TAG = "EventInfoFragment";
-    public static final String COLOR_PICKER_DIALOG_TAG = "EventColorPickerDialog";
     // Style of view
     public static final int FULL_WINDOW_STYLE = 0;
     public static final int DIALOG_WINDOW_STYLE = 1;
@@ -336,10 +335,11 @@ public class EventInfoFragment extends DialogFragment
     ArrayList<Attendee> mDeclinedAttendees = new ArrayList<>();
     ArrayList<Attendee> mTentativeAttendees = new ArrayList<>();
     ArrayList<Attendee> mNoResponseAttendees = new ArrayList<>();
-    private int mWindowStyle = DIALOG_WINDOW_STYLE;
+    private final Context mContext;
+    private int mWindowStyle;
     private int mCurrentQuery = 0;
     private View mView;
-    private long mEventId = -1; // not a valid index
+    private long mEventId; // not a valid index
     private Cursor mEventCursor;
     private Cursor mAttendeesCursor;
     private Cursor mCalendarsCursor;
@@ -362,7 +362,7 @@ public class EventInfoFragment extends DialogFragment
     private boolean mDeleteDialogVisible = false;
     private DeleteEventHelper mDeleteHelper;
     private int mOriginalAttendeeResponse;
-    private int mAttendeeResponseFromIntent = Attendees.ATTENDEE_STATUS_NONE;
+    private final int mAttendeeResponseFromIntent;
     private int mUserSetResponse = Attendees.ATTENDEE_STATUS_NONE;
     private int mWhichEvents = -1;
     // Used as the temporary response until the dialog is confirmed. It is also
@@ -425,7 +425,7 @@ public class EventInfoFragment extends DialogFragment
     private ArrayList<String> mReminderMethodLabels;
     private QueryHandler mHandler;
     private OnItemSelectedListener mReminderChangeListener;
-    private boolean mIsDialog = false;
+    private boolean mIsDialog;
     private boolean mIsPaused = true;
     private boolean mDismissOnResume = false;
     private final Runnable onDeleteRunnable = new Runnable() {
@@ -455,17 +455,13 @@ public class EventInfoFragment extends DialogFragment
     private final DynamicTheme mDynamicTheme = new DynamicTheme();
 
 
-    // This is currently required by the fragment manager.
     @SuppressWarnings("deprecation")
-    public EventInfoFragment() {
-    }
-
-    @SuppressLint("ValidFragment")
     public EventInfoFragment(
         Context context, long eventId, long startMillis, long endMillis,
         int attendeeResponse, boolean isDialog, int windowStyle,
         ArrayList<ReminderEntry> reminders)
     {
+        mContext = context;
         Resources r = context.getResources();
         if (mScale == 0) {
             mScale = context.getResources().getDisplayMetrics().density;
@@ -833,11 +829,6 @@ public class EventInfoFragment extends DialogFragment
         }
 
         mDynamicTheme.onCreate(mActivity);
-        mColorPickerDialog = (EventColorPickerDialog)
-            mActivity.getFragmentManager().findFragmentByTag(COLOR_PICKER_DIALOG_TAG);
-        if (mColorPickerDialog != null) {
-            mColorPickerDialog.setOnColorSelectedListener(this);
-        }
     }
 
     // onViewStateRestored is called after onActivityCreated, but we don't override it
@@ -1288,15 +1279,12 @@ public class EventInfoFragment extends DialogFragment
 
     private void showEventColorPickerDialog() {
         if (mColorPickerDialog == null) {
-            mColorPickerDialog = EventColorPickerDialog.newInstance(mColors, mCurrentColor,
+            mColorPickerDialog = EventColorPickerDialog.newInstance(
+                mContext, mColors, mCurrentColor,
                     mCalendarColor, mIsTabletConfig);
             mColorPickerDialog.setOnColorSelectedListener(this);
         }
-        final FragmentManager fragmentManager = getFragmentManager();
-        fragmentManager.executePendingTransactions();
-        if (!mColorPickerDialog.isAdded()) {
-            mColorPickerDialog.show(fragmentManager, COLOR_PICKER_DIALOG_TAG);
-        }
+        mColorPickerDialog.show();
     }
 
     private boolean saveEventColor() {
@@ -2253,6 +2241,7 @@ public class EventInfoFragment extends DialogFragment
         mHeadlines.setBackgroundColor(color);
     }
 
+    @SuppressLint("HandlerLeak")
     private class QueryHandler extends AsyncQueryService {
         public QueryHandler(Context context) {
             super(context);

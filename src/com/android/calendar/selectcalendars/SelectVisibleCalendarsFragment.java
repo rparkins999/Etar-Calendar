@@ -135,8 +135,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mAdapter = new SelectCalendarsSimpleAdapter(mContext, mCalendarItemLayout, null,
-                getFragmentManager());
+        mAdapter = new SelectCalendarsSimpleAdapter(mContext, mCalendarItemLayout, null);
         mList.setAdapter(mAdapter);
         mList.setOnItemClickListener(this);
     }

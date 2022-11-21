@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,7 +18,7 @@
 
 package com.android.calendar.selectcalendars;
 
-import android.app.FragmentManager;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -43,8 +45,6 @@ import ws.xsoh.etar.R;
 
 public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAdapter,
     OnCalendarColorsLoadedListener {
-    private static final String TAG = "SelectCalendarsAdapter";
-    private static final String COLOR_PICKER_DIALOG_TAG = "ColorPickerDialog";
     private static final int IS_SELECTED = 1;
     private static final int IS_TOP = 1 << 1;
     private static final int IS_BOTTOM = 1 << 2;
@@ -52,33 +52,25 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
     private static int BOTTOM_ITEM_HEIGHT = 64;
     private static int NORMAL_ITEM_HEIGHT = 48;
     private static float mScale = 0;
-    Resources mRes;
+    private final Context mContext;
+    private final int mLayout;
+    private final int mOrientation;
+    private final LayoutInflater mInflater;
+    private final Resources mRes;
     private CalendarColorPickerDialog mColorPickerDialog;
-    private LayoutInflater mInflater;
-    private int mLayout;
-    private int mOrientation;
     private CalendarRow[] mData;
     private Cursor mCursor;
     private int mRowCount = 0;
-    private FragmentManager mFragmentManager;
-    private boolean mIsTablet;
-    private int mColorViewTouchAreaIncrease;
-    private int mIdColumn;
-    private int mNameColumn;
-    private int mColorColumn;
-    private int mVisibleColumn;
-    private int mOwnerAccountColumn;
-    private int mAccountNameColumn;
-    private int mAccountTypeColumn;
-    private int mColorCalendarVisible;
-    private int mColorCalendarHidden;
-    private int mColorCalendarSecondaryVisible;
-    private int mColorCalendarSecondaryHidden;
+    private final boolean mIsTablet;
+    private final int mColorViewTouchAreaIncrease;
+    private final int mColorCalendarVisible;
+    private final int mColorCalendarHidden;
 
-    private CalendarColorCache mCache;
+    private final CalendarColorCache mCache;
 
-    public SelectCalendarsSimpleAdapter(Context context, int layout, Cursor c, FragmentManager fm) {
+    public SelectCalendarsSimpleAdapter(Context context, int layout, Cursor c) {
         super();
+        mContext = context;
         mLayout = layout;
         mOrientation = context.getResources().getConfiguration().orientation;
         initData(c);
@@ -87,8 +79,6 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
 
         mColorCalendarVisible = DynamicTheme.getColor(context, "calendar_visible");
         mColorCalendarHidden = DynamicTheme.getColor(context, "calendar_hidden");
-        mColorCalendarSecondaryVisible = DynamicTheme.getColor(context, "calendar_secondary_visible");
-        mColorCalendarSecondaryHidden = DynamicTheme.getColor(context, "calendar_secondary_hidden");
 
         if (mScale == 0) {
             mScale = mRes.getDisplayMetrics().density;
@@ -98,9 +88,7 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
 
         mCache = new CalendarColorCache(context, this);
 
-        mFragmentManager = fm;
-        mColorPickerDialog = (CalendarColorPickerDialog)
-                fm.findFragmentByTag(COLOR_PICKER_DIALOG_TAG);
+        mColorPickerDialog = null;
         mIsTablet = Utils.getConfigBool(context, R.bool.tablet_config);
         mColorViewTouchAreaIncrease = context.getResources()
                 .getDimensionPixelSize(R.dimen.color_view_touch_area_increase);
@@ -118,13 +106,13 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
         }
         // TODO create a broadcast listener for ACTION_PROVIDER_CHANGED to update the cursor
         mCursor = c;
-        mIdColumn = c.getColumnIndexOrThrow(Calendars._ID);
-        mNameColumn = c.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME);
-        mColorColumn = c.getColumnIndexOrThrow(Calendars.CALENDAR_COLOR);
-        mVisibleColumn = c.getColumnIndexOrThrow(Calendars.VISIBLE);
-        mOwnerAccountColumn = c.getColumnIndexOrThrow(Calendars.OWNER_ACCOUNT);
-        mAccountNameColumn = c.getColumnIndexOrThrow(Calendars.ACCOUNT_NAME);
-        mAccountTypeColumn = c.getColumnIndexOrThrow(Calendars.ACCOUNT_TYPE);
+        int mIdColumn = c.getColumnIndexOrThrow(Calendars._ID);
+        int mNameColumn = c.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME);
+        int mColorColumn = c.getColumnIndexOrThrow(Calendars.CALENDAR_COLOR);
+        int mVisibleColumn = c.getColumnIndexOrThrow(Calendars.VISIBLE);
+        int mOwnerAccountColumn = c.getColumnIndexOrThrow(Calendars.OWNER_ACCOUNT);
+        int mAccountNameColumn = c.getColumnIndexOrThrow(Calendars.ACCOUNT_NAME);
+        int mAccountTypeColumn = c.getColumnIndexOrThrow(Calendars.ACCOUNT_TYPE);
 
         mRowCount = c.getCount();
         mData = new CalendarRow[(c.getCount())];
@@ -179,9 +167,11 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
             view = convertView;
         }
 
-        TextView calendarName = (TextView) view.findViewById(R.id.calendar);
+        TextView calendarName = view.findViewById(R.id.calendar);
         calendarName.setText(name);
 
+        // findViewById() called on different "view"
+        @SuppressLint("CutPasteId")
         View colorView = view.findViewById(R.id.color);
         colorView.setBackgroundColor(color);
         colorView.setOnClickListener(new OnClickListener() {
@@ -193,15 +183,12 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
                 }
 
                 if (mColorPickerDialog == null) {
-                    mColorPickerDialog = CalendarColorPickerDialog.newInstance(mData[position].id,
+                    mColorPickerDialog = CalendarColorPickerDialog.newInstance(mContext, mData[position].id,
                             mIsTablet);
                 } else {
                     mColorPickerDialog.setCalendarId(mData[position].id);
                 }
-                mFragmentManager.executePendingTransactions();
-                if (!mColorPickerDialog.isAdded()) {
-                    mColorPickerDialog.show(mFragmentManager, COLOR_PICKER_DIALOG_TAG);
-                }
+                mColorPickerDialog.show();
             }
         });
 
@@ -216,7 +203,7 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
 
         // Tablet layout
         view.findViewById(R.id.color).setEnabled(selected && hasMoreColors(position));
-        view.setBackgroundDrawable(getBackground(position, selected));
+        view.setBackground(getBackground(position, selected));
         ViewGroup.LayoutParams newParams = view.getLayoutParams();
         if (position == mData.length - 1) {
             newParams.height = BOTTOM_ITEM_HEIGHT;
@@ -224,7 +211,7 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
             newParams.height = NORMAL_ITEM_HEIGHT;
         }
         view.setLayoutParams(newParams);
-        CheckBox visibleCheckBox = (CheckBox) view.findViewById(R.id.visible_check_box);
+        CheckBox visibleCheckBox = view.findViewById(R.id.visible_check_box);
         if (visibleCheckBox != null) {
             visibleCheckBox.setChecked(selected);
         }
@@ -260,8 +247,7 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
         if (position >= mRowCount) {
             return null;
         }
-        CalendarRow item = mData[position];
-        return item;
+        return mData[position];
     }
 
     @Override
@@ -296,8 +282,6 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
 
         /**
          * Sets up the background drawables for the calendars list
-         *
-         * @param res The context's resources
          */
         static int[] getBackgrounds() {
             // Not thread safe. Ok if called only from main thread
@@ -341,7 +325,7 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
         }
     }
 
-    private class CalendarRow {
+    private static class CalendarRow {
         long id;
         String displayName;
         String ownerAccount;

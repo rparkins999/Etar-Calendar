@@ -178,7 +178,7 @@ public class ColorPickerDialogX extends DialogFragment implements OnColorSelecte
 
     private void refreshPalette() {
         if (mPalette != null && mColors != null) {
-            mPalette.drawPalette(mColors, mSelectedColor, mColorContentDescriptions);
+            mPalette.drawPalette(mColors, mSelectedColor);
         }
     }
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2020
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 package com.android.calendar;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.ContentUris;
@@ -26,10 +27,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.CalendarContract;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Colors;
 import android.util.SparseIntArray;
+
+import androidx.annotation.NonNull;
 
 import com.android.calendar.colorpicker.ColorPickerDialog;
 import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
@@ -79,26 +81,29 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
     private static final int TOKEN_QUERY_CALENDARS = 1 << 1;
     private static final int TOKEN_QUERY_COLORS = 1 << 2;
     private QueryService mService;
-    private SparseIntArray mColorKeyMap = new SparseIntArray();
+    private final SparseIntArray mColorKeyMap = new SparseIntArray();
     private long mCalendarId;
 
-    public CalendarColorPickerDialog() {
-        // Empty constructor required for dialog fragments.
+    public CalendarColorPickerDialog(Context context) {
+        super(context);
     }
 
-    public static CalendarColorPickerDialog newInstance(long calendarId, boolean isTablet) {
-        CalendarColorPickerDialog ret = new CalendarColorPickerDialog();
-        ret.setArguments(R.string.calendar_color_picker_dialog_title, NUM_COLUMNS,
-                isTablet ? SIZE_LARGE : SIZE_SMALL);
+    public static CalendarColorPickerDialog newInstance(
+        @NonNull Context context, long calendarId, boolean isTablet) {
+        CalendarColorPickerDialog ret = new CalendarColorPickerDialog(context);
+        ret.mTitleResId = R.string.calendar_color_picker_dialog_title;
+        ret.mColumns = NUM_COLUMNS;
+        ret.mSize = isTablet ? SIZE_LARGE : SIZE_SMALL;
         ret.setCalendarId(calendarId);
         return ret;
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putLong(KEY_CALENDAR_ID, mCalendarId);
-        saveColorKeys(outState);
+    public Bundle onSaveInstanceState() {
+        Bundle b = super.onSaveInstanceState();
+        b.putLong(KEY_CALENDAR_ID, mCalendarId);
+        saveColorKeys(b);
+        return b;
     }
 
     private void saveColorKeys(Bundle outState) {
@@ -128,16 +133,6 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
         }
     }
 
-    @Override
-    public void setColors(int[] colors) {
-        throw new IllegalStateException("Must call setCalendarId() to update calendar colors");
-    }
-
-    @Override
-    public void setColors(int[] colors, int selectedColor) {
-        throw new IllegalStateException("Must call setCalendarId() to update calendar colors");
-    }
-
     public void setCalendarId(long calendarId) {
         if (calendarId != mCalendarId) {
             mCalendarId = calendarId;
@@ -148,7 +143,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
-        mService = new QueryService(getActivity());
+        mService = new QueryService(getOwnerActivity());
         if (mColors == null) {
             startQuery();
         }
@@ -164,6 +159,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
         }
     }
 
+    @SuppressLint("HandlerLeak")
     private class QueryService extends AsyncQueryService {
 
         private QueryService(Context context) {
@@ -179,7 +175,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
 
             // If the Activity is finishing, then close the cursor.
             // Otherwise, use the new cursor in the adapter.
-            final Activity activity = getActivity();
+            final Activity activity = getOwnerActivity();
             if (activity == null || activity.isFinishing()) {
                 cursor.close();
                 return;
@@ -209,7 +205,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
                         break;
                     }
                     mColorKeyMap.clear();
-                    ArrayList<Integer> colors = new ArrayList<Integer>();
+                    ArrayList<Integer> colors = new ArrayList<>();
                     do {
                         int colorKey = cursor.getInt(COLORS_INDEX_COLOR_KEY);
                         int rawColor = cursor.getInt(COLORS_INDEX_COLOR);
@@ -217,7 +213,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
                         mColorKeyMap.put(displayColor, colorKey);
                         colors.add(displayColor);
                     } while (cursor.moveToNext());
-                    Integer[] colorsToSort = colors.toArray(new Integer[colors.size()]);
+                    Integer[] colorsToSort = colors.toArray(new Integer[0]);
                     Arrays.sort(colorsToSort, new HsvColorComparator());
                     mColors = new int[colorsToSort.length];
                     for (int i = 0; i < mColors.length; i++) {

@@ -25,7 +25,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
-import android.app.FragmentManager;
 import android.content.AsyncQueryHandler;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
@@ -49,7 +48,6 @@ import android.provider.CalendarContract.Colors;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.core.app.ActivityCompat;
@@ -91,9 +89,9 @@ import java.util.Collections;
 import ws.xsoh.etar.BuildConfig;
 import ws.xsoh.etar.R;
 
+@SuppressLint("ValidFragment")
 public class EditEventFragment extends DialogFragment implements ActionHandler, OnColorSelectedListener, DeleteEventHelper.DeleteNotifyListener {
     private static final String TAG = "EditEventActivity";
-    private static final String COLOR_PICKER_DIALOG_TAG = "ColorPickerDialog";
 
     private static final String BUNDLE_MODEL = "key_model";
     private static final String BUNDLE_EDIT_STATE = "key_edit_state";
@@ -103,6 +101,8 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         "show_color_palette";
     private static final String BUNDLE_DELETE_DIALOG_VISIBLE =
         "key_delete_dialog_visible";
+    private static final String BUNDLE_COLORPICKER_DIALOG_VISIBLE =
+        "key_colorpicker_dialog_visible";
 
     private static final boolean DEBUG = false;
 
@@ -141,6 +141,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     private boolean mIsPaused = true;
     private boolean mDismissOnResume = false;
     private boolean mDeleteDialogVisible = false;
+    private boolean mColorPickerDialogVisible = false;
     private InputMethodManager mInputMethodManager;
     class Done implements EditEventHelper.EditDoneRunnable {
         private int mCode = -1;
@@ -264,18 +265,17 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             int[] colors = mModel.getCalendarEventColors();
             if (mColorPickerDialog == null) {
                 mColorPickerDialog = EventColorPickerDialog.newInstance(
-                    colors, mModel.getEventColor(),
+                    mActivity, colors, mModel.getEventColor(),
                     mModel.getCalendarColor(), mView.mIsMultipane);
                 mColorPickerDialog.setOnColorSelectedListener(EditEventFragment.this);
+                mColorPickerDialog.setOnDismissListener(createDeleteOnDismissListener());
+
             } else {
                 mColorPickerDialog.setCalendarColor(mModel.getCalendarColor());
                 mColorPickerDialog.setColors(colors, mModel.getEventColor());
             }
-            final FragmentManager fragmentManager = getFragmentManager();
-            fragmentManager.executePendingTransactions();
-            if (!mColorPickerDialog.isAdded()) {
-                mColorPickerDialog.show(fragmentManager, COLOR_PICKER_DIALOG_TAG);
-            }
+            mColorPickerDialog.show();
+            mColorPickerDialogVisible = true;
         }
     };
 
@@ -301,19 +301,17 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     }
 
     @SuppressLint("ValidFragment")
-    public EditEventFragment(@NonNull CalendarEventModel model,
-                             @NonNull ActionInfo actionInfo, boolean readOnly)
+    public EditEventFragment(CalendarEventModel model,
+                             ActionInfo actionInfo, boolean readOnly)
     {
-        mModel = model;
         mIsReadOnly = readOnly;
-        if (mModel != null) {
+        mModel = model;
+        if (model != null) {
             mReminders = mModel.mReminders;
             mEventColorInitialized = mModel.mEventColorInitialized;
             if (mModel.mEventColorInitialized) {
                 mEventColor = mModel.mEventColor;
             }
-        } else {
-            mEventColorInitialized = false;
         }
         setHasOptionsMenu(true);
     }
@@ -380,6 +378,9 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             mDeleteDialogVisible =
                 savedInstanceState.getBoolean(
                     BUNDLE_DELETE_DIALOG_VISIBLE,false);
+            mColorPickerDialogVisible =
+                savedInstanceState.getBoolean(
+                    BUNDLE_COLORPICKER_DIALOG_VISIBLE,false);
         }
         View view;
         // "InflateParams": root needs to be null to prevent
@@ -449,10 +450,16 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mColorPickerDialog = (EventColorPickerDialog) getActivity().getFragmentManager()
-            .findFragmentByTag(COLOR_PICKER_DIALOG_TAG);
-        if (mColorPickerDialog != null) {
-            mColorPickerDialog.setOnColorSelectedListener(this);
+        if (mColorPickerDialog == null) {
+            mColorPickerDialog = EventColorPickerDialog.newInstance(
+                mActivity, mModel.getCalendarEventColors(), mModel.getEventColor(),
+                mModel.getCalendarColor(), mView.mIsMultipane);
+            mColorPickerDialog.setOnColorSelectedListener(EditEventFragment.this);
+            mColorPickerDialog.setOnDismissListener(createDeleteOnDismissListener());
+        }
+        mColorPickerDialog.setOnColorSelectedListener(this);
+        if (mColorPickerDialogVisible) {
+            mColorPickerDialog.show();
         }
     }
 
@@ -655,6 +662,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
                 // not change the dialog status
                 if (!mIsPaused) {
                     mDeleteDialogVisible = false;
+                    mColorPickerDialogVisible = false;
                 }
             }
         };
@@ -861,6 +869,10 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
             mDeleteHelper.dismissAlertDialog();
             mDeleteHelper = null;
         }
+        if (mColorPickerDialogVisible && mColorPickerDialog != null) {
+            mColorPickerDialog.dismiss();
+            mColorPickerDialog = null;
+        }
         super.onPause();
     }
 
@@ -893,6 +905,7 @@ public class EditEventFragment extends DialogFragment implements ActionHandler, 
         outState.putBoolean(BUNDLE_SHOW_COLOR_PALETTE,
             mView.isColorPaletteVisible());
         outState.putBoolean(BUNDLE_DELETE_DIALOG_VISIBLE, mDeleteDialogVisible);
+        outState.putBoolean(BUNDLE_COLORPICKER_DIALOG_VISIBLE, mColorPickerDialogVisible);
     }
 
     @Override

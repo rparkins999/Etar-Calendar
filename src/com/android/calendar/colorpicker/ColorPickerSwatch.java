@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +18,7 @@
 
 package com.android.calendar.colorpicker;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
@@ -28,11 +31,10 @@ import ws.xsoh.etar.R;
 /**
  * Creates a circular swatch of a specified color.  Adds a checkmark if marked as checked.
  */
+@SuppressLint("ViewConstructor")
 public class ColorPickerSwatch extends FrameLayout implements View.OnClickListener {
-    private int mColor;
-    private ImageView mSwatchImage;
-    private ImageView mCheckmarkImage;
-    private OnColorSelectedListener mOnColorSelectedListener;
+    private final int mColor;
+    private final OnColorSelectedListener mOnColorSelectedListener;
 
     /**
      * Interface for a callback when a color square is selected.
@@ -42,7 +44,7 @@ public class ColorPickerSwatch extends FrameLayout implements View.OnClickListen
         /**
          * Called when a specific color square has been selected.
          */
-        public void onColorSelected(int color);
+        void onColorSelected(int color);
     }
 
     public ColorPickerSwatch(Context context, int color, boolean checked,
@@ -51,26 +53,16 @@ public class ColorPickerSwatch extends FrameLayout implements View.OnClickListen
         mColor = color;
         mOnColorSelectedListener = listener;
 
-        LayoutInflater.from(context).inflate(R.layout.color_picker_swatch, this);
-        mSwatchImage = (ImageView) findViewById(R.id.color_picker_swatch);
-        mCheckmarkImage = (ImageView) findViewById(R.id.color_picker_checkmark);
-        setColor(color);
-        setChecked(checked);
-        setOnClickListener(this);
-    }
-
-    protected void setColor(int color) {
+        LayoutInflater.from(context).inflate(
+            R.layout.color_picker_swatch, this);
+        ImageView mSwatchImage = findViewById(R.id.color_picker_swatch);
+        ImageView mCheckmarkImage = findViewById(R.id.color_picker_checkmark);
         Drawable[] colorDrawable = new Drawable[]
-                {getContext().getResources().getDrawable(R.drawable.color_picker_swatch)};
-        mSwatchImage.setImageDrawable(new ColorStateDrawable(colorDrawable, color));
-    }
-
-    private void setChecked(boolean checked) {
-        if (checked) {
-            mCheckmarkImage.setVisibility(View.VISIBLE);
-        } else {
-            mCheckmarkImage.setVisibility(View.GONE);
-        }
+            {getContext().getResources().getDrawable(R.drawable.color_picker_swatch)};
+        mSwatchImage.setImageDrawable(
+            new ColorStateDrawable(colorDrawable, color));
+        mCheckmarkImage.setVisibility(checked ? View.VISIBLE : View.GONE );
+        setOnClickListener(this);
     }
 
     @Override

@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,6 +19,7 @@
 package com.android.calendar.event;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 
@@ -34,13 +37,13 @@ public class EventColorPickerDialog extends ColorPickerDialog {
 
     private int mCalendarColor;
 
-    public EventColorPickerDialog() {
-        // Empty constructor required for dialog fragment.
+    public EventColorPickerDialog(Context context) {
+        super(context);
     }
 
-    public static EventColorPickerDialog newInstance(int[] colors, int selectedColor,
+    public static EventColorPickerDialog newInstance(Context context, int[] colors, int selectedColor,
             int calendarColor, boolean isTablet) {
-        EventColorPickerDialog ret = new EventColorPickerDialog();
+        EventColorPickerDialog ret = new EventColorPickerDialog(context);
         ret.initialize(R.string.event_color_picker_dialog_title, colors, selectedColor, NUM_COLUMNS,
                 isTablet ? SIZE_LARGE : SIZE_SMALL);
         ret.setCalendarColor(calendarColor);
@@ -56,9 +59,10 @@ public class EventColorPickerDialog extends ColorPickerDialog {
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
+    public Bundle onSaveInstanceState() {
+        Bundle outState = super.onSaveInstanceState();
         outState.putInt(KEY_CALENDAR_COLOR, mCalendarColor);
+        return outState;
     }
 
     public void setCalendarColor(int color) {
@@ -69,7 +73,7 @@ public class EventColorPickerDialog extends ColorPickerDialog {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
         mAlertDialog.setButton(DialogInterface.BUTTON_NEUTRAL,
-                getActivity().getString(R.string.event_color_set_to_default),
+                getOwnerActivity().getString(R.string.event_color_set_to_default),
                 new DialogInterface.OnClickListener() {
 
                     @Override
