@@ -1062,7 +1062,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
      * we can easily extract calendar-specific values when the value changes (the spinner's
      * onItemSelected callback is configured).
      */
-    public void setCalendarsCursor(Cursor cursor, boolean userVisible, long selectedCalendarId) {
+    public void setCalendarsCursor(Cursor cursor, long selectedCalendarId) {
         // If there are no syncable calendars, then we cannot allow
         // creating a new event.
         mCalendarsCursor = cursor;
@@ -1071,7 +1071,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             if (mSaveAfterQueryComplete) {
                 mLoadingCalendarsDialog.cancel();
             }
-            if (!userVisible) {
+            if (mView.getWindowVisibility() != View.VISIBLE) {
                 return;
             }
             // Create an error message for the user that, when clicked,
@@ -1102,10 +1102,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         if (mSaveAfterQueryComplete) {
             mLoadingCalendarsDialog.cancel();
             if (prepareForSave() && fillModelFromUI()) {
-                int exit = userVisible ? Utils.DONE_EXIT : 0;
+                int exit = (mView.getWindowVisibility() == View.VISIBLE)
+                    ? Utils.DONE_EXIT : 0;
                 mDone.setDoneCode(Utils.DONE_SAVE | exit);
                 mDone.run();
-            } else if (userVisible) {
+            } else if (mView.getWindowVisibility() == View.VISIBLE) {
                 mDone.setDoneCode(Utils.DONE_EXIT);
                 mDone.run();
             } else if (Log.isLoggable(TAG, Log.DEBUG)) {
