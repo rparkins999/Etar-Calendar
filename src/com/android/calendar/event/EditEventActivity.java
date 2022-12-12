@@ -24,6 +24,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.AsyncQueryHandler;
 import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -38,6 +39,7 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -111,6 +113,8 @@ public class EditEventActivity extends AbstractCalendarActivity
     // Copy of "this" for use in nested classes
     private EditEventActivity mActivity;
 
+    private AsyncModifyService mService;
+
     // Get event details from calendar provider
     private QueryHandler mHandler;
     /**
@@ -151,6 +155,85 @@ public class EditEventActivity extends AbstractCalendarActivity
     private boolean mDismissOnResume = false;
     private InputMethodManager mInputMethodManager;
     private final DynamicTheme dynamicTheme = new DynamicTheme();
+
+    class AsyncModifyService extends AsyncQueryService {
+        public AsyncModifyService(Context context) {
+            super(context);
+        }
+
+        /**
+         * Called when an asynchronous insert is completed.
+         *
+         * @param token  the token to identify the query, passed in from
+         *               {@link #startInsert}.
+         * @param cookie the cookie object that's passed in from
+         *               {@link #startInsert}.
+         * @param uri    the URL of the newly created row
+         *               null indicates failure.
+         */
+        @Override
+        protected void onInsertComplete(int token, @Nullable Object cookie,
+                                        Uri uri)
+        {
+        }
+
+        /**
+         * Called when an asynchronous update is completed.
+         *
+         * @param token  the token to identify the query, passed in from
+         *               {@link #startUpdate}.
+         * @param cookie the cookie object that's passed in from
+         *               {@link #startUpdate}.
+         * @param result the nimber of rows updated
+         *               zero indicates failure.
+         */
+        @Override
+        protected void onUpdateComplete(int token, @Nullable Object cookie,
+                                        int result)
+        {
+        }
+
+        /**
+         * Called when an asynchronous delete is completed.
+         *
+         * @param token  the token to identify the query, passed in from
+         *               {@link #startDelete}.
+         * @param cookie the cookie object that's passed in from
+         *               {@link #startDelete}.
+         * @param result the number of rows deleted
+         *               xero indicates failure
+         */
+        @Override
+        protected void onDeleteComplete(int token, @Nullable Object cookie,
+                                        int result)
+        {
+        }
+
+        /**
+         * Called when an asynchronous {@link ContentProviderOperation} is
+         * completed.
+         *
+         * @param token   the token to identify the query, passed in from
+         *                {@link #startBatch}.
+         * @param cookie  the cookie object that's passed in from
+         *                {@link #startBatch}.
+         * @param results an array of results from the operations
+         *                the type of each result depends on the operation
+         */
+        @Override
+        protected void onBatchComplete(int token, @Nullable Object cookie,
+                                       ContentProviderResult[] results)
+        {
+        }
+    }
+
+    @Override
+    public synchronized AsyncQueryService getAsyncQueryService() {
+        if (mService == null) {
+            mService = new AsyncModifyService(this);
+        }
+        return mService;
+    }
 
     class Done implements EditEventHelper.EditDoneRunnable {
         private int mCode = -1;
