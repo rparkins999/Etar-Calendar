@@ -162,6 +162,30 @@ public class EditEventActivity extends AbstractCalendarActivity
         }
 
         /**
+         * Called when an asynchronous query is completed.
+         *
+         * @param token  the token to identify the query, passed in from
+         *               {@link #startQuery}.
+         * @param cookie the cookie object passed in from {@link #startQuery}.
+         * @param cursor The cursor holding the results from the query,
+         *               null if it failed.
+         */
+        @Override
+        protected void onQueryComplete(
+            int token, Object cookie, Cursor cursor)
+        {
+            if (   (cookie instanceof DeleteEventHelper)
+                && (cursor != null))
+            {
+                cursor.moveToFirst();
+                CalendarEventModel mModel = new CalendarEventModel();
+                EditEventHelper.setModelFromCursor(mModel, cursor);
+                cursor.close();
+                ((DeleteEventHelper)cookie).finishDelete(mModel);
+            }
+        }
+
+        /**
          * Called when an asynchronous insert is completed.
          *
          * @param token  the token to identify the query, passed in from

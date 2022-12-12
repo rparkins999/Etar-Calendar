@@ -164,32 +164,20 @@ public class DeleteEventHelper {
         }
     };
 
-    public DeleteEventHelper(Context context, Activity parentActivity, boolean exitWhenDone) {
+    public DeleteEventHelper(
+        Context context, Activity parentActivity, boolean exitWhenDone)
+    {
         if (exitWhenDone && parentActivity == null) {
             throw new IllegalArgumentException("parentActivity is required to exit when done");
         }
-
         mContext = context;
         mParent = parentActivity;
-        // TODO move the creation of this service out into the activity.
-        mService = new AsyncQueryService(mContext) {
-            @Override
-            protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-                if (cursor == null) {
-                    return;
-                }
-                cursor.moveToFirst();
-                CalendarEventModel mModel = new CalendarEventModel();
-                EditEventHelper.setModelFromCursor(mModel, cursor);
-                cursor.close();
-                DeleteEventHelper.this.delete(mStartMillis, mEndMillis, mModel, mWhichDelete);
-            }
-        };
+        mService = ((AbstractCalendarActivity)context).getAsyncQueryService();
         mExitWhenDone = exitWhenDone;
     }
 
-    public void setExitWhenDone(boolean exitWhenDone) {
-        mExitWhenDone = exitWhenDone;
+    public void finishDelete(CalendarEventModel model) {
+        delete(mStartMillis, mEndMillis, model, mWhichDelete);
     }
 
     /**
@@ -206,7 +194,7 @@ public class DeleteEventHelper {
      */
     public void delete(long begin, long end, long eventId) {
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
-        mService.startQuery(mService.getNextToken(), null, uri,
+        mService.startQuery(mService.getNextToken(), this, uri,
             EditEventHelper.EVENT_PROJECTION, null, null, null);
         mStartMillis = begin;
         mEndMillis = end;
