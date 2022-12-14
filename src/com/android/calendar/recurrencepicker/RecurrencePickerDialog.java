@@ -58,6 +58,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.Utils;
 import com.android.calendarcommon2.EventRecurrence;
 
@@ -532,6 +533,8 @@ public class RecurrencePickerDialog extends DialogFragment implements OnItemSele
         mPostEndCount = (TextView) mView.findViewById(R.id.postEndCount);
 
         mEndDateTextView = (TextView) mView.findViewById(R.id.endDate);
+        mEndDateTextView.setTextColor(DynamicTheme.getColor(
+            activity, "spinner_button_color"));
         mEndDateTextView.setOnClickListener(this);
         if (mModel.endDate == null) {
             mModel.endDate = new Time(mTime);

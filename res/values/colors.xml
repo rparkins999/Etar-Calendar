@@ -166,6 +166,7 @@
     <color name="create_event_date_color">#FF000000</color>
     <color name="create_event_more_details_color">#FF888888</color>
     <color name="create_event_divider_color">#FFDDDDDD</color>
+    <color name="spinner_button_color">#FF000000</color>
     <color name="spinner_privacy_popupBackground">#ffffff</color>
 
     <color name="text_shadow_color">#4D000000</color>
@@ -205,7 +206,7 @@
     <color name="fg_black_secondary">#99ffffff</color>
     <color name="app_bar_black">#ff111111</color>
 
-    <color name="grid_line_black">#303030</color>
+    <color name="grid_line_black">#606060</color>
 
     <color name="month_bgcolor_black">@color/bg_black</color>
     <color name="month_selected_week_bgcolor_black">#FFDDDDDD</color>

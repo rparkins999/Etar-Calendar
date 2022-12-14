@@ -72,6 +72,7 @@ import android.widget.TimePicker;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
+import com.android.calendar.DynamicTheme;
 import com.android.calendar.EventInfoFragment;
 import com.android.calendar.EventRecurrenceFormatter;
 import com.android.calendar.Utils;
@@ -112,6 +113,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     ArrayList<View> mViewOnlyList = new ArrayList<>();
     TextView mLoadingMessage;
     ScrollView mScrollView;
+    int mSpinnerButtonColor;
     Button mStartDateButton;
     Button mEndDateButton;
     Button mStartTimeButton;
@@ -208,6 +210,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mActivity = activity;
         mView = view;
         mDone = done;
+        mSpinnerButtonColor = DynamicTheme.getColor(
+            mActivity, "spinner_button_color");
 
         // cache top level view elements
         mLoadingMessage = (TextView) view.findViewById(R.id.loading_message);
@@ -219,12 +223,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mLocationTextView = (AutoCompleteTextView) view.findViewById(R.id.location);
         mDescriptionTextView = (TextView) view.findViewById(R.id.description);
         mStartDateButton = (Button) view.findViewById(R.id.start_date);
+        mStartDateButton.setTextColor(mSpinnerButtonColor);
         mEndDateButton = (Button) view.findViewById(R.id.end_date);
+        mEndDateButton.setTextColor(mSpinnerButtonColor);
         mWhenView = (TextView) mView.findViewById(R.id.when);
         mStartTimezoneLabel = (TextView) view.findViewById(R.id.start_timezone_label);
         mStartTimezoneTextView = (TextView) mView.findViewById(R.id.start_timezone_textView);
         mStartTimeButton = (Button) view.findViewById(R.id.start_time);
+        mStartTimeButton.setTextColor(mSpinnerButtonColor);
         mStartTimezoneButton = (Button) view.findViewById(R.id.start_timezone_button);
+        mStartTimezoneButton.setTextColor(mSpinnerButtonColor);
         mStartTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -235,7 +243,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mEndTimezoneLabel = (TextView) view.findViewById(R.id.end_timezone_label);
         mEndTimezoneTextView = (TextView) mView.findViewById(R.id.end_timezone_textView);
         mEndTimeButton = (Button) view.findViewById(R.id.end_time);
+        mEndTimeButton.setTextColor(mSpinnerButtonColor);
         mEndTimezoneButton = (Button) view.findViewById(R.id.end_timezone_button);
+        mEndTimezoneButton.setTextColor(mSpinnerButtonColor);
         mEndTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -244,11 +254,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         });
         mEndTimezoneRow = view.findViewById(R.id.end_timezone_button_row);
         mStartTimeHome = (TextView) view.findViewById(R.id.start_time_home_tz);
+        mStartTimeHome.setTextColor(mSpinnerButtonColor);
         mStartDateHome = (TextView) view.findViewById(R.id.start_date_home_tz);
+        mStartDateHome.setTextColor(mSpinnerButtonColor);
         mEndTimeHome = (TextView) view.findViewById(R.id.end_time_home_tz);
+        mEndTimeHome.setTextColor(mSpinnerButtonColor);
         mEndDateHome = (TextView) view.findViewById(R.id.end_date_home_tz);
+        mEndDateHome.setTextColor(mSpinnerButtonColor);
         mAllDayCheckBox = (CheckBox) view.findViewById(R.id.is_all_day);
         mRruleButton = (Button) view.findViewById(R.id.rrule);
+        mRruleButton.setTextColor(mSpinnerButtonColor);
         mAvailabilitySpinner = (Spinner) view.findViewById(R.id.availability);
         mAccessLevelSpinner = (Spinner) view.findViewById(R.id.visibility);
         mCalendarSelectorGroup = view.findViewById(R.id.calendar_selector_group);
@@ -397,7 +412,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
         CharSequence displayName =
             mTzPickerUtils.getGmtDisplayName(
-                mActivity,timeZone, timeMillis, true);
+                mActivity,timeZone, timeMillis, false);
         mStartTimezoneTextView.setText(displayName);
         mStartTimezoneButton.setText(displayName);
     }
@@ -409,7 +424,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
         CharSequence displayName =
             mTzPickerUtils.getGmtDisplayName(
-                mActivity,timeZone, timeMillis, true);
+                mActivity,timeZone, timeMillis, false);
         mEndTimezoneTextView.setText(displayName);
         mEndTimezoneButton.setText(displayName);
     }
