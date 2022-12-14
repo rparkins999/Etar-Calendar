@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,7 +26,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Resources;
-import android.database.Cursor;
 import android.net.Uri;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Events;
@@ -111,13 +112,9 @@ public class DeleteEventHelper {
             Uri deleteContentUri = isLocal ? CalendarRepository.asLocalCalendarSyncAdapter(mModel.mSyncAccountName, Events.CONTENT_URI) : Events.CONTENT_URI;
 
             Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-            mService.startDelete(mService.getNextToken(), null, uri, null, null, Utils.UNDO_DELAY);
-            if (mCallback != null) {
-                mCallback.run();
-            }
-            if (mExitWhenDone) {
-                mParent.finish();
-            }
+            mService.startDelete(
+                mService.getNextToken(), DeleteEventHelper.this, uri,
+                null, null, Utils.UNDO_DELAY);
         }
     };
     /**
@@ -128,12 +125,6 @@ public class DeleteEventHelper {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
             deleteExceptionEvent();
-            if (mCallback != null) {
-                mCallback.run();
-            }
-            if (mExitWhenDone) {
-                mParent.finish();
-            }
         }
     };
     /**
@@ -176,7 +167,16 @@ public class DeleteEventHelper {
         mExitWhenDone = exitWhenDone;
     }
 
-    public void finishDelete(CalendarEventModel model) {
+    public void tidyup() {
+        if (mCallback != null) {
+            mCallback.run();
+        }
+        if (mExitWhenDone) {
+            mParent.finish();
+        }
+    }
+
+    public void deleteAfterQuery(CalendarEventModel model) {
         delete(mStartMillis, mEndMillis, model, mWhichDelete);
     }
 
@@ -332,7 +332,7 @@ public class DeleteEventHelper {
         values.put(Events.STATUS, Events.STATUS_CANCELED);
 
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id);
-        mService.startUpdate(mService.getNextToken(), null, uri, values, null, null,
+        mService.startUpdate(mService.getNextToken(), this, uri, values, null, null,
                 Utils.UNDO_DELAY);
     }
 
@@ -377,13 +377,13 @@ public class DeleteEventHelper {
                 values.put(Events.ORIGINAL_INSTANCE_TIME, mStartMillis);
                 values.put(Events.STATUS, Events.STATUS_CANCELED);
 
-                mService.startInsert(mService.getNextToken(), null, Events.CONTENT_URI, values,
+                mService.startInsert(mService.getNextToken(), this, Events.CONTENT_URI, values,
                         Utils.UNDO_DELAY);
                 break;
             }
             case DELETE_ALL: {
                 Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-                mService.startDelete(mService.getNextToken(), null, uri, null, null,
+                mService.startDelete(mService.getNextToken(), this, uri, null, null,
                         Utils.UNDO_DELAY);
                 break;
             }
@@ -392,7 +392,7 @@ public class DeleteEventHelper {
                 // following events, then delete them all.
                 if (dtstart == mStartMillis) {
                     Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-                    mService.startDelete(mService.getNextToken(), null, uri, null, null,
+                    mService.startDelete(mService.getNextToken(), this, uri, null, null,
                             Utils.UNDO_DELAY);
                     break;
                 }
@@ -417,16 +417,10 @@ public class DeleteEventHelper {
                 values.put(Events.DTSTART, dtstart);
                 values.put(Events.RRULE, eventRecurrence.toString());
                 Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id);
-                mService.startUpdate(mService.getNextToken(), null, uri, values, null, null,
+                mService.startUpdate(mService.getNextToken(), this, uri, values, null, null,
                         Utils.UNDO_DELAY);
                 break;
             }
-        }
-        if (mCallback != null) {
-            mCallback.run();
-        }
-        if (mExitWhenDone) {
-            mParent.finish();
         }
     }
 

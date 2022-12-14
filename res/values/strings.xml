@@ -460,6 +460,8 @@
          user has asked to delete an event. The user still has a chance to cancel
          this operation. -->
     <string name="delete_this_event_title">Delete this event?</string>
+    <!-- This is a toast shown if deletion of an event fails. -->
+    <string name="delete_event_fail">Event deletion failed</string>
     <!-- This is a confirmation message in a popup dialog that appears when the
          user has asked to delete an event that is recurring. The user still has a chance to cancel
          this operation. -->
