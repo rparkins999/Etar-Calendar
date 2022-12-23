@@ -83,7 +83,8 @@ import ws.xsoh.etar.R;
 public class EditEventActivity extends AbstractCalendarActivity
     implements CalendarController.ActionHandler,
     ColorPickerSwatch.OnColorSelectedListener,
-    DeleteEventHelper.DeleteNotifyListener
+    DeleteEventHelper.DeleteNotifyListener,
+    AsyncQueryService.AsyncQueryDone
 {
     // for logging
     private static final String TAG = "EditEventActivity";
@@ -99,7 +100,6 @@ public class EditEventActivity extends AbstractCalendarActivity
     private static final String BUNDLE_MODEL = "key_model";
     private static final String BUNDLE_EDIT_STATE = "key_edit_state";
     private static final String BUNDLE_READ_ONLY = "key_read_only";
-    private static final String BUNDLE_EDIT_ON_LAUNCH = "key_edit_on_launch";
     private static final String BUNDLE_SHOW_COLOR_PALETTE =
         "show_color_palette";
     private static final String BUNDLE_DELETE_DIALOG_VISIBLE =
@@ -111,7 +111,7 @@ public class EditEventActivity extends AbstractCalendarActivity
     // Copy of "this" for use in nested classes
     private EditEventActivity mActivity;
 
-    private AsyncModifyService mService;
+    private AsyncQueryService mService;
 
     /**
      * A bitfield of TOKEN_* to keep track which query hasn't been completed
@@ -257,396 +257,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                 }
             }
         }
-    }
-
-    @SuppressLint("HandlerLeak")
-    class AsyncModifyService extends AsyncQueryService {
-        public AsyncModifyService(Context context) {
-            super(context);
-        }
-
-        /**
-         * Called when an asynchronous query is completed.
-         *
-         * @param token  the token to identify the query, passed in from
-         *               {@link #startQuery}.
-         * @param cookie the cookie object passed in from {@link #startQuery}.
-         * @param cursor The cursor holding the results from the query,
-         *               null if it failed.
-         */
-        @Override
-        protected void onQueryComplete(
-            int token, Object cookie, Cursor cursor)
-        {
-            if (cookie instanceof DeleteEventHelper) {
-                if (   (cursor != null)
-                    && cursor.moveToFirst())
-                {
-                    CalendarEventModel model = new CalendarEventModel();
-                    EditEventHelper.setModelFromCursor(model, cursor);
-                    cursor.close();
-                    ((DeleteEventHelper)cookie).deleteAfterQuery(model);
-                } else {
-                    Toast.makeText(mActivity, R.string.delete_event_fail,
-                            Toast.LENGTH_SHORT)
-                        .show();
-                }
-            } else if (cookie instanceof Integer) {
-                if (cursor != null) {
-                    // If the Activity is finishing, then close the cursor.
-                    // Otherwise, use the new cursor in the adapter.
-                    if (mActivity == null || mActivity.isFinishing()) {
-                        cursor.close();
-                        return;
-                    }
-                    long eventId;
-                    switch ((Integer)cookie) {
-                        case TOKEN_EVENT:
-                            if (cursor.getCount() == 0) {
-                                // The cursor is empty. This can happen if
-                                // the event was deleted.
-                                cursor.close();
-                                mOnDone.setDoneCode(Utils.DONE_EXIT);
-                                mOnDone.run();
-                                return;
-                            }
-                            EditEventHelper.setModelFromCursor(mModel, cursor);
-                            cursor.close();
-                            mOriginalModel = new CalendarEventModel(mModel);
-                            if (mModel.mId == mModel.mOriginalId) {
-                                mModel.mIsFirstEventInSeries = true;
-                                mModel.mOriginalStart = mModel.mStart;
-                                mModel.mOriginalEnd = mModel.mEnd;
-                            } else {
-                                // We probably shouldn't set mModel.mOriginalStart
-                                // or mModel.mOriginalStart here.
-                                mModel.mIsFirstEventInSeries = false;
-                            }
-                            if (mEventColorInitialized) {
-                                mModel.setEventColor(mEventColor);
-                            }
-                            eventId = mModel.mId;
-
-                            // TOKEN_ATTENDEES
-                            if (mModel.mHasAttendeeData && eventId != -1) {
-                                Uri attUri = CalendarContract.Attendees.CONTENT_URI;
-                                String[] selectionArgs = {
-                                    Long.toString(eventId)
-                                };
-                                mService.startQuery(mService.getNextToken(),
-                                    TOKEN_ATTENDEES, attUri,
-                                    EditEventHelper.ATTENDEES_PROJECTION,
-                                    EditEventHelper.ATTENDEES_WHERE,
-                                    selectionArgs,
-                                    null /* sort order */);
-                            } else {
-                                setModelIfDone(TOKEN_ATTENDEES);
-                            }
-
-                            // TOKEN_REMINDERS
-                            if (mModel.mHasAlarm) {
-                                Uri rUri = CalendarContract.Reminders.CONTENT_URI;
-                                String[] selectionArgs = {
-                                    Long.toString(eventId)
-                                };
-                                mService.startQuery(mService.getNextToken(),
-                                    TOKEN_REMINDERS, rUri,
-                                    EditEventHelper.REMINDERS_PROJECTION,
-                                    EditEventHelper.REMINDERS_WHERE,
-                                    selectionArgs,
-                                    null /* sort order */);
-                            } else {
-                                if (mReminders == null) {
-                                    // mReminders should not be null.
-                                    mReminders = new ArrayList<>();
-                                } else {
-                                    Collections.sort(mReminders);
-                                }
-                                mOriginalModel.mReminders = mReminders;
-                                mModel.mReminders = mModel.cloneReminders(mReminders);
-                                setModelIfDone(TOKEN_REMINDERS);
-                            }
-
-                            // TOKEN_CALENDARS
-                            String[] selectionArgs = {
-                                Long.toString(mModel.mCalendarId)
-                            };
-                            mService.startQuery(mService.getNextToken(),
-                                TOKEN_CALENDARS,
-                                CalendarContract.Calendars.CONTENT_URI,
-                                EditEventHelper.CALENDARS_PROJECTION,
-                                EditEventHelper.CALENDARS_WHERE,
-                                selectionArgs,
-                                null /* sort order */);
-
-                            // TOKEN_COLORS
-                            mService.startQuery(mService.getNextToken(),
-                                TOKEN_COLORS,
-                                CalendarContract.Colors.CONTENT_URI,
-                                EditEventHelper.COLORS_PROJECTION,
-                                CalendarContract.Colors.COLOR_TYPE
-                                    + "="
-                                    + CalendarContract.Colors.TYPE_EVENT, null, null);
-
-                            setModelIfDone(TOKEN_EVENT);
-                            break;
-                        case TOKEN_ATTENDEES:
-                            try {
-                                while (cursor.moveToNext()) {
-                                    String name =
-                                        cursor.getString(EditEventHelper.ATTENDEES_INDEX_NAME);
-                                    String email =
-                                        cursor.getString(EditEventHelper.ATTENDEES_INDEX_EMAIL);
-                                    int relationship = cursor
-                                        .getInt(EditEventHelper.ATTENDEES_INDEX_RELATIONSHIP);
-                                    int status =
-                                        cursor.getInt(EditEventHelper.ATTENDEES_INDEX_STATUS);
-                                    int type =
-                                        cursor.getInt(EditEventHelper.ATTENDEES_INDEX_TYPE);
-                                    String identity =
-                                        cursor.getString(EditEventHelper.ATTENDEES_INDEX_IDENTITY);
-                                    String idNamespace =
-                                        cursor.getString(
-                                            EditEventHelper.ATTENDEES_INDEX_ID_NAMESPACE);
-                                    if (relationship == CalendarContract.Attendees.RELATIONSHIP_ORGANIZER) {
-                                        if (email != null) {
-                                            mModel.mOrganizer = email;
-                                            mModel.mIsOrganizer =
-                                                mModel.mOwnerAccount
-                                                    .equalsIgnoreCase(email);
-                                            mOriginalModel.mOrganizer = email;
-                                            mOriginalModel.mIsOrganizer =
-                                                mOriginalModel.mOwnerAccount
-                                                    .equalsIgnoreCase(email);
-                                        }
-
-                                        if (TextUtils.isEmpty(name)) {
-                                            mModel.mOrganizerDisplayName =
-                                                mModel.mOrganizer;
-                                            mOriginalModel.mOrganizerDisplayName =
-                                                mOriginalModel.mOrganizer;
-                                        } else {
-                                            mModel.mOrganizerDisplayName = name;
-                                            mOriginalModel.mOrganizerDisplayName = name;
-                                        }
-                                    }
-
-                                    if (email != null) {
-                                        if ((mModel.mOwnerAccount != null)
-                                            && mModel.mOwnerAccount.equalsIgnoreCase(email)) {
-                                            int attendeeId = cursor.getInt(
-                                                EditEventHelper.ATTENDEES_INDEX_ID);
-                                            mModel.mOwnerAttendeeId = attendeeId;
-                                            mModel.mSelfAttendeeStatus = status;
-                                            mOriginalModel.mOwnerAttendeeId = attendeeId;
-                                            mOriginalModel.mSelfAttendeeStatus = status;
-                                            continue;
-                                        }
-                                    }
-                                    CalendarEventModel.Attendee attendee = new CalendarEventModel.Attendee(
-                                        name, email, status, type, identity, idNamespace);
-                                    mModel.addAttendee(attendee);
-                                    mOriginalModel.addAttendee(attendee);
-                                }
-                            } finally {
-                                cursor.close();
-                            }
-
-                            setModelIfDone(TOKEN_ATTENDEES);
-                            break;
-                        case TOKEN_REMINDERS:
-                            try {
-                                // Add all reminders to the models
-                                while (cursor.moveToNext()) {
-                                    int minutes = cursor.getInt(
-                                        EditEventHelper.REMINDERS_INDEX_MINUTES);
-                                    int method = cursor.getInt(
-                                        EditEventHelper.REMINDERS_INDEX_METHOD);
-                                    CalendarEventModel.ReminderEntry re = CalendarEventModel.ReminderEntry.valueOf(minutes, method);
-                                    mModel.mReminders.add(re);
-                                    mOriginalModel.mReminders.add(re);
-                                }
-
-                                // Sort appropriately for display
-                                Collections.sort(mModel.mReminders);
-                                Collections.sort(mOriginalModel.mReminders);
-                            } finally {
-                                cursor.close();
-                            }
-
-                            setModelIfDone(TOKEN_REMINDERS);
-                            break;
-                        case TOKEN_CALENDARS:
-                            try {
-                                if (mModel.mId == -1) {
-                                    // Populate Calendar spinner only if no event id is set.
-                                    MatrixCursor matrixCursor =
-                                        Utils.matrixCursorFromCursor(cursor);
-                                    if (DEBUG) {
-                                        Log.d(TAG, "onQueryComplete: setting cursor with "
-                                            + matrixCursor.getCount() + " calendars");
-                                    }
-                                    mView.setCalendarsCursor(
-                                        matrixCursor, mModel.mCalendarId);
-                                } else {
-                                    // Populate model for an existing event
-                                    EditEventHelper.setModelFromCalendarCursor(
-                                        mModel, cursor);
-                                    EditEventHelper.setModelFromCalendarCursor(
-                                        mOriginalModel, cursor);
-                                }
-                            } finally {
-                                cursor.close();
-                            }
-                            setModelIfDone(TOKEN_CALENDARS);
-                            break;
-                        case TOKEN_COLORS:
-                            if (cursor.moveToFirst()) {
-                                EventColorCache cache = new EventColorCache();
-                                do {
-                                    String colorKey =
-                                        cursor.getString(EditEventHelper.COLORS_INDEX_COLOR_KEY);
-                                    int rawColor =
-                                        cursor.getInt(EditEventHelper.COLORS_INDEX_COLOR);
-                                    int displayColor = Utils.getDisplayColorFromColor(rawColor);
-                                    String accountName = cursor
-                                        .getString(EditEventHelper.COLORS_INDEX_ACCOUNT_NAME);
-                                    String accountType = cursor
-                                        .getString(EditEventHelper.COLORS_INDEX_ACCOUNT_TYPE);
-                                    cache.insertColor(accountName, accountType,
-                                        displayColor, colorKey);
-                                } while (cursor.moveToNext());
-                                cache.sortPalettes(new HsvColorComparator());
-
-                                mModel.mEventColorCache = cache;
-                                mView.mColorPickerNewEvent.setOnClickListener(
-                                    mOnColorPickerClicked);
-                                mView.mColorPickerExistingEvent.setOnClickListener(
-                                    mOnColorPickerClicked);
-                            }
-                            cursor.close();
-
-                            // If the account name/type is null, the calendar event colors cannot
-                            // be determined, so take the default/savedInstanceState value.
-                            if ((mModel.mCalendarAccountName == null)
-                                || (mModel.mCalendarAccountType == null)) {
-                                mView.setColorPickerButtonStates(mShowColorPalette);
-                            } else {
-                                mView.setColorPickerButtonStates(mModel.getCalendarEventColors());
-                            }
-
-                            setModelIfDone(TOKEN_COLORS);
-                            break;
-                        default:
-                            cursor.close();
-                            break;
-                    }
-                }
-            }
-        }
-
-        /**
-         * Called when an asynchronous insert is completed.
-         *
-         * @param token  the token to identify the query, passed in from
-         *               {@link #startInsert}.
-         * @param cookie the cookie object that's passed in from
-         *               {@link #startInsert}.
-         * @param uri    the URL of the newly created row
-         *               null indicates failure.
-         */
-        @Override
-        protected void onInsertComplete(int token, @Nullable Object cookie,
-                                        Uri uri)
-        {
-            if (cookie instanceof DeleteEventHelper)
-            {
-                if (uri != null) {
-                    ((DeleteEventHelper)cookie).tidyup();
-                } else {
-                    Toast.makeText(mActivity, R.string.delete_event_fail,
-                            Toast.LENGTH_SHORT)
-                        .show();
-                }
-            }
-        }
-
-        /**
-         * Called when an asynchronous update is completed.
-         *
-         * @param token  the token to identify the query, passed in from
-         *               {@link #startUpdate}.
-         * @param cookie the cookie object that's passed in from
-         *               {@link #startUpdate}.
-         * @param result the nimber of rows updated
-         *               zero indicates failure.
-         */
-        @Override
-        protected void onUpdateComplete(int token, @Nullable Object cookie,
-                                        int result)
-        {
-            if (cookie instanceof DeleteEventHelper)
-            {
-                if (result == 1) {
-                    ((DeleteEventHelper)cookie).tidyup();
-                } else {
-                    Toast.makeText(mActivity, R.string.delete_event_fail,
-                            Toast.LENGTH_SHORT)
-                        .show();
-                }
-            }
-        }
-
-        /**
-         * Called when an asynchronous delete is completed.
-         *
-         * @param token  the token to identify the query, passed in from
-         *               {@link #startDelete}.
-         * @param cookie the cookie object that's passed in from
-         *               {@link #startDelete}.
-         * @param result the number of rows deleted
-         *               xero indicates failure
-         */
-        @Override
-        protected void onDeleteComplete(int token, @Nullable Object cookie,
-                                        int result)
-        {
-            if (cookie instanceof DeleteEventHelper)
-            {
-                if (result == 1) {
-                    ((DeleteEventHelper)cookie).tidyup();
-                } else {
-                    Toast.makeText(mActivity, R.string.delete_event_fail,
-                            Toast.LENGTH_SHORT)
-                        .show();
-                }
-            }
-        }
-
-        /**
-         * Called when an asynchronous {@link ContentProviderOperation} is
-         * completed.
-         *
-         * @param token   the token to identify the query, passed in from
-         *                {@link #startBatch}.
-         * @param cookie  the cookie object that's passed in from
-         *                {@link #startBatch}.
-         * @param results an array of results from the operations
-         *                the type of each result depends on the operation
-         */
-        @Override
-        protected void onBatchComplete(int token, @Nullable Object cookie,
-                                       ContentProviderResult[] results)
-        {
-        }
-    }
-
-    @Override
-    public synchronized AsyncQueryService getAsyncQueryService() {
-        if (mService == null) {
-            mService = new AsyncModifyService(this);
-        }
-        return mService;
     }
 
     class Done implements EditEventHelper.EditDoneRunnable {
@@ -855,7 +465,8 @@ public class EditEventActivity extends AbstractCalendarActivity
      *
      */
     boolean noPermission(String permission) {
-        return (Build.VERSION.SDK_INT >= 23) // anifest permissions not granted
+        return (Build.VERSION.SDK_INT >= 23)
+            // manifest permissions not automatically granted
             && (ContextCompat.checkSelfPermission(this, permission)
                 != PackageManager.PERMISSION_GRANTED);
     }
@@ -870,8 +481,7 @@ public class EditEventActivity extends AbstractCalendarActivity
                 Log.d(TAG, "startQuery: uri for event is "
                     + uri);
             }
-            mService.startQuery(mService.getNextToken(),
-                TOKEN_EVENT, uri,
+            mService.startQuery(TOKEN_EVENT, this, uri,
                 EditEventHelper.EVENT_PROJECTION,
                 null, null, null);
         } else {
@@ -882,8 +492,7 @@ public class EditEventActivity extends AbstractCalendarActivity
 
             // Start queries in the background
             // to read the lists of calendars and colors
-            mService.startQuery(mService.getNextToken(),
-                TOKEN_CALENDARS,
+            mService.startQuery(TOKEN_CALENDARS, this,
                 CalendarContract.Calendars.CONTENT_URI,
                 EditEventHelper.CALENDARS_PROJECTION,
                 EditEventHelper.CALENDARS_WHERE_WRITEABLE_VISIBLE,
@@ -892,8 +501,7 @@ public class EditEventActivity extends AbstractCalendarActivity
             // mHandler.onQueryComplete will be called
             // when a query completes.
 
-            mService.startQuery(mService.getNextToken(),
-                TOKEN_COLORS,
+            mService.startQuery(TOKEN_COLORS, this,
                 CalendarContract.Colors.CONTENT_URI,
                 EditEventHelper.COLORS_PROJECTION,
                 CalendarContract.Colors.COLOR_TYPE + "=" + CalendarContract.Colors.TYPE_EVENT,
@@ -924,6 +532,7 @@ public class EditEventActivity extends AbstractCalendarActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mActivity = this;
+        mService = CalendarApplication.getAsyncQueryService();
 
         dynamicTheme.onCreate(this);
         ArrayList<String> permissions = new ArrayList<>(2);
@@ -955,7 +564,7 @@ public class EditEventActivity extends AbstractCalendarActivity
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
 
-        mHelper = new EditEventHelper(this);
+        mHelper = new EditEventHelper();
         mInputMethodManager = (InputMethodManager)
             getSystemService(Context.INPUT_METHOD_SERVICE);
 
@@ -1189,9 +798,8 @@ public class EditEventActivity extends AbstractCalendarActivity
             return;
         }
 
-        AsyncQueryService service = new AsyncQueryService(mActivity);
-        service.startBatch(
-            0, null, CalendarContract.Calendars.CONTENT_URI.getAuthority(), ops, 0);
+        mService.startBatch(0, null,
+            CalendarContract.Calendars.CONTENT_URI.getAuthority(), ops);
         // Update the "hasAlarm" field for the event
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, mModel.mId);
         int len = mModel.mReminders.size();
@@ -1199,9 +807,8 @@ public class EditEventActivity extends AbstractCalendarActivity
         if (hasAlarm != mOriginalModel.mHasAlarm) {
             ContentValues values = new ContentValues();
             values.put(CalendarContract.Events.HAS_ALARM, hasAlarm ? 1 : 0);
-            service.startUpdate(
-                0, null, uri, values,
-                null, null, 0);
+            mService.startUpdate(null, null, uri, values,
+                null, null);
         }
 
         Toast.makeText(mActivity, R.string.saving_event, Toast.LENGTH_SHORT).show();
@@ -1326,5 +933,318 @@ public class EditEventActivity extends AbstractCalendarActivity
             mModifyDialog = null;
         }
         super.onDestroy();
+    }
+
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startQuery().
+     * @param cursor The cursor holding the results from the query,
+     *               may be empty if nothing matched or null if it failed.
+     */
+    @Override
+    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+        if (cursor != null) {
+            // If the Activity is finishing, then close the cursor.
+            // Otherwise, use the new cursor in the adapter.
+            if (mActivity == null || mActivity.isFinishing()) {
+                cursor.close();
+                return;
+            }
+            if (cookie != null) {
+                long eventId;
+                switch ((Integer) cookie) {
+                    case TOKEN_EVENT:
+                        if (cursor.getCount() == 0) {
+                            // The cursor is empty. This can happen if
+                            // the event was deleted.
+                            cursor.close();
+                            mOnDone.setDoneCode(Utils.DONE_EXIT);
+                            mOnDone.run();
+                            return;
+                        }
+                        EditEventHelper.setModelFromCursor(mModel, cursor);
+                        cursor.close();
+                        mOriginalModel = new CalendarEventModel(mModel);
+                        if (mModel.mId == mModel.mOriginalId) {
+                            mModel.mIsFirstEventInSeries = true;
+                            mModel.mOriginalStart = mModel.mStart;
+                            mModel.mOriginalEnd = mModel.mEnd;
+                        } else {
+                            // We probably shouldn't set mModel.mOriginalStart
+                            // or mModel.mOriginalStart here.
+                            mModel.mIsFirstEventInSeries = false;
+                        }
+                        if (mEventColorInitialized) {
+                            mModel.setEventColor(mEventColor);
+                        }
+                        eventId = mModel.mId;
+
+                        // TOKEN_ATTENDEES
+                        if (mModel.mHasAttendeeData && eventId != -1) {
+                            Uri attUri = CalendarContract.Attendees.CONTENT_URI;
+                            String[] selectionArgs = {
+                                Long.toString(eventId)
+                            };
+                            mService.startQuery(
+                                TOKEN_ATTENDEES, this, attUri,
+                                EditEventHelper.ATTENDEES_PROJECTION,
+                                EditEventHelper.ATTENDEES_WHERE,
+                                selectionArgs, null /* sort order */);
+                        } else {
+                            setModelIfDone(TOKEN_ATTENDEES);
+                        }
+
+                        // TOKEN_REMINDERS
+                        if (mModel.mHasAlarm) {
+                            Uri rUri = CalendarContract.Reminders.CONTENT_URI;
+                            String[] selectionArgs = {
+                                Long.toString(eventId)
+                            };
+                            mService.startQuery(
+                                TOKEN_REMINDERS, this, rUri,
+                                EditEventHelper.REMINDERS_PROJECTION,
+                                EditEventHelper.REMINDERS_WHERE,
+                                selectionArgs, null /* sort order */);
+                        } else {
+                            if (mReminders == null) {
+                                // mReminders should not be null.
+                                mReminders = new ArrayList<>();
+                            } else {
+                                Collections.sort(mReminders);
+                            }
+                            mOriginalModel.mReminders = mReminders;
+                            mModel.mReminders = mModel.cloneReminders(mReminders);
+                            setModelIfDone(TOKEN_REMINDERS);
+                        }
+
+                        // TOKEN_CALENDARS
+                        String[] selectionArgs = {
+                            Long.toString(mModel.mCalendarId)
+                        };
+                        mService.startQuery(
+                            TOKEN_CALENDARS, this,
+                            CalendarContract.Calendars.CONTENT_URI,
+                            EditEventHelper.CALENDARS_PROJECTION,
+                            EditEventHelper.CALENDARS_WHERE,
+                            selectionArgs, null /* sort order */);
+
+                        // TOKEN_COLORS
+                        mService.startQuery(
+                            TOKEN_COLORS, this,
+                            CalendarContract.Colors.CONTENT_URI,
+                            EditEventHelper.COLORS_PROJECTION,
+                            CalendarContract.Colors.COLOR_TYPE
+                                + "="
+                                + CalendarContract.Colors.TYPE_EVENT, null, null);
+
+                        setModelIfDone(TOKEN_EVENT);
+                        break;
+                    case TOKEN_ATTENDEES:
+                        try {
+                            while (cursor.moveToNext()) {
+                                String name =
+                                    cursor.getString(EditEventHelper.ATTENDEES_INDEX_NAME);
+                                String email =
+                                    cursor.getString(EditEventHelper.ATTENDEES_INDEX_EMAIL);
+                                int relationship = cursor
+                                    .getInt(EditEventHelper.ATTENDEES_INDEX_RELATIONSHIP);
+                                int status =
+                                    cursor.getInt(EditEventHelper.ATTENDEES_INDEX_STATUS);
+                                int type =
+                                    cursor.getInt(EditEventHelper.ATTENDEES_INDEX_TYPE);
+                                String identity =
+                                    cursor.getString(EditEventHelper.ATTENDEES_INDEX_IDENTITY);
+                                String idNamespace =
+                                    cursor.getString(
+                                        EditEventHelper.ATTENDEES_INDEX_ID_NAMESPACE);
+                                if (relationship == CalendarContract.Attendees.RELATIONSHIP_ORGANIZER) {
+                                    if (email != null) {
+                                        mModel.mOrganizer = email;
+                                        mModel.mIsOrganizer =
+                                            mModel.mOwnerAccount
+                                                .equalsIgnoreCase(email);
+                                        mOriginalModel.mOrganizer = email;
+                                        mOriginalModel.mIsOrganizer =
+                                            mOriginalModel.mOwnerAccount
+                                                .equalsIgnoreCase(email);
+                                    }
+
+                                    if (TextUtils.isEmpty(name)) {
+                                        mModel.mOrganizerDisplayName =
+                                            mModel.mOrganizer;
+                                        mOriginalModel.mOrganizerDisplayName =
+                                            mOriginalModel.mOrganizer;
+                                    } else {
+                                        mModel.mOrganizerDisplayName = name;
+                                        mOriginalModel.mOrganizerDisplayName = name;
+                                    }
+                                }
+
+                                if (email != null) {
+                                    if ((mModel.mOwnerAccount != null)
+                                        && mModel.mOwnerAccount.equalsIgnoreCase(email)) {
+                                        int attendeeId = cursor.getInt(
+                                            EditEventHelper.ATTENDEES_INDEX_ID);
+                                        mModel.mOwnerAttendeeId = attendeeId;
+                                        mModel.mSelfAttendeeStatus = status;
+                                        mOriginalModel.mOwnerAttendeeId = attendeeId;
+                                        mOriginalModel.mSelfAttendeeStatus = status;
+                                        continue;
+                                    }
+                                }
+                                CalendarEventModel.Attendee attendee = new CalendarEventModel.Attendee(
+                                    name, email, status, type, identity, idNamespace);
+                                mModel.addAttendee(attendee);
+                                mOriginalModel.addAttendee(attendee);
+                            }
+                        } finally {
+                            cursor.close();
+                        }
+
+                        setModelIfDone(TOKEN_ATTENDEES);
+                        break;
+                    case TOKEN_REMINDERS:
+                        try {
+                            // Add all reminders to the models
+                            while (cursor.moveToNext()) {
+                                int minutes = cursor.getInt(
+                                    EditEventHelper.REMINDERS_INDEX_MINUTES);
+                                int method = cursor.getInt(
+                                    EditEventHelper.REMINDERS_INDEX_METHOD);
+                                CalendarEventModel.ReminderEntry re = CalendarEventModel.ReminderEntry.valueOf(minutes, method);
+                                mModel.mReminders.add(re);
+                                mOriginalModel.mReminders.add(re);
+                            }
+
+                            // Sort appropriately for display
+                            Collections.sort(mModel.mReminders);
+                            Collections.sort(mOriginalModel.mReminders);
+                        } finally {
+                            cursor.close();
+                        }
+
+                        setModelIfDone(TOKEN_REMINDERS);
+                        break;
+                    case TOKEN_CALENDARS:
+                        try {
+                            if (mModel.mId == -1) {
+                                // Populate Calendar spinner only if no event id is set.
+                                MatrixCursor matrixCursor =
+                                    Utils.matrixCursorFromCursor(cursor);
+                                if (DEBUG) {
+                                    Log.d(TAG, "onQueryComplete: setting cursor with "
+                                        + matrixCursor.getCount() + " calendars");
+                                }
+                                mView.setCalendarsCursor(
+                                    matrixCursor, mModel.mCalendarId);
+                            } else {
+                                // Populate model for an existing event
+                                EditEventHelper.setModelFromCalendarCursor(
+                                    mModel, cursor);
+                                EditEventHelper.setModelFromCalendarCursor(
+                                    mOriginalModel, cursor);
+                            }
+                        } finally {
+                            cursor.close();
+                        }
+                        setModelIfDone(TOKEN_CALENDARS);
+                        break;
+                    case TOKEN_COLORS:
+                        if (cursor.moveToFirst()) {
+                            EventColorCache cache = new EventColorCache();
+                            do {
+                                String colorKey =
+                                    cursor.getString(EditEventHelper.COLORS_INDEX_COLOR_KEY);
+                                int rawColor =
+                                    cursor.getInt(EditEventHelper.COLORS_INDEX_COLOR);
+                                int displayColor = Utils.getDisplayColorFromColor(rawColor);
+                                String accountName = cursor
+                                    .getString(EditEventHelper.COLORS_INDEX_ACCOUNT_NAME);
+                                String accountType = cursor
+                                    .getString(EditEventHelper.COLORS_INDEX_ACCOUNT_TYPE);
+                                cache.insertColor(accountName, accountType,
+                                    displayColor, colorKey);
+                            } while (cursor.moveToNext());
+                            cache.sortPalettes(new HsvColorComparator());
+
+                            mModel.mEventColorCache = cache;
+                            mView.mColorPickerNewEvent.setOnClickListener(
+                                mOnColorPickerClicked);
+                            mView.mColorPickerExistingEvent.setOnClickListener(
+                                mOnColorPickerClicked);
+                        }
+                        cursor.close();
+
+                        // If the account name/type is null, the calendar event colors cannot
+                        // be determined, so take the default/savedInstanceState value.
+                        if ((mModel.mCalendarAccountName == null)
+                            || (mModel.mCalendarAccountType == null)) {
+                            mView.setColorPickerButtonStates(mShowColorPalette);
+                        } else {
+                            mView.setColorPickerButtonStates(mModel.getCalendarEventColors());
+                        }
+
+                        setModelIfDone(TOKEN_COLORS);
+                        break;
+                    default:
+                        cursor.close();
+                        break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Called when an asynchronous insert is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startInsert().
+     * @param uri    the URL of the newly created row,
+     *               null indicates failure.
+     */
+    @Override
+    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+
+    }
+
+    /**
+     * Called when an asynchronous update is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startUpdate().
+     * @param result the number of rows updated
+     *               zero indicates failure.
+     */
+    @Override
+    public void onUpdateDone(@Nullable Object cookie, int result) {
+
+    }
+
+    /**
+     * Called when an asynchronous delete is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startDelete().
+     * @param result the number of rows deleted: zero indicates failure.
+     */
+    @Override
+    public void onDeleteDone(@Nullable Object cookie, int result) {
+
+    }
+
+    /**
+     * Called when an asynchronous {@link ContentProviderOperation} is
+     * completed.
+     *
+     * @param cookie  the cookie object that's passed in from
+     *                AsyncQueryService.startBatch().
+     * @param results an array of results from the operations:
+     *                the type of each result depends on the operation.
+     */
+    @Override
+    public void onBatchDone(@Nullable Object cookie, ContentProviderResult[] results) {
+
     }
 }

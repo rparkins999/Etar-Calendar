@@ -21,11 +21,13 @@ package com.android.calendar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.net.Uri;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Events;
@@ -33,6 +35,9 @@ import android.text.TextUtils;
 import android.text.format.Time;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Toast;
+
+import androidx.annotation.Nullable;
 
 import com.android.calendar.event.EditEventHelper;
 import com.android.calendar.persistence.CalendarRepository;
@@ -64,7 +69,8 @@ import ws.xsoh.etar.R;
  * An instance of this class may be created once and reused (by calling
  * {@see #delete()} multiple times).
  */
-public class DeleteEventHelper {
+public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
+{
     /**
      * These are the corresponding indices into the array of strings
      * "R.array.delete_repeating_labels" in the resource file.
@@ -73,14 +79,14 @@ public class DeleteEventHelper {
     public static final int DELETE_ALL_FOLLOWING = 1;
     public static final int DELETE_ALL = 2;
     private final Activity mParent;
-    private Context mContext;
+    private final Context mContext;
     private long mStartMillis;
     private long mEndMillis;
     private CalendarEventModel mModel;
     /**
      * If true, then call finish() on the parent activity when done.
      */
-    private boolean mExitWhenDone;
+    private final boolean mExitWhenDone;
     // the runnable to execute when the delete is confirmed
     private Runnable mCallback;
     private int mWhichDelete;
@@ -90,14 +96,14 @@ public class DeleteEventHelper {
 
     private String mSyncId;
 
-    private AsyncQueryService mService;
+    private final AsyncQueryService mService;
 
     private DeleteNotifyListener mDeleteStartedListener = null;
     /**
      * This callback is used when a normal event is deleted.
      */
-    private DialogInterface.OnClickListener mDeleteNormalDialogListener =
-            new DialogInterface.OnClickListener() {
+    private final DialogInterface.OnClickListener mDeleteNormalDialogListener
+        = new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
             long id = mModel.mId; // mCursor.getInt(mEventIndexId);
@@ -112,15 +118,14 @@ public class DeleteEventHelper {
             Uri deleteContentUri = isLocal ? CalendarRepository.asLocalCalendarSyncAdapter(mModel.mSyncAccountName, Events.CONTENT_URI) : Events.CONTENT_URI;
 
             Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-            mService.startDelete(
-                mService.getNextToken(), DeleteEventHelper.this, uri,
-                null, null, Utils.UNDO_DELAY);
+            mService.startDelete(null, DeleteEventHelper.this,
+                uri, null, null);
         }
     };
     /**
      * This callback is used when an exception to an event is deleted
      */
-    private DialogInterface.OnClickListener mDeleteExceptionDialogListener =
+    private final DialogInterface.OnClickListener mDeleteExceptionDialogListener =
         new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
@@ -130,7 +135,7 @@ public class DeleteEventHelper {
     /**
      * This callback is used when a list item for a repeating event is selected
      */
-    private DialogInterface.OnClickListener mDeleteListListener =
+    private final DialogInterface.OnClickListener mDeleteListListener =
             new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             // set mWhichDelete to the delete type at that index
@@ -145,7 +150,7 @@ public class DeleteEventHelper {
     /**
      * This callback is used when a repeating event is deleted.
      */
-    private DialogInterface.OnClickListener mDeleteRepeatingDialogListener =
+    private final DialogInterface.OnClickListener mDeleteRepeatingDialogListener =
             new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
@@ -163,7 +168,7 @@ public class DeleteEventHelper {
         }
         mContext = context;
         mParent = parentActivity;
-        mService = ((AbstractCalendarActivity)context).getAsyncQueryService();
+        mService = CalendarApplication.getAsyncQueryService();
         mExitWhenDone = exitWhenDone;
     }
 
@@ -194,8 +199,9 @@ public class DeleteEventHelper {
      */
     public void delete(long begin, long end, long eventId) {
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
-        mService.startQuery(mService.getNextToken(), this, uri,
-            EditEventHelper.EVENT_PROJECTION, null, null, null);
+        mService.startQuery(null, this, uri,
+            EditEventHelper.EVENT_PROJECTION, null,
+            null, null);
         mStartMillis = begin;
         mEndMillis = end;
         mWhichDelete = -1;
@@ -275,11 +281,11 @@ public class DeleteEventHelper {
             // This is a repeating event.  Pop up a dialog asking which events
             // to delete.
             Resources res = mContext.getResources();
-            ArrayList<String> labelArray = new ArrayList<String>(Arrays.asList(res
+            ArrayList<String> labelArray = new ArrayList<>(Arrays.asList(res
                     .getStringArray(R.array.delete_repeating_labels)));
             // asList doesn't like int[] so creating it manually.
             int[] labelValues = res.getIntArray(R.array.delete_repeating_values);
-            ArrayList<Integer> labelIndex = new ArrayList<Integer>();
+            ArrayList<Integer> labelIndex = new ArrayList<>();
             for (int val : labelValues) {
                 labelIndex.add(val);
             }
@@ -303,7 +309,7 @@ public class DeleteEventHelper {
                 which = labelIndex.indexOf(which);
             }
             mWhichIndex = labelIndex;
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(mContext,
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(mContext,
                     android.R.layout.simple_list_item_single_choice, labelArray);
             AlertDialog dialog = new AlertDialog.Builder(mContext)
                     .setTitle(
@@ -332,8 +338,8 @@ public class DeleteEventHelper {
         values.put(Events.STATUS, Events.STATUS_CANCELED);
 
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id);
-        mService.startUpdate(mService.getNextToken(), this, uri, values, null, null,
-                Utils.UNDO_DELAY);
+        mService.startUpdate(null, this, uri, values,
+            null, null);
     }
 
     private void deleteRepeatingEvent(int which) {
@@ -377,14 +383,14 @@ public class DeleteEventHelper {
                 values.put(Events.ORIGINAL_INSTANCE_TIME, mStartMillis);
                 values.put(Events.STATUS, Events.STATUS_CANCELED);
 
-                mService.startInsert(mService.getNextToken(), this, Events.CONTENT_URI, values,
-                        Utils.UNDO_DELAY);
+                mService.startInsert(
+                    null, this, Events.CONTENT_URI, values);
                 break;
             }
             case DELETE_ALL: {
                 Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-                mService.startDelete(mService.getNextToken(), this, uri, null, null,
-                        Utils.UNDO_DELAY);
+                mService.startDelete(null, this, uri,
+                    null, null);
                 break;
             }
             case DELETE_ALL_FOLLOWING: {
@@ -392,8 +398,8 @@ public class DeleteEventHelper {
                 // following events, then delete them all.
                 if (dtstart == mStartMillis) {
                     Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-                    mService.startDelete(mService.getNextToken(), this, uri, null, null,
-                            Utils.UNDO_DELAY);
+                    mService.startDelete(null, this, uri,
+                        null, null);
                     break;
                 }
 
@@ -417,8 +423,8 @@ public class DeleteEventHelper {
                 values.put(Events.DTSTART, dtstart);
                 values.put(Events.RRULE, eventRecurrence.toString());
                 Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id);
-                mService.startUpdate(mService.getNextToken(), this, uri, values, null, null,
-                        Utils.UNDO_DELAY);
+                mService.startUpdate(null, this, uri, values,
+                    null, null);
                 break;
             }
         }
@@ -448,6 +454,100 @@ public class DeleteEventHelper {
     }
 
     public interface DeleteNotifyListener {
-        public void onDeleteStarted();
+        void onDeleteStarted();
+    }
+
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startQuery().
+     * @param cursor The cursor holding the results from the query,
+     *               may be empty if nothing matched or null if it failed.
+     */
+    @Override
+    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+        if (   (cursor != null)
+            && cursor.moveToFirst())
+        {
+            CalendarEventModel model = new CalendarEventModel();
+            EditEventHelper.setModelFromCursor(model, cursor);
+            cursor.close();
+            deleteAfterQuery(model);
+        } else {
+            Toast.makeText(mContext, R.string.delete_event_fail,
+                    Toast.LENGTH_SHORT)
+                .show();
+        }
+    }
+
+    /**
+     * Called when an asynchronous insert is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startInsert().
+     * @param uri    the URL of the newly created row,
+     *               null indicates failure.
+     */
+    @Override
+    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+        if (uri != null) {
+            tidyup();
+        } else {
+            Toast.makeText(
+                    mContext, R.string.delete_event_fail, Toast.LENGTH_SHORT)
+                 .show();
+        }
+    }
+
+    /**
+     * Called when an asynchronous update is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startUpdate().
+     * @param result the number of rows updated
+     *               zero indicates failure.
+     */
+    @Override
+    public void onUpdateDone(@Nullable Object cookie, int result) {
+        if (result == 1) {
+            tidyup();
+        } else {
+            Toast.makeText(mContext, R.string.delete_event_fail,
+                    Toast.LENGTH_SHORT)
+                 .show();
+        }
+    }
+
+    /**
+     * Called when an asynchronous delete is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startDelete().
+     * @param result the number of rows deleted: zero indicates failure.
+     */
+    @Override
+    public void onDeleteDone(@Nullable Object cookie, int result) {
+        if (result == 1) {
+            tidyup();
+        } else {
+            Toast.makeText(mContext, R.string.delete_event_fail,
+                    Toast.LENGTH_SHORT)
+                .show();
+        }
+    }
+
+    /**
+     * Called when an asynchronous ContentProviderOperation is
+     * completed.
+     *
+     * @param cookie  the cookie object that's passed in from
+     *                AsyncQueryService.startBatch().
+     * @param results an array of results from the operations:
+     *                the type of each result depends on the operation.
+     */
+    @Override
+    public void onBatchDone(@Nullable Object cookie, ContentProviderResult[] results) {
+
     }
 }

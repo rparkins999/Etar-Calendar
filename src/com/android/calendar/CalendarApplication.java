@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +18,7 @@
 
 package com.android.calendar;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -29,21 +32,29 @@ import java.util.List;
 
 public class CalendarApplication extends Application {
 
-    // Thanks to stackoverflow.com for this trick to enable access to application context
-    // and resources without having to pass a context around all the time.
+    // Thanks to stackoverflow.com for this trick to enable access to
+    // application context and resources without having to pass a context
+    // around all the time.
+    @SuppressLint("StaticFieldLeak")
     private static Context mContext;
     public static Context getContext() {
         return mContext;
     }
 
+    @SuppressLint("StaticFieldLeak")
+    private static AsyncQueryService mService;
+    public static AsyncQueryService getAsyncQueryService() {
+        return mService;
+    }
+
     /**
      * This is a bit sad: we can't pass all the data needed to create a list of
-     * CalendarEventModel's between Activities in an Intent. We could serialize each
-     * CalendarEventModel out to a file or a bundle and back in again, but this is horribly
-     * inefficient. Instead we keep this static list around. It is empty when we
-     * aren't using it.
-     * We need synchronisation here because an event can be removed from this list
-     * in a thread other than the UI thread.
+     * CalendarEventModel's between Activities in an Intent. We could serialize
+     * each CalendarEventModel out to a file or a bundle and back in again, but
+     * this is horribly inefficient. Instead we keep this static list around.
+     * It is empty when we aren't using it.
+     * We need synchronisation here because an event can be removed from
+     * this list in a thread other than the UI thread.
      */
     public static final List<CalendarEventModel> mEvents
         = Collections.synchronizedList(new LinkedList<CalendarEventModel>());
@@ -52,6 +63,7 @@ public class CalendarApplication extends Application {
     public void onCreate() {
         super.onCreate();
         mContext = this;
+        mService = new AsyncQueryService(mContext);
 
         /*
          * Ensure the default values are set for any receiver, activity,

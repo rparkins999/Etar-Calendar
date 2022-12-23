@@ -28,6 +28,7 @@ import android.app.DialogFragment;
 import android.app.Service;
 import android.content.ActivityNotFoundException;
 import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -56,6 +57,8 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.ContactsContract.Intents;
 import android.provider.ContactsContract.QuickContact;
+
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.FileProvider;
@@ -130,7 +133,8 @@ import static com.android.calendar.CalendarController.EVENT_EDIT_ON_LAUNCH;
 @SuppressLint("ValidFragment")
 public class EventInfoFragment extends DialogFragment
     implements OnCheckedChangeListener, CalendarController.ActionHandler, OnClickListener,
-    DeleteEventHelper.DeleteNotifyListener, OnColorSelectedListener
+    DeleteEventHelper.DeleteNotifyListener, OnColorSelectedListener,
+    AsyncQueryService.AsyncQueryDone
 {
 
     public static final boolean DEBUG = false;
@@ -423,7 +427,7 @@ public class EventInfoFragment extends DialogFragment
      */
     private ArrayList<Integer> mReminderMethodValues;
     private ArrayList<String> mReminderMethodLabels;
-    private QueryHandler mHandler;
+    private AsyncQueryService mService;
     private OnItemSelectedListener mReminderChangeListener;
     private boolean mIsDialog;
     private boolean mIsPaused = true;
@@ -602,7 +606,7 @@ public class EventInfoFragment extends DialogFragment
             mEditResponseHelper.setWhichEvents(UPDATE_ALL);
             mWhichEvents = mEditResponseHelper.getWhichEvents();
         }
-        mHandler = new QueryHandler(activity);
+        mService = CalendarApplication.getAsyncQueryService();
         if (!mIsDialog) {
             setHasOptionsMenu(true);
         }
@@ -724,7 +728,7 @@ public class EventInfoFragment extends DialogFragment
 
         // start loading the data
 
-        mHandler.startQuery(TOKEN_QUERY_EVENT, null, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), EVENT_PROJECTION,
+        mService.startQuery(TOKEN_QUERY_EVENT, this, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), EVENT_PROJECTION,
             null, null, null);
 
         View b = mView.findViewById(R.id.delete);
@@ -844,7 +848,10 @@ public class EventInfoFragment extends DialogFragment
         }
         mIsPaused = false;
         if (mDismissOnResume) {
-            mHandler.post(onDeleteRunnable);
+            if (isVisible()) {
+                dismiss();
+            }
+            return;
         }
         // Display the "delete confirmation" or "edit response helper" dialog if needed
         if (mDeleteDialogVisible) {
@@ -891,7 +898,7 @@ public class EventInfoFragment extends DialogFragment
     }
 
     // This isn't used at present, but will be needed
-    // to reinstste the tablet version
+    // to reinstate the tablet version
     @SuppressWarnings("unused")
     public void setDialogParams(int x, int y, int minTop) {
         mX = x;
@@ -1298,15 +1305,14 @@ public class EventInfoFragment extends DialogFragment
         } else {
             values.put(Events.EVENT_COLOR_KEY, NO_EVENT_COLOR);
         }
-        mHandler.startUpdate(mHandler.getNextToken(), null, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), values,
-                null, null, Utils.UNDO_DELAY);
+        mService.startUpdate(null, this, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), values,
+                null, null);
         return true;
     }
 
     @Override
     public void onPause() {
         mIsPaused = true;
-        mHandler.removeCallbacks(onDeleteRunnable);
         super.onPause();
         // Remove event deletion alert box since it is being rebuild in the OnResume
         // This is done to get the same behavior on OnResume since the AlertDialog
@@ -1420,8 +1426,8 @@ public class EventInfoFragment extends DialogFragment
 
         Uri uri = ContentUris.withAppendedId(Attendees.CONTENT_URI, attendeeId);
 
-        mHandler.startUpdate(mHandler.getNextToken(), null, uri, values,
-                null, null, Utils.UNDO_DELAY);
+        mService.startUpdate(null, this, uri, values,
+                null, null);
     }
 
     /**
@@ -1445,9 +1451,8 @@ public class EventInfoFragment extends DialogFragment
         ops.add(
             ContentProviderOperation.newInsert(exceptionUri).withValues(values).build());
 
-        mHandler.startBatch(
-            mHandler.getNextToken(), null,
-            CalendarContract.AUTHORITY, ops, Utils.UNDO_DELAY);
+        mService.startBatch(
+            null, this,  CalendarContract.AUTHORITY, ops);
    }
 
     private void doEdit() {
@@ -1749,10 +1754,9 @@ public class EventInfoFragment extends DialogFragment
             mSyncAccountName = mCalendarsCursor.getString(CALENDARS_INDEX_ACCOUNT_NAME);
 
             // start visible calendars query
-            mHandler.startQuery(
-                TOKEN_QUERY_VISIBLE_CALENDARS, null, Calendars.CONTENT_URI,
-                CALENDARS_PROJECTION, CALENDARS_VISIBLE_WHERE, new String[] {"1"},
-                null);
+            mService.startQuery(TOKEN_QUERY_VISIBLE_CALENDARS, this,
+                Calendars.CONTENT_URI, CALENDARS_PROJECTION,
+                CALENDARS_VISIBLE_WHERE, new String[] {"1"}, null);
 
             mEventOrganizerEmail = mEventCursor.getString(EVENT_INDEX_ORGANIZER);
             mIsOrganizer = mCalendarOwnerAccount.equalsIgnoreCase(mEventOrganizerEmail);
@@ -2024,9 +2028,11 @@ public class EventInfoFragment extends DialogFragment
     /**
      * Taken from com.google.android.gm.HtmlConversationActivity
      *
-     * Send the intent that shows the Contact info corresponding to the email address.
+     * Send the intent that shows the Contact info corresponding to
+     * the email address.
      *
-     * Not currntly used, but evenrually we will need to be able to show the contact info.
+     * Not currently used, but eventually we will need to be able to show the
+     * contact info.
      */
     @SuppressWarnings("unused")
     public void showContactInfo(Attendee attendee, Rect rect) {
@@ -2076,10 +2082,9 @@ public class EventInfoFragment extends DialogFragment
     }
 
     public void reloadEvents() {
-        if (mHandler != null) {
-            mHandler.startQuery(TOKEN_QUERY_EVENT, null, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), EVENT_PROJECTION,
-                    null, null, null);
-        }
+        mService = CalendarApplication.getAsyncQueryService();
+        mService.startQuery(TOKEN_QUERY_EVENT, this, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), EVENT_PROJECTION,
+                null, null, null);
     }
 
     @Override
@@ -2170,9 +2175,8 @@ public class EventInfoFragment extends DialogFragment
         }
 
         // save new reminders
-        AsyncQueryService service = new AsyncQueryService(getActivity());
-        service.startBatch(
-            0, null, Calendars.CONTENT_URI.getAuthority(), ops, 0);
+        mService.startBatch(
+            0, this, Calendars.CONTENT_URI.getAuthority(), ops);
         mOriginalReminders = mReminders;
         // Update the "hasAlarm" field for the event
         Uri uri = ContentUris.withAppendedId(Events.CONTENT_URI, mEventId);
@@ -2181,9 +2185,8 @@ public class EventInfoFragment extends DialogFragment
         if (hasAlarm != mHasAlarm) {
             ContentValues values = new ContentValues();
             values.put(Events.HAS_ALARM, hasAlarm ? 1 : 0);
-            service.startUpdate(
-                0, null, uri, values,
-                null, null, 0);
+            mService.startUpdate(0, this, uri, values,
+                null, null);
         }
         return true;
     }
@@ -2241,205 +2244,262 @@ public class EventInfoFragment extends DialogFragment
         mHeadlines.setBackgroundColor(color);
     }
 
-    @SuppressLint("HandlerLeak")
-    private class QueryHandler extends AsyncQueryService {
-        public QueryHandler(Context context) {
-            super(context);
-        }
-
-        @Override
-        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-            // if the activity is finishing, then close the cursor and return
-            final Activity activity = getActivity();
-            if (activity == null || activity.isFinishing()) {
-                if (cursor != null) {
-                    cursor.close();
-                }
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startQuery().
+     * @param cursor The cursor holding the results from the query,
+     *               may be empty if nothing matched or null if it failed.
+     */
+    @Override
+    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+        if (cursor != null) {
+            // If the Activity is finishing, then close the cursor.
+            // Otherwise, use the new cursor in the adapter.
+            if (mActivity == null || mActivity.isFinishing()) {
+                cursor.close();
                 return;
             }
-
-            switch (token) {
-                case TOKEN_QUERY_EVENT:
-                    mEventCursor = Utils.matrixCursorFromCursor(cursor);
-                    if (initEventCursor()) {
-                        // The cursor is empty. This can happen if the event was
-                        // deleted.
-                        // FRAG_TODO we should no longer rely on Activity.finish()
-                        activity.finish();
-                        return;
-                    }
-                    if (!mCalendarColorInitialized) {
-                        mCalendarColor = Utils.getDisplayColorFromColor(
+            if (cookie != null) {
+                switch((Integer)cookie) {
+                    case TOKEN_QUERY_EVENT:
+                        mEventCursor = Utils.matrixCursorFromCursor(cursor);
+                        if (initEventCursor()) {
+                            // The cursor is empty. This can happen if the event was
+                            // deleted.
+                            // FRAG_TODO we should no longer rely on Activity.finish()
+                            mActivity.finish();
+                            return;
+                        }
+                        if (!mCalendarColorInitialized) {
+                            mCalendarColor = Utils.getDisplayColorFromColor(
                                 mEventCursor.getInt(EVENT_INDEX_CALENDAR_COLOR));
-                        mCalendarColorInitialized = true;
-                    }
+                            mCalendarColorInitialized = true;
+                        }
 
-                    if (!mOriginalColorInitialized) {
-                        mOriginalColor = mEventCursor.isNull(EVENT_INDEX_EVENT_COLOR)
+                        if (!mOriginalColorInitialized) {
+                            mOriginalColor = mEventCursor.isNull(EVENT_INDEX_EVENT_COLOR)
                                 ? mCalendarColor : Utils.getDisplayColorFromColor(
                                 mEventCursor.getInt(EVENT_INDEX_EVENT_COLOR));
-                        mOriginalColorInitialized = true;
-                    }
+                            mOriginalColorInitialized = true;
+                        }
 
-                    if (!mCurrentColorInitialized) {
-                        mCurrentColor = mOriginalColor;
-                        mCurrentColorInitialized = true;
-                    }
+                        if (!mCurrentColorInitialized) {
+                            mCurrentColor = mOriginalColor;
+                            mCurrentColorInitialized = true;
+                        }
 
-                    updateEvent(mView);
-                    prepareReminders();
+                        updateEvent(mView);
+                        prepareReminders();
 
-                    // start calendar query
-                    Uri uri = Calendars.CONTENT_URI;
-                    String[] args = new String[]{
+                        // start calendar query
+                        Uri uri = Calendars.CONTENT_URI;
+                        String[] args = new String[]{
                             Long.toString(mEventCursor.getLong(EVENT_INDEX_CALENDAR_ID))};
-                    startQuery(TOKEN_QUERY_CALENDARS, null, uri,
-                        CALENDARS_PROJECTION, CALENDARS_WHERE, args, null);
-                    break;
-                case TOKEN_QUERY_CALENDARS:
-                    mCalendarsCursor = Utils.matrixCursorFromCursor(cursor);
-                    updateCalendar(mView);
-                    // FRAG_TODO fragments shouldn't set the title anymore
-                    updateTitle();
+                        mService.startQuery(TOKEN_QUERY_CALENDARS, null,
+                            uri, CALENDARS_PROJECTION, CALENDARS_WHERE, args,
+                            null);
+                        break;
+                    case TOKEN_QUERY_CALENDARS:
+                        mCalendarsCursor = Utils.matrixCursorFromCursor(cursor);
+                        updateCalendar(mView);
+                        // FRAG_TODO fragments shouldn't set the title anymore
+                        updateTitle();
 
-                    args = new String[]{
+                        args = new String[]{
                             mCalendarsCursor.getString(CALENDARS_INDEX_ACCOUNT_NAME),
                             mCalendarsCursor.getString(CALENDARS_INDEX_ACCOUNT_TYPE)};
-                    uri = Colors.CONTENT_URI;
-                    startQuery(TOKEN_QUERY_COLORS, null, uri, COLORS_PROJECTION,
-                        COLORS_WHERE, args, null);
+                        uri = Colors.CONTENT_URI;
+                        mService.startQuery(TOKEN_QUERY_COLORS, null, uri, COLORS_PROJECTION,
+                            COLORS_WHERE, args, null);
 
-                    if (!mIsBusyFreeCalendar) {
-                        args = new String[]{Long.toString(mEventId)};
+                        if (!mIsBusyFreeCalendar) {
+                            args = new String[]{Long.toString(mEventId)};
 
-                        // start attendees query
-                        uri = Attendees.CONTENT_URI;
-                        startQuery(TOKEN_QUERY_ATTENDEES, null, uri,
-                            ATTENDEES_PROJECTION, ATTENDEES_WHERE,
-                            args, ATTENDEES_SORT_ORDER);
-                    } else {
-                        sendAccessibilityEventIfQueryDone(TOKEN_QUERY_ATTENDEES);
-                    }
-                    if (mHasAlarm) {
-                        // start reminders query
-                        args = new String[]{Long.toString(mEventId)};
-                        uri = Reminders.CONTENT_URI;
-                        startQuery(TOKEN_QUERY_REMINDERS, null, uri,
-                            EditEventHelper.REMINDERS_PROJECTION,
-                            EditEventHelper.REMINDERS_WHERE, args, null);
-                    } else {
-                        sendAccessibilityEventIfQueryDone(TOKEN_QUERY_REMINDERS);
-                    }
-                    break;
-                case TOKEN_QUERY_COLORS:
-                    ArrayList<Integer> colors = new ArrayList<>();
-                    if (cursor.moveToFirst()) {
-                        do {
-                            String colorKey = cursor.getString(COLORS_INDEX_COLOR_KEY);
-                            int rawColor = cursor.getInt(COLORS_INDEX_COLOR);
-                            int displayColor = Utils.getDisplayColorFromColor(rawColor);
-                            mDisplayColorKeyMap.put(displayColor, colorKey);
-                            colors.add(displayColor);
-                        } while (cursor.moveToNext());
-                    }
-                    cursor.close();
-                    Integer[] sortedColors = new Integer[colors.size()];
-                    Arrays.sort(colors.toArray(sortedColors), new HsvColorComparator());
-                    mColors = new int[sortedColors.length];
-                    for (int i = 0; i < sortedColors.length; i++) {
-                        mColors[i] = sortedColors[i];
-
-                        float[] hsv = new float[3];
-                        Color.colorToHSV(mColors[i], hsv);
-                        if (DEBUG) {
-                            Log.d("Color", "H:"
-                                + hsv[0] + ",S:" + hsv[1] + ",V:" + hsv[2]);
+                            // start attendees query
+                            uri = Attendees.CONTENT_URI;
+                            mService.startQuery(TOKEN_QUERY_ATTENDEES, null, uri,
+                                ATTENDEES_PROJECTION, ATTENDEES_WHERE,
+                                args, ATTENDEES_SORT_ORDER);
+                        } else {
+                            sendAccessibilityEventIfQueryDone(TOKEN_QUERY_ATTENDEES);
                         }
-                    }
-                    if (mCanModifyCalendar) {
-                        View button = mView.findViewById(R.id.change_color);
-                        if (button != null && mColors.length > 0) {
-                            button.setEnabled(true);
-                            button.setVisibility(View.VISIBLE);
+                        if (mHasAlarm) {
+                            // start reminders query
+                            args = new String[]{Long.toString(mEventId)};
+                            uri = Reminders.CONTENT_URI;
+                            mService.startQuery(TOKEN_QUERY_REMINDERS, null, uri,
+                                EditEventHelper.REMINDERS_PROJECTION,
+                                EditEventHelper.REMINDERS_WHERE, args, null);
+                        } else {
+                            sendAccessibilityEventIfQueryDone(TOKEN_QUERY_REMINDERS);
                         }
-                    }
-                    updateMenu();
-                    break;
-                case TOKEN_QUERY_ATTENDEES:
-                    mAttendeesCursor = Utils.matrixCursorFromCursor(cursor);
-                    initAttendeesCursor(mView);
-                    updateResponse(mView);
-                    break;
-                case TOKEN_QUERY_REMINDERS:
-                    Cursor remindersCursor = Utils.matrixCursorFromCursor(cursor);
-                    initReminders(remindersCursor);
-                    break;
-                case TOKEN_QUERY_VISIBLE_CALENDARS:
-                    if (cursor.getCount() > 1) {
-                        // Start duplicate calendars query to detect whether to
-                        // add the calendar email to the calendar owner display.
-                        String displayName
+                        break;
+                    case TOKEN_QUERY_COLORS:
+                        ArrayList<Integer> colors = new ArrayList<>();
+                        if (cursor.moveToFirst()) {
+                            do {
+                                String colorKey = cursor.getString(COLORS_INDEX_COLOR_KEY);
+                                int rawColor = cursor.getInt(COLORS_INDEX_COLOR);
+                                int displayColor = Utils.getDisplayColorFromColor(rawColor);
+                                mDisplayColorKeyMap.put(displayColor, colorKey);
+                                colors.add(displayColor);
+                            } while (cursor.moveToNext());
+                        }
+                        cursor.close();
+                        Integer[] sortedColors = new Integer[colors.size()];
+                        Arrays.sort(colors.toArray(sortedColors), new HsvColorComparator());
+                        mColors = new int[sortedColors.length];
+                        for (int i = 0; i < sortedColors.length; i++) {
+                            mColors[i] = sortedColors[i];
+
+                            float[] hsv = new float[3];
+                            Color.colorToHSV(mColors[i], hsv);
+                            if (DEBUG) {
+                                Log.d("Color", "H:"
+                                    + hsv[0] + ",S:" + hsv[1] + ",V:" + hsv[2]);
+                            }
+                        }
+                        if (mCanModifyCalendar) {
+                            View button = mView.findViewById(R.id.change_color);
+                            if (button != null && mColors.length > 0) {
+                                button.setEnabled(true);
+                                button.setVisibility(View.VISIBLE);
+                            }
+                        }
+                        updateMenu();
+                        break;
+                    case TOKEN_QUERY_ATTENDEES:
+                        mAttendeesCursor = Utils.matrixCursorFromCursor(cursor);
+                        initAttendeesCursor(mView);
+                        updateResponse(mView);
+                        break;
+                    case TOKEN_QUERY_REMINDERS:
+                        Cursor remindersCursor = Utils.matrixCursorFromCursor(cursor);
+                        initReminders(remindersCursor);
+                        break;
+                    case TOKEN_QUERY_VISIBLE_CALENDARS:
+                        if (cursor.getCount() > 1) {
+                            // Start duplicate calendars query to detect whether to
+                            // add the calendar email to the calendar owner display.
+                            String displayName
+                                = mCalendarsCursor.getString(CALENDARS_INDEX_DISPLAY_NAME);
+                            mService.startQuery(
+                                TOKEN_QUERY_DUPLICATE_CALENDARS, this,
+                                Calendars.CONTENT_URI, CALENDARS_PROJECTION,
+                                CALENDARS_DUPLICATE_NAME_WHERE,
+                                new String[]{displayName},
+                                null);
+                        } else {
+                            // Don't need to display the calendar owner when there is only
+                            // a single calendar.  Skip the duplicate calendars query.
+                            setVisibilityCommon(mView, R.id.calendar_container, View.GONE);
+                            mCurrentQuery |= TOKEN_QUERY_DUPLICATE_CALENDARS;
+                        }
+                        break;
+                    case TOKEN_QUERY_DUPLICATE_CALENDARS:
+                        SpannableStringBuilder sb = new SpannableStringBuilder();
+
+                        // Calendar display name
+                        String calendarName
                             = mCalendarsCursor.getString(CALENDARS_INDEX_DISPLAY_NAME);
-                        mHandler.startQuery(TOKEN_QUERY_DUPLICATE_CALENDARS, null,
-                            Calendars.CONTENT_URI, CALENDARS_PROJECTION,
-                            CALENDARS_DUPLICATE_NAME_WHERE, new String[]{displayName},
-                            null);
-                    } else {
-                        // Don't need to display the calendar owner when there is only
-                        // a single calendar.  Skip the duplicate calendars query.
-                        setVisibilityCommon(mView, R.id.calendar_container, View.GONE);
-                        mCurrentQuery |= TOKEN_QUERY_DUPLICATE_CALENDARS;
-                    }
-                    break;
-                case TOKEN_QUERY_DUPLICATE_CALENDARS:
-                    SpannableStringBuilder sb = new SpannableStringBuilder();
+                        sb.append(calendarName);
 
-                    // Calendar display name
-                    String calendarName
-                        = mCalendarsCursor.getString(CALENDARS_INDEX_DISPLAY_NAME);
-                    sb.append(calendarName);
+                        // Show email account if display name is not unique and
+                        // display name != email
+                        String email
+                            = mCalendarsCursor.getString(CALENDARS_INDEX_OWNER_ACCOUNT);
+                        if (   (cursor.getCount() > 1)
+                            && Utils.isValidEmail(email)
+                            && !calendarName.equalsIgnoreCase(email))
+                        {
+                            sb.append(" (").append(email).append(")");
+                        }
 
-                    // Show email account if display name is not unique and
-                    // display name != email
-                    String email
-                        = mCalendarsCursor.getString(CALENDARS_INDEX_OWNER_ACCOUNT);
-                    if (   (cursor.getCount() > 1)
-                        && Utils.isValidEmail(email)
-                        && !calendarName.equalsIgnoreCase(email))
-                    {
-                        sb.append(" (").append(email).append(")");
-                    }
-
-                    setVisibilityCommon(mView, R.id.calendar_container, View.VISIBLE);
-                    setTextCommon(mView, R.id.calendar_name, sb);
-                    break;
-            }
-            cursor.close();
-            sendAccessibilityEventIfQueryDone(token);
-
-            // All queries are done, show the view.
-            if (mCurrentQuery == TOKEN_QUERY_ALL) {
-                if (mLoadingMsgView.getAlpha() == 1) {
-                    // Loading message is showing, let it stay a bit more (to prevent
-                    // flashing) by adding a start delay to the event animation
-                    long timeDiff
-                        = LOADING_MSG_MIN_DISPLAY_TIME
-                        - (System.currentTimeMillis()
-                        - mLoadingMsgStartTime);
-                    if (timeDiff > 0) {
-                        mAnimateAlpha.setStartDelay(timeDiff);
-                    }
+                        setVisibilityCommon(mView, R.id.calendar_container, View.VISIBLE);
+                        setTextCommon(mView, R.id.calendar_name, sb);
+                        break;
                 }
-                if (   (!mAnimateAlpha.isRunning())
-                    && (!mAnimateAlpha.isStarted())
-                    && (!mNoCrossFade))
-                {
-                    mAnimateAlpha.start();
-                } else {
-                    mScrollView.setAlpha(1);
-                    mLoadingMsgView.setVisibility(View.GONE);
+                cursor.close();
+                sendAccessibilityEventIfQueryDone((Integer)cookie);
+
+                // All queries are done, show the view.
+                if (mCurrentQuery == TOKEN_QUERY_ALL) {
+                    if (mLoadingMsgView.getAlpha() == 1) {
+                        // Loading message is showing, let it stay a bit more
+                        // (to prevent flashing) by adding a start delay to
+                        // the event animation
+                        long timeDiff
+                            = LOADING_MSG_MIN_DISPLAY_TIME
+                            - (System.currentTimeMillis()
+                            - mLoadingMsgStartTime);
+                        if (timeDiff > 0) {
+                            mAnimateAlpha.setStartDelay(timeDiff);
+                        }
+                    }
+                    if (   (!mAnimateAlpha.isRunning())
+                        && (!mAnimateAlpha.isStarted())
+                        && (!mNoCrossFade))
+                    {
+                        mAnimateAlpha.start();
+                    } else {
+                        mScrollView.setAlpha(1);
+                        mLoadingMsgView.setVisibility(View.GONE);
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Called when an asynchronous insert is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startInsert().
+     * @param uri    the URL of the newly created row,
+     *               null indicates failure.
+     */
+    @Override
+    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+
+    }
+
+    /**
+     * Called when an asynchronous update is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startUpdate().
+     * @param result the number of rows updated
+     *               zero indicates failure.
+     */
+    @Override
+    public void onUpdateDone(@Nullable Object cookie, int result) {
+
+    }
+
+    /**
+     * Called when an asynchronous delete is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startDelete().
+     * @param result the number of rows deleted: zero indicates failure.
+     */
+    @Override
+    public void onDeleteDone(@Nullable Object cookie, int result) {
+
+    }
+
+    /**
+     * Called when an asynchronous {@link ContentProviderOperation} is
+     * completed.
+     *
+     * @param cookie  the cookie object that's passed in from
+     *                AsyncQueryService.startBatch().
+     * @param results an array of results from the operations:
+     *                the type of each result depends on the operation.
+     */
+    @Override
+    public void onBatchDone(@Nullable Object cookie, ContentProviderResult[] results) {
     }
 }

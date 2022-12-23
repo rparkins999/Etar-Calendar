@@ -18,9 +18,9 @@
 
 package com.android.calendar;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -32,6 +32,7 @@ import android.provider.CalendarContract.Colors;
 import android.util.SparseIntArray;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.calendar.colorpicker.ColorPickerDialog;
 import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
@@ -43,7 +44,9 @@ import java.util.List;
 
 import ws.xsoh.etar.R;
 
-public class CalendarColorPickerDialog extends ColorPickerDialog {
+public class CalendarColorPickerDialog extends ColorPickerDialog
+    implements AsyncQueryService.AsyncQueryDone
+{
 
     static final String[] CALENDARS_PROJECTION = new String[] {
             Calendars.ACCOUNT_NAME,
@@ -80,16 +83,20 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
     private static final String KEY_COLOR_KEYS = "color_keys";
     private static final int TOKEN_QUERY_CALENDARS = 1 << 1;
     private static final int TOKEN_QUERY_COLORS = 1 << 2;
-    private QueryService mService;
     private final SparseIntArray mColorKeyMap = new SparseIntArray();
     private long mCalendarId;
+    private AsyncQueryService mService;
 
-    public CalendarColorPickerDialog(Context context) {
+    public CalendarColorPickerDialog(
+        @NonNull Context context)
+    {
         super(context);
     }
 
     public static CalendarColorPickerDialog newInstance(
-        @NonNull Context context, long calendarId, boolean isTablet) {
+        @NonNull Context context, long calendarId,
+        boolean isTablet)
+    {
         CalendarColorPickerDialog ret = new CalendarColorPickerDialog(context);
         ret.mTitleResId = R.string.calendar_color_picker_dialog_title;
         ret.mColumns = NUM_COLUMNS;
@@ -121,6 +128,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
             mCalendarId = savedInstanceState.getLong(KEY_CALENDAR_ID);
             retrieveColorKeys(savedInstanceState);
         }
+        mService = CalendarApplication.getAsyncQueryService();
         setOnColorSelectedListener(new OnCalendarColorSelectedListener());
     }
 
@@ -143,7 +151,6 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
-        mService = new QueryService(getOwnerActivity());
         if (mColors == null) {
             startQuery();
         }
@@ -153,78 +160,14 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
     private void startQuery() {
         if (mService != null) {
             showProgressBarView();
-            mService.startQuery(TOKEN_QUERY_CALENDARS, null,
-                    ContentUris.withAppendedId(Calendars.CONTENT_URI, mCalendarId),
-                    CALENDARS_PROJECTION, null, null, null);
+            mService.startQuery(
+                TOKEN_QUERY_CALENDARS, this,
+                ContentUris.withAppendedId(Calendars.CONTENT_URI, mCalendarId),
+                CALENDARS_PROJECTION, null, null,
+                null);
         }
     }
 
-    @SuppressLint("HandlerLeak")
-    private class QueryService extends AsyncQueryService {
-
-        private QueryService(Context context) {
-            super(context);
-        }
-
-        @Override
-        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-            // If the query didn't return a cursor for some reason return
-            if (cursor == null) {
-                return;
-            }
-
-            // If the Activity is finishing, then close the cursor.
-            // Otherwise, use the new cursor in the adapter.
-            final Activity activity = getOwnerActivity();
-            if (activity == null || activity.isFinishing()) {
-                cursor.close();
-                return;
-            }
-
-            switch (token) {
-                case TOKEN_QUERY_CALENDARS:
-                    if (!cursor.moveToFirst()) {
-                        cursor.close();
-                        dismiss();
-                        break;
-                    }
-                    mSelectedColor = Utils.getDisplayColorFromColor(
-                            cursor.getInt(CALENDARS_INDEX_CALENDAR_COLOR));
-                    Uri uri = Colors.CONTENT_URI;
-                    String[] args = new String[]{
-                            cursor.getString(CALENDARS_INDEX_ACCOUNT_NAME),
-                            cursor.getString(CALENDARS_INDEX_ACCOUNT_TYPE)};
-                    cursor.close();
-                    startQuery(TOKEN_QUERY_COLORS, null, uri, COLORS_PROJECTION, COLORS_WHERE,
-                            args, null);
-                    break;
-                case TOKEN_QUERY_COLORS:
-                    if (!cursor.moveToFirst()) {
-                        cursor.close();
-                        dismiss();
-                        break;
-                    }
-                    mColorKeyMap.clear();
-                    ArrayList<Integer> colors = new ArrayList<>();
-                    do {
-                        int colorKey = cursor.getInt(COLORS_INDEX_COLOR_KEY);
-                        int rawColor = cursor.getInt(COLORS_INDEX_COLOR);
-                        int displayColor = Utils.getDisplayColorFromColor(rawColor);
-                        mColorKeyMap.put(displayColor, colorKey);
-                        colors.add(displayColor);
-                    } while (cursor.moveToNext());
-                    Integer[] colorsToSort = colors.toArray(new Integer[0]);
-                    Arrays.sort(colorsToSort, new HsvColorComparator());
-                    mColors = new int[colorsToSort.length];
-                    for (int i = 0; i < mColors.length; i++) {
-                        mColors[i] = colorsToSort[i];
-                    }
-                    showPaletteView();
-                    cursor.close();
-                    break;
-            }
-        }
-    }
 
     private class OnCalendarColorSelectedListener implements OnColorSelectedListener {
 
@@ -236,8 +179,134 @@ public class CalendarColorPickerDialog extends ColorPickerDialog {
 
             ContentValues values = new ContentValues();
             values.put(Calendars.CALENDAR_COLOR_KEY, mColorKeyMap.get(color));
-            mService.startUpdate(mService.getNextToken(), null, ContentUris.withAppendedId(
-                    Calendars.CONTENT_URI, mCalendarId), values, null, null, Utils.UNDO_DELAY);
+            mService.startUpdate(
+                null, null /* no callback wanted */,
+                ContentUris.withAppendedId(Calendars.CONTENT_URI, mCalendarId),
+                values, null, null);
         }
+    }
+
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startQuery().
+     * @param cursor The cursor holding the results from the query,
+     *               may be empty if nothing matched or null if it failed.
+     */
+    @Override
+    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+        if (cursor == null) {
+            return;
+        }
+
+        if (cookie == null) {
+            return;
+        }
+
+        // If the Activity is finishing, then close the cursor.
+        // Otherwise, use the new cursor in the adapter.
+        final Activity activity = getOwnerActivity();
+        if (activity == null || activity.isFinishing()) {
+            cursor.close();
+            return;
+        }
+
+        switch ((int)cookie) {
+            case TOKEN_QUERY_CALENDARS:
+                if (!cursor.moveToFirst()) {
+                    cursor.close();
+                    dismiss();
+                    break;
+                }
+                mSelectedColor = Utils.getDisplayColorFromColor(
+                    cursor.getInt(CALENDARS_INDEX_CALENDAR_COLOR));
+                Uri uri = Colors.CONTENT_URI;
+                String[] args = new String[]{
+                    cursor.getString(CALENDARS_INDEX_ACCOUNT_NAME),
+                    cursor.getString(CALENDARS_INDEX_ACCOUNT_TYPE)};
+                cursor.close();
+                mService.startQuery(
+                    TOKEN_QUERY_COLORS, this, uri, COLORS_PROJECTION,
+                    COLORS_WHERE, args, null);
+                break;
+            case TOKEN_QUERY_COLORS:
+                if (!cursor.moveToFirst()) {
+                    cursor.close();
+                    dismiss();
+                    break;
+                }
+                mColorKeyMap.clear();
+                ArrayList<Integer> colors = new ArrayList<>();
+                do {
+                    int colorKey = cursor.getInt(COLORS_INDEX_COLOR_KEY);
+                    int rawColor = cursor.getInt(COLORS_INDEX_COLOR);
+                    int displayColor = Utils.getDisplayColorFromColor(rawColor);
+                    mColorKeyMap.put(displayColor, colorKey);
+                    colors.add(displayColor);
+                } while (cursor.moveToNext());
+                Integer[] colorsToSort = colors.toArray(new Integer[0]);
+                Arrays.sort(colorsToSort, new HsvColorComparator());
+                mColors = new int[colorsToSort.length];
+                for (int i = 0; i < mColors.length; i++) {
+                    mColors[i] = colorsToSort[i];
+                }
+                showPaletteView();
+                cursor.close();
+                break;
+        }
+    }
+
+    /**
+     * Called when an asynchronous insert is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startInsert().
+     * @param uri    the URL of the newly created row,
+     *               null indicates failure.
+     */
+    @Override
+    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+        // never called
+    }
+
+    /**
+     * Called when an asynchronous update is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startUpdate().
+     * @param result the number of rows updated
+     *               zero indicates failure.
+     */
+    @Override
+    public void onUpdateDone(@Nullable Object cookie, int result) {
+        // never called
+    }
+
+    /**
+     * Called when an asynchronous delete is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startDelete().
+     * @param result the number of rows deleted: zero indicates failure.
+     */
+    @Override
+    public void onDeleteDone(@Nullable Object cookie, int result) {
+        // never called
+    }
+
+    /**
+     * Called when an asynchronous ContentProviderOperation is completed.
+     *
+     * @param cookie  the cookie object that's passed in from
+     *                AsyncQueryService.startBatch().
+     * @param results an array of results from the operations:
+     *                the type of each result depends on the operation.
+     */
+    @Override
+    public void onBatchDone(
+        @Nullable Object cookie, ContentProviderResult[] results)
+    {
+        // never called
     }
 }

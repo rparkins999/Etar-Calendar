@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,15 +22,19 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.TaskStackBuilder;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.CalendarAlerts;
+import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -37,11 +43,18 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.ListView;
 
+import androidx.annotation.Nullable;
+
 import com.android.calendar.AsyncQueryService;
+import com.android.calendar.CalendarApplication;
 import com.android.calendar.EventInfoActivity;
 import com.android.calendar.Utils;
 import com.android.calendar.alerts.GlobalDismissManager.AlarmId;
+import com.android.calendar.colorpicker.HsvColorComparator;
+import com.android.calendar.event.EditEventHelper;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -51,7 +64,9 @@ import ws.xsoh.etar.R;
  * The alert panel that pops up when there is a calendar event alarm.
  * This activity is started by an intent that specifies an event id.
   */
-public class AlertActivity extends Activity implements OnClickListener {
+public class AlertActivity extends Activity
+    implements OnClickListener, AsyncQueryService.AsyncQueryDone
+{
     public static final int INDEX_ROW_ID = 0;
     public static final int INDEX_TITLE = 1;
     public static final int INDEX_EVENT_LOCATION = 2;
@@ -85,7 +100,7 @@ public class AlertActivity extends Activity implements OnClickListener {
     };
 
     private AlertAdapter mAdapter;
-    private QueryHandler mQueryHandler;
+    private AsyncQueryService mService;
     private Cursor mCursor;
     private ListView mListView;
     private final OnItemClickListener mViewListener = new OnItemClickListener() {
@@ -122,8 +137,8 @@ public class AlertActivity extends Activity implements OnClickListener {
         ContentValues values = new ContentValues(1 /* size */);
         values.put(PROJECTION[INDEX_STATE], CalendarAlerts.STATE_DISMISSED);
         String selection = CalendarAlerts.STATE + "=" + CalendarAlerts.STATE_FIRED;
-        mQueryHandler.startUpdate(0, null, CalendarAlerts.CONTENT_URI, values,
-                selection, null /* selectionArgs */, Utils.UNDO_DELAY);
+        mService.startUpdate(0, this, CalendarAlerts.CONTENT_URI,
+            values, selection, null);
 
         if (mCursor == null) {
             Log.e(TAG, "Unable to globally dismiss all notifications because cursor was null.");
@@ -151,8 +166,8 @@ public class AlertActivity extends Activity implements OnClickListener {
         ContentValues values = new ContentValues(1 /* size */);
         values.put(PROJECTION[INDEX_STATE], CalendarAlerts.STATE_DISMISSED);
         String selection = CalendarAlerts._ID + "=" + id;
-        mQueryHandler.startUpdate(0, null, CalendarAlerts.CONTENT_URI, values,
-                selection, null /* selectionArgs */, Utils.UNDO_DELAY);
+        mService.startUpdate(0, this, CalendarAlerts.CONTENT_URI,
+            values, selection, null /* selectionArgs */);
 
         List<AlarmId> alarmIds = new LinkedList<AlarmId>();
         alarmIds.add(new AlarmId(eventId, startTime));
@@ -177,7 +192,7 @@ public class AlertActivity extends Activity implements OnClickListener {
         setContentView(R.layout.alert_activity);
         setTitle(R.string.alert_title);
 
-        mQueryHandler = new QueryHandler(this);
+        mService = CalendarApplication.getAsyncQueryService();
         mAdapter = new AlertAdapter(this, R.layout.alert_item);
 
         mListView = (ListView) findViewById(R.id.alert_container);
@@ -199,8 +214,8 @@ public class AlertActivity extends Activity implements OnClickListener {
         // If the cursor is null, start the async handler. If it is not null just requery.
         if (mCursor == null) {
             Uri uri = CalendarAlerts.CONTENT_URI_BY_INSTANCE;
-            mQueryHandler.startQuery(0, null, uri, PROJECTION, SELECTION, SELECTIONARG,
-                    CalendarContract.CalendarAlerts.DEFAULT_SORT_ORDER);
+            mService.startQuery(0, this, uri, PROJECTION, SELECTION,
+                SELECTIONARG, CalendarContract.CalendarAlerts.DEFAULT_SORT_ORDER);
         } else {
             if (!mCursor.requery()) {
                 Log.w(TAG, "Cursor#requery() failed.");
@@ -248,7 +263,7 @@ public class AlertActivity extends Activity implements OnClickListener {
     }
 
     public boolean isEmpty() {
-        return mCursor != null ? (mCursor.getCount() == 0) : true;
+        return mCursor == null || (mCursor.getCount() == 0);
     }
 
     public Cursor getItemForView(View view) {
@@ -259,29 +274,77 @@ public class AlertActivity extends Activity implements OnClickListener {
         return (Cursor) mListView.getAdapter().getItem(index);
     }
 
-    private class QueryHandler extends AsyncQueryService {
-        public QueryHandler(Context context) {
-            super(context);
-        }
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startQuery().
+     * @param cursor The cursor holding the results from the query,
+     *               may be empty if nothing matched or null if it failed.
+     */
+    @Override
+    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+        // Only set mCursor if the Activity is not finishing.
+        // Otherwise close the cursor.
+        if (!isFinishing()) {
+            mCursor = cursor;
+            mAdapter.changeCursor(cursor);
+            mListView.setSelection(cursor.getCount() - 1);
 
-        @Override
-        protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-            // Only set mCursor if the Activity is not finishing. Otherwise close the cursor.
-            if (!isFinishing()) {
-                mCursor = cursor;
-                mAdapter.changeCursor(cursor);
-                mListView.setSelection(cursor.getCount() - 1);
-
-                // The results are in, enable the buttons
-                mDismissAllButton.setEnabled(true);
-            } else {
-                cursor.close();
-            }
+            // The results are in, enable the buttons
+            mDismissAllButton.setEnabled(true);
+        } else {
+            cursor.close();
         }
+    }
 
-        @Override
-        protected void onUpdateComplete(int token, Object cookie, int result) {
-            // Ignore
-        }
+    /**
+     * Called when an asynchronous insert is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startInsert().
+     * @param uri    the URL of the newly created row,
+     *               null indicates failure.
+     */
+    @Override
+    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+    }
+
+    /**
+     * Called when an asynchronous update is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startUpdate().
+     * @param result the number of rows updated
+     *               zero indicates failure.
+     */
+    @Override
+    public void onUpdateDone(@Nullable Object cookie, int result) {
+    }
+
+    /**
+     * Called when an asynchronous delete is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startDelete().
+     * @param result the number of rows deleted: zero indicates failure.
+     */
+    @Override
+    public void onDeleteDone(@Nullable Object cookie, int result) {
+    }
+
+    /**
+     * Called when an asynchronous {@link ContentProviderOperation} is
+     * completed.
+     *
+     * @param cookie  the cookie object that's passed in from
+     *                AsyncQueryService.startBatch().
+     * @param results an array of results from the operations:
+     *                the type of each result depends on the operation.
+     */
+    @Override
+    public void onBatchDone(
+        @Nullable Object cookie, ContentProviderResult[] results)
+    {
     }
 }

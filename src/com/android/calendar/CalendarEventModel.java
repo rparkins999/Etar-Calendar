@@ -246,6 +246,9 @@ public class CalendarEventModel implements Serializable {
         try {
             mId = Long.parseLong(intent.getData().getLastPathSegment());
         } catch (NullPointerException | NumberFormatException ignored) { }
+
+        // FIXME this is wrong for instance of recurring event
+        // because we lose which instance it is
         if (mId < 0) {
             // Get everything that can be sent for a new event (and nothing else).
             long value = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);

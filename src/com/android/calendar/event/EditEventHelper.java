@@ -21,7 +21,6 @@ package com.android.calendar.event;
 import android.content.ContentProviderOperation;
 import android.content.ContentUris;
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -36,8 +35,8 @@ import android.text.format.Time;
 import android.util.Log;
 import android.view.View;
 
-import com.android.calendar.AbstractCalendarActivity;
 import com.android.calendar.AsyncQueryService;
+import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
@@ -296,8 +295,8 @@ public class EditEventHelper {
         }
     }
 
-    public EditEventHelper(Context context) {
-        mService = ((AbstractCalendarActivity)context).getAsyncQueryService();
+    public EditEventHelper() {
+        mService = CalendarApplication.getAsyncQueryService();
     }
 
     /**
@@ -309,8 +308,9 @@ public class EditEventHelper {
      * @param modifyWhich For recurring events which type of series modification to use
      * @return true if the event was successfully queued for saving
      */
-    public boolean saveEvent(CalendarEventModel model, CalendarEventModel originalModel,
-            int modifyWhich) {
+    public boolean saveEvent(CalendarEventModel model,
+                             CalendarEventModel originalModel, int modifyWhich)
+    {
         boolean forceSaveReminders = false;
 
         if (DEBUG) {
@@ -533,8 +533,8 @@ public class EditEventHelper {
             // TODO: is this the right test? this currently checks if this is
             // a new event or an existing event. or is this a paranoia check?
             if ((newEvent || model.mId >= 0)) {
-                // Hit the content provider only if this is a new event or the user
-                // has changed it
+                // Hit the content provider only if this is a new event
+                // or the user/ has changed it
                 if (   newEvent
                     || (originalModel == null)
                     || model.differentAttendees(originalModel))
@@ -614,8 +614,8 @@ public class EditEventHelper {
         }
 
 
-        mService.startBatch(mService.getNextToken(), null, android.provider.CalendarContract.AUTHORITY, ops,
-                Utils.UNDO_DELAY);
+        mService.startBatch(null, null,
+            android.provider.CalendarContract.AUTHORITY, ops);
 
         return true;
     }

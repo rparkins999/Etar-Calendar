@@ -16,8 +16,11 @@
 
 package com.android.calendar.selectcalendars;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -30,7 +33,10 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import androidx.annotation.Nullable;
+
 import com.android.calendar.AsyncQueryService;
+import com.android.calendar.CalendarApplication;
 import com.android.calendar.CalendarController;
 import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarController.ControllerAction;
@@ -43,8 +49,10 @@ import ws.xsoh.etar.R;
  * TODO: This fragment is still used in the tablet design
  */
 public class SelectVisibleCalendarsFragment extends Fragment
-        implements AdapterView.OnItemClickListener, CalendarController.ActionHandler,
-        OnCalendarColorsLoadedListener {
+    implements AdapterView.OnItemClickListener,
+    CalendarController.ActionHandler,
+    OnCalendarColorsLoadedListener, AsyncQueryService.AsyncQueryDone
+{
 
     private static final String TAG = "Calendar";
     private static final String IS_PRIMARY = "\"primary\"";
@@ -77,6 +85,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
     public SelectVisibleCalendarsFragment() {
     }
 
+    @SuppressLint("ValidFragment")
     public SelectVisibleCalendarsFragment(int itemLayout) {
         mCalendarItemLayout = itemLayout;
     }
@@ -87,13 +96,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
         mContext = activity;
         mController = CalendarController.getInstance(activity);
         mController.registerActionHandler(R.layout.select_calendars_fragment, this);
-        mService = new AsyncQueryService(activity) {
-            @Override
-            protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-                mAdapter.changeCursor(cursor);
-                mCursor = cursor;
-            }
-        };
+        mService = CalendarApplication.getAsyncQueryService();
     }
 
     @Override
@@ -150,32 +153,29 @@ public class SelectVisibleCalendarsFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
-        mQueryToken = mService.getNextToken();
-        mService.startQuery(mQueryToken, null, Calendars.CONTENT_URI, PROJECTION, SELECTION,
-                SELECTION_ARGS, Calendars.ACCOUNT_NAME);
+        mService.startQuery(null, this, Calendars.CONTENT_URI,
+            PROJECTION, SELECTION, SELECTION_ARGS, Calendars.ACCOUNT_NAME);
     }
 
     /*
      * Write back the changes that have been made.
      */
     public void toggleVisibility(int position) {
-        mUpdateToken = mService.getNextToken();
         Uri uri = ContentUris.withAppendedId(Calendars.CONTENT_URI, mAdapter.getItemId(position));
         ContentValues values = new ContentValues();
         // Toggle the current setting
         int visibility = mAdapter.getVisible(position)^1;
         values.put(Calendars.VISIBLE, visibility);
-        mService.startUpdate(mUpdateToken, null, uri, values, null, null, 0);
+        mService.startUpdate(null, this, uri, values,
+            null, null);
         mAdapter.setVisible(position, visibility);
     }
 
     @Override
     public void eventsChanged() {
         if (mService != null) {
-            mService.cancelOperation(mQueryToken);
-            mQueryToken = mService.getNextToken();
-            mService.startQuery(mQueryToken, null, Calendars.CONTENT_URI, PROJECTION, SELECTION,
-                    SELECTION_ARGS, Calendars.ACCOUNT_NAME);
+            mService.startQuery(null, this, Calendars.CONTENT_URI,
+                PROJECTION, SELECTION, SELECTION_ARGS, Calendars.ACCOUNT_NAME);
         }
     }
 
@@ -194,5 +194,69 @@ public class SelectVisibleCalendarsFragment extends Fragment
         if (mAdapter != null) {
             mAdapter.notifyDataSetChanged();
         }
+    }
+
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startQuery().
+     * @param cursor The cursor holding the results from the query,
+     *               may be empty if nothing matched or null if it failed.
+     */
+    @Override
+    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+        mAdapter.changeCursor(cursor);
+        mCursor = cursor;
+    }
+
+    /**
+     * Called when an asynchronous insert is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startInsert().
+     * @param uri    the URL of the newly created row,
+     *               null indicates failure.
+     */
+    @Override
+    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+    }
+
+    /**
+     * Called when an asynchronous update is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startUpdate().
+     * @param result the number of rows updated
+     *               zero indicates failure.
+     */
+    @Override
+    public void onUpdateDone(@Nullable Object cookie, int result) {
+    }
+
+    /**
+     * Called when an asynchronous delete is completed.
+     *
+     * @param cookie the cookie object that's passed in from
+     *               AsyncQueryService.startDelete().
+     * @param result the number of rows deleted: zero indicates failure.
+     */
+    @Override
+    public void onDeleteDone(@Nullable Object cookie, int result) {
+    }
+
+    /**
+     * Called when an asynchronous {@link ContentProviderOperation} is
+     * completed.
+     *
+     * @param cookie  the cookie object that's passed in from
+     *                AsyncQueryService.startBatch().
+     * @param results an array of results from the operations:
+     *                the type of each result depends on the operation.
+     */
+    @Override
+    public void onBatchDone(
+        @Nullable Object cookie, ContentProviderResult[] results)
+    {
     }
 }

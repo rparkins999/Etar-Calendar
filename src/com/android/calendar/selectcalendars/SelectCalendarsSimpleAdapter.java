@@ -183,8 +183,8 @@ public class SelectCalendarsSimpleAdapter extends BaseAdapter implements ListAda
                 }
 
                 if (mColorPickerDialog == null) {
-                    mColorPickerDialog = CalendarColorPickerDialog.newInstance(mContext, mData[position].id,
-                            mIsTablet);
+                    mColorPickerDialog = CalendarColorPickerDialog.newInstance(
+                        mContext, mData[position].id, mIsTablet);
                 } else {
                     mColorPickerDialog.setCalendarId(mData[position].id);
                 }

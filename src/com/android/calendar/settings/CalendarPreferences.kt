@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2020 Dominik Schürmann <dominik@schuermann.eu>
  *
+ * Modifications from the original version Copyright (C) Richard Parkins 2022
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -28,7 +30,9 @@ import android.util.TypedValue
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.preference.*
+import com.android.calendar.CalendarColorPickerDialog
 import com.android.calendar.Utils
+import com.android.calendar.colorpicker.ColorPickerSwatch
 import com.android.calendar.persistence.CalendarRepository
 import ws.xsoh.etar.R
 
@@ -41,14 +45,17 @@ class CalendarPreferences : PreferenceFragmentCompat() {
     private var numberOfEvents: Long = -1
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        calendarId = arguments!!.getLong(ARG_CALENDAR_ID)
-        calendarRepository = CalendarRepository(activity!!.application)
+        val b = arguments
+        if (b != null) {
+            calendarId = b.getLong(ARG_CALENDAR_ID)
+        }
+        calendarRepository = CalendarRepository(requireActivity().application)
         account = calendarRepository.queryAccount(calendarId)!!
         numberOfEvents = calendarRepository.queryNumberOfEvents(calendarId)!!
 
         // use custom data store to save/retrieve calendar preferences in Android's calendar database
         val preferenceManager = preferenceManager
-        preferenceManager.preferenceDataStore = CalendarDataStore(activity!!, calendarId)
+        preferenceManager.preferenceDataStore = CalendarDataStore(requireActivity(), calendarId)
 
         populatePreferences()
     }
@@ -157,32 +164,38 @@ class CalendarPreferences : PreferenceFragmentCompat() {
 
     private fun getThemeDrawable(attr: Int): Drawable {
         val typedValue = TypedValue()
-        context!!.theme.resolveAttribute(attr, typedValue, true)
+        requireContext().theme.resolveAttribute(attr, typedValue, true)
         val imageResId = typedValue.resourceId
-        return ContextCompat.getDrawable(context!!, imageResId)
+        return ContextCompat.getDrawable(requireContext(), imageResId)
                 ?: throw IllegalArgumentException("Cannot load drawable $imageResId")
     }
 
     private fun getColorIcon(color: Int): Drawable {
-        val icon: Drawable = ContextCompat.getDrawable(context!!, R.drawable.circle)!!
+        val icon: Drawable = ContextCompat.getDrawable(requireContext(), R.drawable.circle)!!
         icon.mutate().setColorFilter(color, Mode.SRC_IN)
         return icon
     }
 
     private fun displayCalendarColorPicker() {
-        if (fragmentManager!!.findFragmentByTag(COLOR_PICKER_DIALOG_TAG) != null) {
+        if (requireFragmentManager().findFragmentByTag(COLOR_PICKER_DIALOG_TAG) != null) {
             return
         }
 
         val isTablet = Utils.getConfigBool(context, R.bool.tablet_config)
-        val calendarDialogPicker = CalendarColorPickerDialogX.newInstance(calendarId, isTablet,
-                object : CalendarColorPickerDialogX.OnCalendarColorSelectedListener {
+        val calendarDialogPicker = CalendarColorPickerDialog.newInstance(
+            requireActivity(), calendarId, isTablet)
+        /* Force Creation now so that we can overwrite its
+         * OnColorSelectedListener which gets set when it is created.
+         */
+        calendarDialogPicker.create()
+        calendarDialogPicker.setOnColorSelectedListener(
+                object : ColorPickerSwatch.OnColorSelectedListener {
                     override fun onColorSelected(color: Int) {
                         val colorPref = findPreference<Preference>(COLOR_KEY)!!
                         colorPref.icon = getColorIcon(color)
                     }
                 })
-        calendarDialogPicker.show(fragmentManager!!, COLOR_PICKER_DIALOG_TAG)
+        calendarDialogPicker.show()
     }
 
     data class AuthenticatorInfo(val label: String?,
@@ -213,7 +226,7 @@ class CalendarPreferences : PreferenceFragmentCompat() {
     }
 
     private fun deleteCalendar() {
-        val warningDialog = AlertDialog.Builder(activity!!)
+        val warningDialog = AlertDialog.Builder(requireActivity())
                 .setMessage(R.string.preferences_calendar_delete_message)
                 .setPositiveButton(R.string.preferences_calendar_delete_delete) { _, _ ->
                     calendarRepository.deleteLocalCalendar(account.name, calendarId)
