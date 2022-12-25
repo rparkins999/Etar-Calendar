@@ -656,7 +656,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mStartTime.minute = 0;
             mStartTime.second = 0;
             mStartTime.timezone = mStartTimezone;
-            mModel.mStart = mStartTime.normalize(true);
+            mModel.mEventStart = mStartTime.normalize(true);
 
             mEndTime.hour = 0;
             mEndTime.minute = 0;
@@ -666,17 +666,17 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             // end time should be Y + 1 (Oct.30).
             final long normalizedEndTimeMillis =
                     mEndTime.normalize(true) + DateUtils.DAY_IN_MILLIS;
-            if (normalizedEndTimeMillis < mModel.mStart) {
+            if (normalizedEndTimeMillis < mModel.mEventStart) {
                 // mEnd should be midnight of the next day of mStart.
-                mModel.mEnd = mModel.mStart + DateUtils.DAY_IN_MILLIS;
+                mModel.mEventEnd = mModel.mEventStart + DateUtils.DAY_IN_MILLIS;
             } else {
-                mModel.mEnd = normalizedEndTimeMillis;
+                mModel.mEventEnd = normalizedEndTimeMillis;
             }
         } else {
             mStartTime.timezone = mStartTimezone;
             mEndTime.timezone = mEndTimezone;
-            mModel.mStart = mStartTime.toMillis(true);
-            mModel.mEnd = mEndTime.toMillis(true);
+            mModel.mEventStart = mStartTime.toMillis(true);
+            mModel.mEventEnd = mEndTime.toMillis(true);
         }
         mModel.mTimezoneStart = mStartTimezone;
         mModel.mTimezoneEnd = mEndTimezone;
@@ -816,8 +816,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         boolean canRespond = EditEventHelper.canRespond(model);
 
-        long begin = model.mStart;
-        long end = model.mEnd;
+        long begin = model.mEventStart;
+        long end = model.mEventEnd;
         mStartTimezone = model.mTimezoneStart; // this will be UTC for all day events
         mEndTimezone = model.mTimezoneEnd; // this will be UTC for all day events
 

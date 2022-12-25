@@ -1157,8 +1157,8 @@ public class EventInfoFragment extends DialogFragment
         CalendarEventModel event = new CalendarEventModel();
         mEventCursor.moveToFirst();
         event.mId = mEventId;
-        event.mStart = mStartMillis;
-        event.mEnd = mEndMillis;
+        event.mEventStart = mStartMillis;
+        event.mEventEnd = mEndMillis;
         event.mTimezoneEnd = event.mTimezoneStart =
             mEventCursor.getString(EVENT_INDEX_EVENT_TIMEZONE);
         event.mAllDay = mAllDay;

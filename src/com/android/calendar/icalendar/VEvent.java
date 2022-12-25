@@ -179,10 +179,10 @@ public class VEvent {
         }
         sb.append("UID:").append(event.mUid).append("\n");
         if (event.mAllDay) {
-            tStart.set(event.mStart);
+            tStart.set(event.mEventStart);
             sb.append(tStart.format("DTSTART;VALUE=DATE:%Y%m%d\n"));
             if (event.mDuration == null ) {
-                tEnd.set(event.mEnd);
+                tEnd.set(event.mEventEnd);
                 sb.append(tEnd.format("DTEND;VALUE=DATE:%Y%m%d\n"));
             }
         } else {
@@ -190,11 +190,11 @@ public class VEvent {
             if (timezone != null) {
                 tStart.switchTimezone(timezone);
             }
-            tStart.set(event.mStart);
+            tStart.set(event.mEventStart);
             sb.append("DTSTART;TZID=").append(timezone)
                 .append(tStart.format(":%Y%m%dT%H%M%S\n"));
             if (event.mDuration == null ) {
-                tEnd.set(event.mEnd);
+                tEnd.set(event.mEventEnd);
                 if (event.mTimezoneEnd != null) {
                     timezone = event.mTimezoneEnd;
                 }
@@ -478,12 +478,12 @@ public class VEvent {
         if (t.parse(splitLine[2])) { tz = "UTC"; }
         switch (splitLine[0]) {
             case "DTSTART":
-                event.mOriginalStart = event.mStart = t.normalize(false);
+                event.mInstanceStart = event.mEventStart = t.normalize(false);
                 event.mTimezoneStart = tz;
                 event.mAllDay = t.allDay;
                 break;
             case "DTEND":
-                event.mOriginalEnd = event.mEnd = t.normalize(false);
+                event.mInstanceEnd = event.mEventEnd = t.normalize(false);
                 event.mTimezoneEnd = tz;
                 break;
         }

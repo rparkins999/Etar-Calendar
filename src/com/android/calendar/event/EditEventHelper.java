@@ -162,12 +162,12 @@ public class EditEventHelper {
             Reminders.MINUTES,
             Reminders.METHOD,
     };
-    private static final List<String> reminmdersProjection
+    private static final List<String> remindersProjection
         = Arrays.asList(REMINDERS_PROJECTION);
     public static final int REMINDERS_INDEX_MINUTES =
-        reminmdersProjection.indexOf(Reminders.MINUTES);
+        remindersProjection.indexOf(Reminders.MINUTES);
     public static final int REMINDERS_INDEX_METHOD =
-        reminmdersProjection.indexOf(Reminders.METHOD);
+        remindersProjection.indexOf(Reminders.METHOD);
     public static final String REMINDERS_WHERE = Reminders.EVENT_ID + "=?";
 
     // Visible for testing
@@ -390,7 +390,7 @@ public class EditEventHelper {
         } else if (modifyWhich == MODIFY_SELECTED) {
             // Modify contents of the current instance of repeating event
             // Create a recurrence exception
-            long begin = model.mOriginalStart;
+            long begin = model.mInstanceStart;
             values.put(Events.ORIGINAL_SYNC_ID, originalModel.mSyncId);
             values.put(Events.ORIGINAL_INSTANCE_TIME, begin);
             boolean allDay = originalModel.mAllDay;
@@ -416,7 +416,7 @@ public class EditEventHelper {
                     // Update the current repeating event to end at the new start time.  We
                     // ignore the RRULE returned because the exception event
                     // doesn't want one.
-                    updatePastEvents(ops, originalModel, model.mOriginalStart);
+                    updatePastEvents(ops, originalModel, model.mInstanceStart);
                 }
                 eventIdIndex = ops.size();
                 values.put(Events.STATUS, originalModel.mEventStatus);
@@ -436,7 +436,7 @@ public class EditEventHelper {
                     // for the exception.  If the exception explicitly set a new rule,
                     // however, we don't want to overwrite it.
                     String newRrule = updatePastEvents(
-                        ops, originalModel, model.mOriginalStart);
+                        ops, originalModel, model.mInstanceStart);
                     if (model.mRrule.equals(originalModel.mRrule)) {
                         values.put(Events.RRULE, newRrule);
                     }
@@ -625,14 +625,14 @@ public class EditEventHelper {
     // MODIFY_ALL bit.
     void checkTimeDependentFields(CalendarEventModel originalModel, CalendarEventModel model,
             ContentValues values, int modifyWhich) {
-        long oldBegin = model.mOriginalStart;
-        long oldEnd = model.mOriginalEnd;
+        long oldBegin = model.mInstanceStart;
+        long oldEnd = model.mInstanceEnd;
         boolean oldAllDay = originalModel.mAllDay;
         String oldRrule = originalModel.mRrule;
         String oldTimezone = originalModel.mTimezoneStart;
 
-        long newBegin = model.mStart;
-        long newEnd = model.mEnd;
+        long newBegin = model.mEventStart;
+        long newEnd = model.mEventEnd;
         boolean newAllDay = model.mAllDay;
         String newRrule = model.mRrule;
         String newTimezone = model.mTimezoneStart;
@@ -662,7 +662,7 @@ public class EditEventHelper {
         // value). If we are modifying one instance or all following instances,
         // then we leave the DTSTART field alone.
         if (modifyWhich == MODIFY_ALL) {
-            long oldStartMillis = originalModel.mStart;
+            long oldStartMillis = originalModel.mEventStart;
             if (oldBegin != newBegin) {
                 // The user changed the start time of this event
                 long offset = newBegin - oldBegin;
@@ -705,7 +705,7 @@ public class EditEventHelper {
         origRecurrence.parse(origRrule);
 
         // Get the start time of the first instance in the original recurrence.
-        long startTimeMillis = originalModel.mStart;
+        long startTimeMillis = originalModel.mEventStart;
         Time dtstart = new Time();
         dtstart.timezone = originalModel.mTimezoneStart;
         dtstart.set(startTimeMillis);
@@ -878,7 +878,7 @@ public class EditEventHelper {
     // modified is the same as the original event's start time
     static boolean isFirstEventInSeries(CalendarEventModel model,
             CalendarEventModel originalModel) {
-        return model.mOriginalStart == originalModel.mStart;
+        return model.mInstanceStart == originalModel.mEventStart;
     }
 
     // Adds an rRule and duration to a set of content values
@@ -886,8 +886,8 @@ public class EditEventHelper {
         String rrule = model.mRrule;
 
         values.put(Events.RRULE, rrule);
-        long end = model.mEnd;
-        long start = model.mStart;
+        long end = model.mEventEnd;
+        long start = model.mEventStart;
         String duration = model.mDuration;
 
         boolean isAllDay = model.mAllDay;
@@ -942,7 +942,7 @@ public class EditEventHelper {
         model.mAllDay = cursor.getInt(EVENT_INDEX_ALL_DAY) != 0;
         model.mHasAlarm = cursor.getInt(EVENT_INDEX_HAS_ALARM) != 0;
         model.mCalendarId = cursor.getInt(EVENT_INDEX_CALENDAR_ID);
-        model.mStart = cursor.getLong(EVENT_INDEX_DTSTART);
+        model.mEventStart = cursor.getLong(EVENT_INDEX_DTSTART);
         String tz = cursor.getString(EVENT_INDEX_TIMEZONE);
         if (TextUtils.isEmpty(tz)) {
             Log.w(TAG, "Query did not return a timezone for the event.");
@@ -988,7 +988,7 @@ public class EditEventHelper {
         if (hasRRule) {
             model.mDuration = cursor.getString(EVENT_INDEX_DURATION);
         } else {
-            model.mEnd = cursor.getLong(EVENT_INDEX_DTEND);
+            model.mEventEnd = cursor.getLong(EVENT_INDEX_DTEND);
         }
 
         model.mModelUpdatedWithEventCursor = true;
@@ -1111,8 +1111,8 @@ public class EditEventHelper {
         Time startTime = new Time(startTimezone);
         Time endTime = new Time(endTimezone);
 
-        startTime.set(model.mStart);
-        endTime.set(model.mEnd);
+        startTime.set(model.mEventStart);
+        endTime.set(model.mEventEnd);
         offsetStartTimeIfNecessary(startTime, endTime, rrule, model);
 
         ContentValues values = new ContentValues();
@@ -1254,8 +1254,8 @@ public class EditEventHelper {
 
         // Later we'll actually be using the values from the model rather than the startTime
         // and endTime themselves, so we need to make these changes to the model as well.
-        model.mStart = newStartTime;
-        model.mEnd = newEndTime;
+        model.mEventStart = newStartTime;
+        model.mEventEnd = newEndTime;
     }
 
     public interface EditDoneRunnable extends Runnable {

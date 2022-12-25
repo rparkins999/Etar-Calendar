@@ -49,7 +49,7 @@ import ws.xsoh.etar.R;
  * then the normal event is deleted.
  *
  * <p>
- * If a repeating event is selected for deletion, then this pops up dialog
+ * If a repeating event is selected for deletion, then this pops up a dialog
  * asking if the user wants to delete just this one instance, or all the
  * events in the series, or this event plus all following events.  The user
  * may also cancel the delete.
@@ -73,14 +73,22 @@ public class DeleteEventHelper {
     public static final int DELETE_ALL_FOLLOWING = 1;
     public static final int DELETE_ALL = 2;
     private final Activity mParent;
-    private Context mContext;
-    private long mStartMillis;
-    private long mEndMillis;
+    private final Context mContext;
+    // Start time of event, in UTC milliseconds since the epoch.
+    // For a recurring event, it is the start time of the first instance.
+    private long mEventStart;
+    // Start time of instance, in UTC milliseconds since the epoch.
+    // For a non-recurring event, it is the same as mEventStart.
+    private long mInstanceStart;
+    // End time of event, in UTC milliseconds since the epoch.
+    // Recurring events have a duration, not an end time, so this is -1.
+    private long mEventEnd;
+    // End time of instance, in UTC milliseconds since the epoch
+    // For a non-recurring event, it is the same as mEventEnd.
+    private long mInstanceEnd;
     private CalendarEventModel mModel;
-    /**
-     * If true, then call finish() on the parent activity when done.
-     */
-    private boolean mExitWhenDone;
+    // If true, then call finish() on the parent activity when done.
+    private final boolean mExitWhenDone;
     // the runnable to execute when the delete is confirmed
     private Runnable mCallback;
     private int mWhichDelete;
@@ -90,23 +98,24 @@ public class DeleteEventHelper {
 
     private String mSyncId;
 
-    private AsyncQueryService mService;
+    private final AsyncQueryService mService;
 
     private DeleteNotifyListener mDeleteStartedListener = null;
-    /**
-     * This callback is used when a normal event is deleted.
-     */
-    private DialogInterface.OnClickListener mDeleteNormalDialogListener =
-            new DialogInterface.OnClickListener() {
+    // This callback is used when a normal event is deleted.
+    private final DialogInterface.OnClickListener mDeleteNormalDialogListener
+        = new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
-            long id = mModel.mId; // mCursor.getInt(mEventIndexId);
+            long id = mModel.mId;
 
-            // If this event is part of a local calendar, really remove it from the database
+            // If this event is part of a local calendar,
+            // really remove it from the database
             //
             // "There are two versions of delete: as an app and as a sync adapter.
-            // An app delete will set the deleted column on an event and remove all instances of that event.
-            // A sync adapter delete will remove the event from the database and all associated data."
+            // An app delete will set the deleted column on an event
+            // and remove all instances of that event.
+            // A sync adapter delete will remove the event
+            // and all associated data from the database."
             // from https://developer.android.com/reference/android/provider/CalendarContract.Events
             boolean isLocal = mModel.mSyncAccountType.equals(CalendarContract.ACCOUNT_TYPE_LOCAL);
             Uri deleteContentUri = isLocal ? CalendarRepository.asLocalCalendarSyncAdapter(mModel.mSyncAccountName, Events.CONTENT_URI) : Events.CONTENT_URI;
@@ -117,21 +126,17 @@ public class DeleteEventHelper {
                 null, null, Utils.UNDO_DELAY);
         }
     };
-    /**
-     * This callback is used when an exception to an event is deleted
-     */
-    private DialogInterface.OnClickListener mDeleteExceptionDialogListener =
-        new DialogInterface.OnClickListener() {
+    // This callback is used when an exception to an event is deleted.
+    private final DialogInterface.OnClickListener mDeleteExceptionDialogListener
+        = new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
             deleteExceptionEvent();
         }
     };
-    /**
-     * This callback is used when a list item for a repeating event is selected
-     */
-    private DialogInterface.OnClickListener mDeleteListListener =
-            new DialogInterface.OnClickListener() {
+    // This callback is used when a list item for a repeating event is selected
+    private final DialogInterface.OnClickListener mDeleteListListener
+        = new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             // set mWhichDelete to the delete type at that index
             mWhichDelete = mWhichIndex.get(button);
@@ -142,11 +147,9 @@ public class DeleteEventHelper {
             ok.setEnabled(true);
         }
     };
-    /**
-     * This callback is used when a repeating event is deleted.
-     */
-    private DialogInterface.OnClickListener mDeleteRepeatingDialogListener =
-            new DialogInterface.OnClickListener() {
+    // This callback is used when a repeating event is deleted.
+    private final DialogInterface.OnClickListener mDeleteRepeatingDialogListener
+        = new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int button) {
             deleteStarted();
             if (mWhichDelete != -1) {
@@ -177,7 +180,7 @@ public class DeleteEventHelper {
     }
 
     public void deleteAfterQuery(CalendarEventModel model) {
-        delete(mStartMillis, mEndMillis, model, mWhichDelete);
+        delete(mInstanceStart, mEventEnd, model, mWhichDelete);
     }
 
     /**
@@ -188,16 +191,20 @@ public class DeleteEventHelper {
      * the initial selection and is only used for repeating events.  Set
      * "which" to -1 to have nothing selected initially.
      *
-     * @param begin the begin time of the event, in UTC milliseconds
-     * @param end the end time of the event, in UTC milliseconds
+     * @param begin the begin time of the instance, in UTC milliseconds
+     * @param end the end time of the instance, in UTC milliseconds
      * @param eventId the event id
      */
     public void delete(long begin, long end, long eventId) {
+        // eventId must be >=0, since the UI doesn't allow the user
+        // to delete when creating a new event.
+        // Dismissing the EditEventActivity will throw away
+        // a partially created event.
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
         mService.startQuery(mService.getNextToken(), this, uri,
             EditEventHelper.EVENT_PROJECTION, null, null, null);
-        mStartMillis = begin;
-        mEndMillis = end;
+        mInstanceStart = begin;
+        mInstanceEnd = end;
         mWhichDelete = -1;
     }
 
@@ -207,73 +214,62 @@ public class DeleteEventHelper {
     }
 
     /**
-     * Does the required processing for deleting an event.  This method
-     * takes a {@link CalendarEventModel} object, which must have a valid
-     * uri for referencing the event in the database and have the required
-     * fields listed below.
-     * The required fields for a normal event are:
+     * Does the processing for deleting an event
+     * after the {@link CalendarEventModel} has been filled from the database.
+     * The {@link CalendarEventModel} must have at least the following fields
+     * valid.
+     * For a non-recurring event:
      *
      * <ul>
-     *   <li> Events._ID </li>
-     *   <li> Events.TITLE </li>
-     *   <li> Events.RRULE </li>
+     *   <li> mId </li>
+     *   <li> mRrule (which will be null or empty)</li>
+     *   <li> mOriginalSyncId</li>
      * </ul>
      *
-     * The required fields for a repeating event include the above plus the
-     * following fields:
+     * For a recurring event:
      *
      * <ul>
-     *   <li> Events.ALL_DAY </li>
-     *   <li> Events.CALENDAR_ID </li>
-     *   <li> Events.DTSTART </li>
-     *   <li> Events._SYNC_ID </li>
-     *   <li> Events.EVENT_TIMEZONE </li>
+     *   <li> mId </li>
+     *   <li> mEventStart </li>
+     *   <li> mRrule (which will be nonempty)</li>
+     *   <li> mIsOrganizer </li>
+     *   <li> mSyncId </li>
+     *   <li> mSyncAccountName </li>
+     *   <li> mSyncAccountType </li>
      * </ul>
      *
      * If the event no longer exists in the db this will still prompt
      * the user but will return without modifying the db after the query
-     * returns.
+     * returns. This can happen if some other app deletes the event.
      *
-     * @param begin the begin time of the event, in UTC milliseconds
-     * @param end the end time of the event, in UTC milliseconds
+     * FIXME check if these are really used
+     * @param begin the begin time of the instance, in UTC milliseconds
+     * @param end the end time of the instance, in UTC milliseconds
      * @param which one of the values {@see DELETE_SELECTED},
      *  {@see DELETE_ALL_FOLLOWING}, {@see DELETE_ALL}, or -1
      */
     public void delete(long begin, long end, CalendarEventModel model, int which) {
         mWhichDelete = which;
-        mStartMillis = begin;
-        mEndMillis = end;
+        mInstanceStart = begin;
+        mInstanceEnd = end;
         mModel = model;
         mSyncId = model.mSyncId;
 
-        // If this is a repeating event, then pop up a dialog asking the
-        // user if they want to delete all of the repeating events or
-        // just some of them.
-        String rRule = model.mRrule;
-        String originalEvent = model.mOriginalSyncId;
-        if (TextUtils.isEmpty(rRule)) {
-            AlertDialog dialog = new AlertDialog.Builder(mContext)
-                    .setMessage(R.string.delete_this_event_title)
-                    .setIconAttribute(android.R.attr.alertDialogIcon)
-                    .setNegativeButton(android.R.string.cancel, null).create();
-
-            if (originalEvent == null) {
-                // This is a normal event. Pop up a confirmation dialog.
-                dialog.setButton(DialogInterface.BUTTON_POSITIVE,
-                        mContext.getText(android.R.string.ok),
-                        mDeleteNormalDialogListener);
-            } else {
-                // This is an exception event. Pop up a confirmation dialog.
-                dialog.setButton(DialogInterface.BUTTON_POSITIVE,
-                        mContext.getText(android.R.string.ok),
-                        mDeleteExceptionDialogListener);
-            }
-            dialog.setOnDismissListener(mDismissListener);
-            dialog.show();
-            mAlertDialog = dialog;
+        if (TextUtils.isEmpty(model.mRrule)) {
+            // This is a normal (non-recurring) event
+            mAlertDialog = new AlertDialog.Builder(mContext)
+                .setMessage(R.string.delete_this_event_title)
+                .setIconAttribute(android.R.attr.alertDialogIcon)
+                .setPositiveButton(android.R.string.ok,
+                    (model.mOriginalSyncId == null)
+                        ? mDeleteNormalDialogListener
+                        : mDeleteExceptionDialogListener)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setOnDismissListener(mDismissListener)
+                .show();
         } else {
-            // This is a repeating event.  Pop up a dialog asking which events
-            // to delete.
+            // This is (an instance of) a recurring event.
+            // Pop up a dialog asking which events to delete.
             Resources res = mContext.getResources();
             ArrayList<String> labelArray = new ArrayList<String>(Arrays.asList(res
                     .getStringArray(R.array.delete_repeating_labels)));
@@ -305,27 +301,25 @@ public class DeleteEventHelper {
             mWhichIndex = labelIndex;
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(mContext,
                     android.R.layout.simple_list_item_single_choice, labelArray);
-            AlertDialog dialog = new AlertDialog.Builder(mContext)
-                    .setTitle(
-                            mContext.getString(R.string.delete_recurring_event_title,model.mTitle))
-                    .setIconAttribute(android.R.attr.alertDialogIcon)
-                    .setSingleChoiceItems(adapter, which, mDeleteListListener)
-                    .setPositiveButton(android.R.string.ok, mDeleteRepeatingDialogListener)
-                    .setNegativeButton(android.R.string.cancel, null).show();
-            dialog.setOnDismissListener(mDismissListener);
-            mAlertDialog = dialog;
+            mAlertDialog = new AlertDialog.Builder(mContext)
+                .setTitle( mContext.getString(R.string.delete_recurring_event_title,model.mTitle))
+                .setIconAttribute(android.R.attr.alertDialogIcon)
+                .setSingleChoiceItems(adapter, which, mDeleteListListener)
+                .setPositiveButton(android.R.string.ok,
+                    mDeleteRepeatingDialogListener)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setOnDismissListener(mDismissListener)
+                .show();
 
-            if (which == -1) {
-                // Disable the "Ok" button until the user selects which events
-                // to delete.
-                Button ok = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
-                ok.setEnabled(false);
-            }
+            // Disable the "Ok" button until the user selects which events
+            // to delete.
+            mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE)
+                .setEnabled(which != -1);
         }
     }
 
     private void deleteExceptionEvent() {
-        long id = mModel.mId; // mCursor.getInt(mEventIndexId);
+        long id = mModel.mId;
 
         // update a recurrence exception by setting its status to "canceled"
         ContentValues values = new ContentValues();
@@ -339,7 +333,7 @@ public class DeleteEventHelper {
     private void deleteRepeatingEvent(int which) {
         String rRule = mModel.mRrule;
         boolean allDay = mModel.mAllDay;
-        long dtstart = mModel.mStart;
+        long dtstart = mModel.mEventStart;
         long id = mModel.mId; // mCursor.getInt(mEventIndexId);
 
         // See mDeleteNormalDialogListener for more info on this
@@ -351,7 +345,7 @@ public class DeleteEventHelper {
                 // If we are deleting the first event in the series, then
                 // instead of creating a recurrence exception, just change
                 // the start time of the recurrence.
-                if (dtstart == mStartMillis) {
+                if (dtstart == mInstanceStart) {
                     // TODO
                 }
 
@@ -370,11 +364,11 @@ public class DeleteEventHelper {
                 values.put(Events.ALL_DAY, allDay ? 1 : 0);
                 values.put(Events.ORIGINAL_ALL_DAY, allDay ? 1 : 0);
                 values.put(Events.CALENDAR_ID, calendarId);
-                values.put(Events.DTSTART, mStartMillis);
-                values.put(Events.DTEND, mEndMillis);
+                values.put(Events.DTSTART, mInstanceStart);
+                values.put(Events.DTEND, mEventEnd);
                 values.put(Events.ORIGINAL_SYNC_ID, mSyncId);
                 values.put(Events.ORIGINAL_ID, id);
-                values.put(Events.ORIGINAL_INSTANCE_TIME, mStartMillis);
+                values.put(Events.ORIGINAL_INSTANCE_TIME, mInstanceStart);
                 values.put(Events.STATUS, Events.STATUS_CANCELED);
 
                 mService.startInsert(mService.getNextToken(), this, Events.CONTENT_URI, values,
@@ -390,7 +384,7 @@ public class DeleteEventHelper {
             case DELETE_ALL_FOLLOWING: {
                 // If we are deleting the first event in the series and all
                 // following events, then delete them all.
-                if (dtstart == mStartMillis) {
+                if (dtstart == mInstanceStart) {
                     Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
                     mService.startDelete(mService.getNextToken(), this, uri, null, null,
                             Utils.UNDO_DELAY);
@@ -404,7 +398,7 @@ public class DeleteEventHelper {
                 if (allDay) {
                     date.timezone = Time.TIMEZONE_UTC;
                 }
-                date.set(mStartMillis);
+                date.set(mInstanceStart);
                 date.second--;
                 date.normalize(false);
 

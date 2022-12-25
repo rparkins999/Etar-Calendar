@@ -315,8 +315,8 @@ public class EditEventActivity extends AbstractCalendarActivity
                             mOriginalModel = new CalendarEventModel(mModel);
                             if (mModel.mId == mModel.mOriginalId) {
                                 mModel.mIsFirstEventInSeries = true;
-                                mModel.mOriginalStart = mModel.mStart;
-                                mModel.mOriginalEnd = mModel.mEnd;
+                                mModel.mInstanceStart = mModel.mEventStart;
+                                mModel.mInstanceEnd = mModel.mEventEnd;
                             } else {
                                 // We probably shouldn't set mModel.mOriginalStart
                                 // or mModel.mOriginalStart here.
@@ -658,8 +658,8 @@ public class EditEventActivity extends AbstractCalendarActivity
                 return false;
             }
 
-            if ((mModel.mOriginalStart != mModel.mStart)
-                || (mModel.mOriginalEnd != mModel.mEnd)) {
+            if ((mModel.mInstanceStart != mModel.mEventStart)
+                || (mModel.mInstanceEnd != mModel.mEventEnd)) {
                 return false;
             }
 
@@ -718,8 +718,8 @@ public class EditEventActivity extends AbstractCalendarActivity
                 && (mOriginalModel != null)
                 && EditEventHelper.canModifyCalendar(mOriginalModel)) {
                 assert mModel != null; // ignored in release build
-                long begin = mModel.mStart;
-                long end = mModel.mEnd;
+                long begin = mModel.mEventStart;
+                long end = mModel.mEventEnd;
                 int which = -1;
                 switch (mModification) {
                     case Utils.MODIFY_SELECTED:
@@ -743,8 +743,8 @@ public class EditEventActivity extends AbstractCalendarActivity
                 if ((mCode & Utils.DONE_SAVE) != 0) {
                     if (mActivity != null) {
                         assert mModel != null; // ignored in release build
-                        long start = mModel.mStart;
-                        long end = mModel.mEnd;
+                        long start = mModel.mEventStart;
+                        long end = mModel.mEventEnd;
                         if (mModel.mAllDay) {
                             // For allday events we want to go to the day in the
                             // user's current tz
@@ -848,7 +848,7 @@ public class EditEventActivity extends AbstractCalendarActivity
         mDeleteHelper.setDeleteNotificationListener(this);
         mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
         mDeleteHelper.delete(
-            mModel.mStart, mModel.mEnd, mModel.mId, onDeleteRunnable);
+            mModel.mEventStart, mModel.mEventEnd, mModel.mId, onDeleteRunnable);
     }
 
     /* Returns true if we don't have @code permission.
@@ -986,7 +986,7 @@ public class EditEventActivity extends AbstractCalendarActivity
                 try {
                     mModel = CalendarApplication.mEvents.remove(0);
                     // FIXME check if this can ever happen
-                    if (mModel.mStart <= 0) {
+                    if (mModel.mEventStart <= 0) {
                         // use a default value instead
                         long now = System.currentTimeMillis();
                         Time defaultStart = new Time();
@@ -996,15 +996,15 @@ public class EditEventActivity extends AbstractCalendarActivity
                         long defaultStartMillis =
                             defaultStart.toMillis(false);
                         if (now < defaultStartMillis) {
-                            mModel.mStart = defaultStartMillis;
+                            mModel.mEventStart = defaultStartMillis;
                         } else {
-                            mModel.mStart =
+                            mModel.mEventStart =
                                 defaultStartMillis + 30 * DateUtils.MINUTE_IN_MILLIS;
                         }
                     }
-                    if (mModel.mEnd < mModel.mStart) {
+                    if (mModel.mEventEnd < mModel.mEventStart) {
                         // use a default value instead
-                        mModel.mEnd = mModel.mStart
+                        mModel.mEventEnd = mModel.mEventStart
                             + Utils.getDefaultEventDurationInMillis(this);
                     }
                 } catch (IndexOutOfBoundsException ignore) {
