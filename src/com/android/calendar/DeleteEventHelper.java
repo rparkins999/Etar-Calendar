@@ -74,17 +74,9 @@ public class DeleteEventHelper {
     public static final int DELETE_ALL = 2;
     private final Activity mParent;
     private final Context mContext;
-    // Start time of event, in UTC milliseconds since the epoch.
-    // For a recurring event, it is the start time of the first instance.
-    private long mEventStart;
     // Start time of instance, in UTC milliseconds since the epoch.
-    // For a non-recurring event, it is the same as mEventStart.
     private long mInstanceStart;
-    // End time of event, in UTC milliseconds since the epoch.
-    // Recurring events have a duration, not an end time, so this is -1.
-    private long mEventEnd;
-    // End time of instance, in UTC milliseconds since the epoch
-    // For a non-recurring event, it is the same as mEventEnd.
+    // End time of instance, in UTC milliseconds since the epoch.
     private long mInstanceEnd;
     private CalendarEventModel mModel;
     // If true, then call finish() on the parent activity when done.
@@ -101,6 +93,7 @@ public class DeleteEventHelper {
     private final AsyncQueryService mService;
 
     private DeleteNotifyListener mDeleteStartedListener = null;
+
     // This callback is used when a normal event is deleted.
     private final DialogInterface.OnClickListener mDeleteNormalDialogListener
         = new DialogInterface.OnClickListener() {
@@ -180,7 +173,7 @@ public class DeleteEventHelper {
     }
 
     public void deleteAfterQuery(CalendarEventModel model) {
-        delete(mInstanceStart, mEventEnd, model, mWhichDelete);
+        delete(mInstanceStart, mInstanceEnd, model, mWhichDelete);
     }
 
     /**
@@ -203,6 +196,7 @@ public class DeleteEventHelper {
         Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId);
         mService.startQuery(mService.getNextToken(), this, uri,
             EditEventHelper.EVENT_PROJECTION, null, null, null);
+        // Save these to put into the model when we've made it
         mInstanceStart = begin;
         mInstanceEnd = end;
         mWhichDelete = -1;
@@ -224,6 +218,8 @@ public class DeleteEventHelper {
      *   <li> mId </li>
      *   <li> mRrule (which will be null or empty)</li>
      *   <li> mOriginalSyncId</li>
+     *   <li> mSyncAccountName </li>
+     *   <li> mSyncAccountType </li>
      * </ul>
      *
      * For a recurring event:
@@ -231,27 +227,33 @@ public class DeleteEventHelper {
      * <ul>
      *   <li> mId </li>
      *   <li> mEventStart </li>
+     *   <li> mEventEnd </li>
+     *   <li> mInstanceEnd </li>
+     *   <li> mAllDay </li>
      *   <li> mRrule (which will be nonempty)</li>
+     *   <li> mTitle (not essential, but used)</li>
      *   <li> mIsOrganizer </li>
      *   <li> mSyncId </li>
      *   <li> mSyncAccountName </li>
      *   <li> mSyncAccountType </li>
      * </ul>
      *
-     * If the event no longer exists in the db this will still prompt
-     * the user but will return without modifying the db after the query
-     * returns. This can happen if some other app deletes the event.
+     * This will always prompt the user but if by the time the dialog
+     * is dismissed the event no longer exists in the database
+     * (which can happen if another app deletes it) this method
+     * will return without modifying the database.
      *
-     * FIXME check if these are really used
      * @param begin the begin time of the instance, in UTC milliseconds
      * @param end the end time of the instance, in UTC milliseconds
      * @param which one of the values {@see DELETE_SELECTED},
      *  {@see DELETE_ALL_FOLLOWING}, {@see DELETE_ALL}, or -1
      */
-    public void delete(long begin, long end, CalendarEventModel model, int which) {
+    public void delete(
+        long begin, long end, CalendarEventModel model, int which)
+    {
         mWhichDelete = which;
-        mInstanceStart = begin;
-        mInstanceEnd = end;
+        model.mInstanceStart = mInstanceStart = begin;
+        model.mInstanceEnd = mInstanceEnd = end;
         mModel = model;
         mSyncId = model.mSyncId;
 
@@ -271,11 +273,12 @@ public class DeleteEventHelper {
             // This is (an instance of) a recurring event.
             // Pop up a dialog asking which events to delete.
             Resources res = mContext.getResources();
-            ArrayList<String> labelArray = new ArrayList<String>(Arrays.asList(res
-                    .getStringArray(R.array.delete_repeating_labels)));
+            ArrayList<String> labelArray
+                = new ArrayList<>(Arrays.asList(
+                    res.getStringArray(R.array.delete_repeating_labels)));
             // asList doesn't like int[] so creating it manually.
             int[] labelValues = res.getIntArray(R.array.delete_repeating_values);
-            ArrayList<Integer> labelIndex = new ArrayList<Integer>();
+            ArrayList<Integer> labelIndex = new ArrayList<>();
             for (int val : labelValues) {
                 labelIndex.add(val);
             }
@@ -299,7 +302,7 @@ public class DeleteEventHelper {
                 which = labelIndex.indexOf(which);
             }
             mWhichIndex = labelIndex;
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(mContext,
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(mContext,
                     android.R.layout.simple_list_item_single_choice, labelArray);
             mAlertDialog = new AlertDialog.Builder(mContext)
                 .setTitle( mContext.getString(R.string.delete_recurring_event_title,model.mTitle))
@@ -321,13 +324,20 @@ public class DeleteEventHelper {
     private void deleteExceptionEvent() {
         long id = mModel.mId;
 
-        // update a recurrence exception by setting its status to "canceled"
+        // This exception is a real event whose ORIGINAL_INSTANCE_TIME
+        // (which we didn't read because we don't need it)
+        // is the start time of the instance it overrides: the start time
+        // of this event may be different because the exception could be a
+        // change of start time.
+        // We change its status to Events.STATUS_CANCELED which makes it into
+        // a deletion of the instance it overrides, with no replacement event.
         ContentValues values = new ContentValues();
         values.put(Events.STATUS, Events.STATUS_CANCELED);
 
-        Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id);
-        mService.startUpdate(mService.getNextToken(), this, uri, values, null, null,
-                Utils.UNDO_DELAY);
+        Uri uri = ContentUris.withAppendedId(
+            CalendarContract.Events.CONTENT_URI, id);
+        mService.startUpdate(mService.getNextToken(), this, uri, values,
+            null, null, Utils.UNDO_DELAY);
     }
 
     private void deleteRepeatingEvent(int which) {
@@ -343,20 +353,24 @@ public class DeleteEventHelper {
         switch (which) {
             case DELETE_SELECTED: {
                 // If we are deleting the first event in the series, then
-                // instead of creating a recurrence exception, just change
-                // the start time of the recurrence.
-                if (dtstart == mInstanceStart) {
-                    // TODO
-                }
+                // instead of creating a recurrence exception, we could
+                // just change the start time of the recurrence.
+                // if (dtstart == mInstanceStart) {
+                // TODO not implemented yet
+                // }
 
                 // Create a recurrence exception by creating a new event
-                // with the status "cancelled".
+                // with Events.ORIGINAL_INSTANCE_TIME the start time of the
+                // instance to delete, and with Events.STATUS set to
+                // Events.STATUS_CANCELED so that we don't create a new event.
+                // We never see this event when reading back from
+                // the database: it's just a placeholder to prevent the
+                // database from giving us the deleted instance.
                 ContentValues values = new ContentValues();
 
                 // The title might not be necessary, but it makes it easier
                 // to find this entry in the database when there is a problem.
-                String title = mModel.mTitle;
-                values.put(Events.TITLE, title);
+                values.put(Events.TITLE, mModel.mTitle);
 
                 String timezone = mModel.mTimezoneStart;
                 long calendarId = mModel.mCalendarId;
@@ -365,54 +379,54 @@ public class DeleteEventHelper {
                 values.put(Events.ORIGINAL_ALL_DAY, allDay ? 1 : 0);
                 values.put(Events.CALENDAR_ID, calendarId);
                 values.put(Events.DTSTART, mInstanceStart);
-                values.put(Events.DTEND, mEventEnd);
+                values.put(Events.DTEND, mInstanceEnd);
                 values.put(Events.ORIGINAL_SYNC_ID, mSyncId);
                 values.put(Events.ORIGINAL_ID, id);
                 values.put(Events.ORIGINAL_INSTANCE_TIME, mInstanceStart);
                 values.put(Events.STATUS, Events.STATUS_CANCELED);
 
-                mService.startInsert(mService.getNextToken(), this, Events.CONTENT_URI, values,
-                        Utils.UNDO_DELAY);
-                break;
-            }
-            case DELETE_ALL: {
-                Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-                mService.startDelete(mService.getNextToken(), this, uri, null, null,
-                        Utils.UNDO_DELAY);
+                mService.startInsert(mService.getNextToken(), this,
+                    Events.CONTENT_URI, values, Utils.UNDO_DELAY);
                 break;
             }
             case DELETE_ALL_FOLLOWING: {
                 // If we are deleting the first event in the series and all
-                // following events, then delete them all.
-                if (dtstart == mInstanceStart) {
-                    Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
-                    mService.startDelete(mService.getNextToken(), this, uri, null, null,
-                            Utils.UNDO_DELAY);
+                // following events, then just fall through to delete all.
+                if (dtstart != mInstanceStart) {
+                    // Modify the repeating event to end just before this event time
+                    EventRecurrence eventRecurrence = new EventRecurrence();
+                    eventRecurrence.parse(rRule);
+                    Time date = new Time();
+                    if (allDay) {
+                        date.timezone = Time.TIMEZONE_UTC;
+                    }
+                    date.set(mInstanceStart);
+                    date.second--;
+                    date.normalize(false);
+
+                    // Google calendar seems to require the UNTIL string to be
+                    // in UTC.
+                    date.switchTimezone(Time.TIMEZONE_UTC);
+                    eventRecurrence.until = date.format2445();
+
+                    ContentValues values = new ContentValues();
+                    values.put(Events.DTSTART, dtstart);
+                    values.put(Events.RRULE, eventRecurrence.toString());
+                    mService.startUpdate(mService.getNextToken(), this,
+                        ContentUris.withAppendedId(
+                            CalendarContract.Events.CONTENT_URI, id),
+                        values, null, null, Utils.UNDO_DELAY);
                     break;
                 }
-
-                // Modify the repeating event to end just before this event time
-                EventRecurrence eventRecurrence = new EventRecurrence();
-                eventRecurrence.parse(rRule);
-                Time date = new Time();
-                if (allDay) {
-                    date.timezone = Time.TIMEZONE_UTC;
-                }
-                date.set(mInstanceStart);
-                date.second--;
-                date.normalize(false);
-
-                // Google calendar seems to require the UNTIL string to be
-                // in UTC.
-                date.switchTimezone(Time.TIMEZONE_UTC);
-                eventRecurrence.until = date.format2445();
-
-                ContentValues values = new ContentValues();
-                values.put(Events.DTSTART, dtstart);
-                values.put(Events.RRULE, eventRecurrence.toString());
-                Uri uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id);
-                mService.startUpdate(mService.getNextToken(), this, uri, values, null, null,
-                        Utils.UNDO_DELAY);
+                //FALLTHRU
+            }
+            case DELETE_ALL: {
+                // We just delete the whole event, so instances will
+                // no longer be generated by the calendar provider.
+                // Exception events also get removed.
+                mService.startDelete(mService.getNextToken(), this,
+                    ContentUris.withAppendedId(deleteContentUri, id),
+                    null, null, Utils.UNDO_DELAY);
                 break;
             }
         }
@@ -442,6 +456,6 @@ public class DeleteEventHelper {
     }
 
     public interface DeleteNotifyListener {
-        public void onDeleteStarted();
+        void onDeleteStarted();
     }
 }

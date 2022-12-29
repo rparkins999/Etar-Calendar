@@ -309,8 +309,10 @@ public class EditEventHelper {
      * @param modifyWhich For recurring events which type of series modification to use
      * @return true if the event was successfully queued for saving
      */
-    public boolean saveEvent(CalendarEventModel model, CalendarEventModel originalModel,
-            int modifyWhich) {
+    public boolean saveEvent(
+        CalendarEventModel model, CalendarEventModel originalModel,
+        int modifyWhich)
+    {
         boolean forceSaveReminders = false;
 
         if (DEBUG) {
@@ -390,9 +392,9 @@ public class EditEventHelper {
         } else if (modifyWhich == MODIFY_SELECTED) {
             // Modify contents of the current instance of repeating event
             // Create a recurrence exception
-            long begin = model.mInstanceStart;
             values.put(Events.ORIGINAL_SYNC_ID, originalModel.mSyncId);
-            values.put(Events.ORIGINAL_INSTANCE_TIME, begin);
+            values.put(Events.ORIGINAL_INSTANCE_TIME,
+                originalModel.mInstanceStart);
             boolean allDay = originalModel.mAllDay;
             values.put(Events.ORIGINAL_ALL_DAY, allDay ? 1 : 0);
             values.put(Events.STATUS, originalModel.mEventStatus);
@@ -625,28 +627,30 @@ public class EditEventHelper {
     // MODIFY_ALL bit.
     void checkTimeDependentFields(CalendarEventModel originalModel, CalendarEventModel model,
             ContentValues values, int modifyWhich) {
-        long oldBegin = model.mInstanceStart;
-        long oldEnd = model.mInstanceEnd;
-        boolean oldAllDay = originalModel.mAllDay;
+        long oldBegin = originalModel.mInstanceStart;
         String oldRrule = originalModel.mRrule;
-        String oldTimezone = originalModel.mTimezoneStart;
 
-        long newBegin = model.mEventStart;
-        long newEnd = model.mEventEnd;
+        long newBegin = model.mInstanceStart;
         boolean newAllDay = model.mAllDay;
         String newRrule = model.mRrule;
-        String newTimezone = model.mTimezoneStart;
 
         // If none of the time-dependent fields changed, then remove them.
-        if (oldBegin == newBegin && oldEnd == newEnd && oldAllDay == newAllDay
-                && TextUtils.equals(oldRrule, newRrule)
-                && TextUtils.equals(oldTimezone, newTimezone)) {
+        if (   (oldBegin == newBegin)
+            && (originalModel.mInstanceEnd == model.mInstanceEnd)
+            && (originalModel.mAllDay == newAllDay)
+            && TextUtils.equals(oldRrule, newRrule)
+            && TextUtils.equals(
+                originalModel.mTimezoneStart, model.mTimezoneStart)
+            && TextUtils.equals(
+                originalModel.mTimezoneEnd, model.mTimezoneEnd))
+        {
             values.remove(Events.DTSTART);
             values.remove(Events.DTEND);
             values.remove(Events.DURATION);
             values.remove(Events.ALL_DAY);
             values.remove(Events.RRULE);
             values.remove(Events.EVENT_TIMEZONE);
+            values.remove(Events.EVENT_END_TIMEZONE);
             return;
         }
 
@@ -918,20 +922,21 @@ public class EditEventHelper {
 
     /**
      * Uses an event cursor to fill in the given model This method assumes the
-     * cursor used {@link #EVENT_PROJECTION} as it's query projection. It uses
+     * cursor used {@link #EVENT_PROJECTION} as its query projection. It uses
      * the cursor to fill in the given model with all the information available.
      *
      * @param model The model to fill in
      * @param cursor An event cursor that used {@link #EVENT_PROJECTION} for the query
      */
-    public static void setModelFromCursor(CalendarEventModel model, Cursor cursor) {
+    public static void setModelFromCursor(
+        CalendarEventModel model, Cursor cursor)
+    {
         if (model == null || cursor == null || cursor.getCount() != 1) {
             Log.wtf(TAG,
                 "Attempted to build non-existent model or from an incorrect query.");
             return;
         }
 
-        model.clear();
         cursor.moveToFirst();
 
         model.mId = cursor.getInt(EVENT_INDEX_ID);
@@ -996,8 +1001,9 @@ public class EditEventHelper {
 
     /**
      * Uses a calendar cursor to fill in the given model This method assumes the
-     * cursor used {@link #CALENDARS_PROJECTION} as it's query projection. It uses
-     * the cursor to fill in the given model with all the information available.
+     * cursor used {@link #CALENDARS_PROJECTION} as it's query projection
+     * It uses the cursor to fill in the given model with all the information
+     * available.
      *
      * @param model The model to fill in
      * @param cursor An event cursor that used {@link #CALENDARS_PROJECTION} for the query
@@ -1111,10 +1117,21 @@ public class EditEventHelper {
         Time startTime = new Time(startTimezone);
         Time endTime = new Time(endTimezone);
 
-        startTime.set(model.mEventStart);
-        endTime.set(model.mEventEnd);
-        offsetStartTimeIfNecessary(startTime, endTime, rrule, model);
-
+        startTime.set(model.mInstanceStart);
+        endTime.set(model.mInstanceEnd);
+        // Check if we have a weekly occurrence and the start day of the
+        // event is not the occurrence day.
+        // ??? why don't we do this for monthly or yearly?
+        if ((rrule != null) && !rrule.isEmpty()) {
+            mEventRecurrence.parse(rrule);
+            if (   (mEventRecurrence.freq == EventRecurrence.WEEKLY)
+                && (mEventRecurrence.byday != null)
+                && (mEventRecurrence.byday.length
+                   <= mEventRecurrence.bydayCount))
+            {
+                offsetStartTimeIfNecessary(startTime, endTime, model);
+            }
+        }
         ContentValues values = new ContentValues();
 
         long startMillis;
@@ -1171,8 +1188,7 @@ public class EditEventHelper {
         values.put(Events.AVAILABILITY, model.mAvailability);
         values.put(Events.HAS_ATTENDEE_DATA, model.mHasAttendeeData ? 1 : 0);
 
-        int accessLevel = model.mAccessLevel;
-        values.put(Events.ACCESS_LEVEL, accessLevel);
+        values.put(Events.ACCESS_LEVEL, model.mAccessLevel);
         values.put(Events.STATUS, model.mEventStatus);
         if (model.isEventColorInitialized()) {
             if (model.getEventColor() == model.getCalendarColor()) {
@@ -1185,32 +1201,13 @@ public class EditEventHelper {
     }
 
     /**
-     * If the recurrence rule is such that the event start date doesn't actually fall in one of the
-     * recurrences, then push the start date up to the first actual instance of the event.
+     * If the recurrence rule is such that the event start date doesn't
+     * actually fall in one of the recurrences, then push the start date
+     * up to the first actual instance of the event.
      */
-    private void offsetStartTimeIfNecessary(Time startTime, Time endTime, String rrule,
-            CalendarEventModel model) {
-        if (rrule == null || rrule.isEmpty()) {
-            // No need to waste any time with the parsing if the rule is empty.
-            return;
-        }
-
-        mEventRecurrence.parse(rrule);
-        // Check if we meet the specific special case. It has to:
-        //  * be weekly
-        //  * not recur on the same day of the week that the startTime falls on
-        // In this case, we'll need to push the start time to fall on the first day of the week
-        // that is part of the recurrence.
-        if (mEventRecurrence.freq != EventRecurrence.WEEKLY) {
-            // Not weekly so nothing to worry about.
-            return;
-        }
-        if (mEventRecurrence.byday == null ||
-                mEventRecurrence.byday.length > mEventRecurrence.bydayCount) {
-            // This shouldn't happen, but just in case something is weird about the recurrence.
-            return;
-        }
-
+    private void offsetStartTimeIfNecessary(
+        Time startTime, Time endTime, CalendarEventModel model)
+    {
         // Start to figure out what the nearest weekday is.
         int closestWeekday = Integer.MAX_VALUE;
         int weekstart = EventRecurrence.day2TimeDay(mEventRecurrence.wkst);
@@ -1240,22 +1237,18 @@ public class EditEventHelper {
             }
         }
 
-        // We're here, so unfortunately our event's start day is not included in the days of
-        // the week of the recurrence. To save this event correctly we'll need to push the start
-        // date to the closest weekday that *is* part of the recurrence.
+        // We're here, so unfortunately our event's start day is not included
+        // in the days of the week of the recurrence. To save this event
+        // correctly we'll need to push the start date to the closest weekday
+        // that *is* part of the recurrence.
         if (closestWeekday < startDay) {
             closestWeekday += 7;
         }
         int daysOffset = closestWeekday - startDay;
         startTime.monthDay += daysOffset;
         endTime.monthDay += daysOffset;
-        long newStartTime = startTime.normalize(true);
-        long newEndTime = endTime.normalize(true);
-
-        // Later we'll actually be using the values from the model rather than the startTime
-        // and endTime themselves, so we need to make these changes to the model as well.
-        model.mEventStart = newStartTime;
-        model.mEventEnd = newEndTime;
+        model.mInstanceStart = startTime.normalize(true);
+        model.mInstanceEnd = endTime.normalize(true);
     }
 
     public interface EditDoneRunnable extends Runnable {

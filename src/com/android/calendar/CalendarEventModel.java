@@ -141,6 +141,7 @@ public class CalendarEventModel implements Serializable {
     // updated with an event cursor.
     public boolean mModelUpdatedWithEventCursor = false;
 
+    // This doesn't set mInstanceStart and mInstanceEnd
     public CalendarEventModel() {
         mReminders = new ArrayList<>();
         mDefaultReminders = new ArrayList<>();
@@ -159,6 +160,7 @@ public class CalendarEventModel implements Serializable {
     }
 
     // copy constructor
+    // sets mInstanceStart and mInstanceEnd if "other" has them
     public CalendarEventModel(CalendarEventModel other) {
         mId = other.mId;
         mOriginalId = other.mOriginalId;
@@ -223,6 +225,7 @@ public class CalendarEventModel implements Serializable {
         mModelUpdatedWithEventCursor = other.mModelUpdatedWithEventCursor;
     }
 
+    // This doesn't set mInstanceStart and mInstanceEnd
     public CalendarEventModel(Context context) {
         this();
 
@@ -242,6 +245,7 @@ public class CalendarEventModel implements Serializable {
         }
     }
 
+    // This sets mInstanceStart and mInstanceEnd
     public CalendarEventModel(Context context, Intent intent) {
         this(context);
         if (intent == null) {

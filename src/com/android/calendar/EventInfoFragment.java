@@ -1148,9 +1148,10 @@ public class EventInfoFragment extends DialogFragment
     }
 
     /**
-     * Generates an .ics formatted file with the event info and launches intent chooser to
-     * share said file
+     * Generates an .ics formatted file with the event info
+     * and launches intent chooser to share said file.
      */
+    @SuppressLint("SetWorldReadable")
     private void shareEvent(ShareType type) {
         // Create the respective ICalendar objects from the event info
         VCalendar calendar = new VCalendar();
@@ -1215,8 +1216,8 @@ public class EventInfoFragment extends DialogFragment
                 dir = mActivity.getExternalCacheDir();
             }
 
-            File inviteFile = IcalendarUtils.createTempFile(filePrefix, ".ics",
-                    dir);
+            File inviteFile = IcalendarUtils.createTempFile(
+                filePrefix, ".ics", dir);
 
             if (IcalendarUtils.writeCalendarToFile(calendar, inviteFile)) {
                 if (type == ShareType.INTENT) {

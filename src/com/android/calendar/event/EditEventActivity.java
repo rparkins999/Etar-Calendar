@@ -236,6 +236,7 @@ public class EditEventActivity extends AbstractCalendarActivity
                 }
                 mView.setModel(mModel);
                 mView.setModification(mModification);
+                invalidateOptionsMenu();
                 if (mColorPickerDialog == null) {
                     mColorPickerDialog =
                         EventColorPickerDialog.newInstance(
@@ -282,9 +283,12 @@ public class EditEventActivity extends AbstractCalendarActivity
                 if (   (cursor != null)
                     && cursor.moveToFirst())
                 {
+                    // This doesn't set mInstanceStart and mInstanceEnd
                     CalendarEventModel model = new CalendarEventModel();
                     EditEventHelper.setModelFromCursor(model, cursor);
                     cursor.close();
+                    // This calla an overload of delete()
+                    // which sets mInstanceStart and mInstanceEnd
                     ((DeleteEventHelper)cookie).deleteAfterQuery(model);
                 } else {
                     Toast.makeText(mActivity, R.string.delete_event_fail,
@@ -615,10 +619,9 @@ public class EditEventActivity extends AbstractCalendarActivity
             {
                 if (result == 1) {
                     ((DeleteEventHelper)cookie).tidyup();
-                } else {
-                    Toast.makeText(mActivity, R.string.delete_event_fail,
-                            Toast.LENGTH_SHORT)
-                        .show();
+                } else {Toast.makeText(
+                    mActivity, R.string.delete_event_fail, Toast.LENGTH_SHORT)
+                    .show();
                 }
             }
         }
@@ -718,8 +721,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                 && (mOriginalModel != null)
                 && EditEventHelper.canModifyCalendar(mOriginalModel)) {
                 assert mModel != null; // ignored in release build
-                long begin = mModel.mEventStart;
-                long end = mModel.mEventEnd;
                 int which = -1;
                 switch (mModification) {
                     case Utils.MODIFY_SELECTED:
@@ -734,7 +735,9 @@ public class EditEventActivity extends AbstractCalendarActivity
                 }
                 DeleteEventHelper deleteHelper = new DeleteEventHelper(
                     mActivity, mActivity, !mIsReadOnly /* exitWhenDone */);
-                deleteHelper.delete(begin, end, mOriginalModel, which);
+                deleteHelper.delete(
+                    mModel.mInstanceStart, mModel.mInstanceEnd,
+                    mOriginalModel, which);
             }
 
             if ((mCode & Utils.DONE_EXIT) != 0) {
@@ -746,8 +749,8 @@ public class EditEventActivity extends AbstractCalendarActivity
                         long start = mModel.mEventStart;
                         long end = mModel.mEventEnd;
                         if (mModel.mAllDay) {
-                            // For allday events we want to go to the day in the
-                            // user's current tz
+                            // For allday events we want to go to the day
+                            // in the user's current tz
                             String tz = Utils.getTimeZone(mActivity, null);
                             Time t = new Time(Time.TIMEZONE_UTC);
                             t.set(start);
@@ -848,7 +851,7 @@ public class EditEventActivity extends AbstractCalendarActivity
         mDeleteHelper.setDeleteNotificationListener(this);
         mDeleteHelper.setOnDismissListener(createDeleteOnDismissListener());
         mDeleteHelper.delete(
-            mModel.mEventStart, mModel.mEventEnd, mModel.mId, onDeleteRunnable);
+            mModel.mInstanceStart, mModel.mInstanceEnd, mModel.mId, onDeleteRunnable);
     }
 
     /* Returns true if we don't have @code permission.
@@ -1012,6 +1015,7 @@ public class EditEventActivity extends AbstractCalendarActivity
             }
         }
         if (mModel == null) {
+            // This sets mInstanceStart and mInstanceEnd
             mModel = new CalendarEventModel(this, mIntent);
             if (mModel.mId < 0) {
                 mModel.mId = (savedInstanceState == null)
@@ -1221,7 +1225,7 @@ public class EditEventActivity extends AbstractCalendarActivity
             mOnDone.run();
             return true;
         } else if (   (itemId == R.id.action_done)
-            || (itemId == R.id.action_done_menu)
+                   || (itemId == R.id.action_done_menu)
         ) {
             if (   EditEventHelper.canModifyEvent(mModel)
                 || EditEventHelper.canRespond(mModel))

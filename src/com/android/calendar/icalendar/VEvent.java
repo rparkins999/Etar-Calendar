@@ -464,7 +464,8 @@ public class VEvent {
     // declarations in the VCALENDAR.
     private static final String chop = "/freeassociation.sourceforge.net/";
 
-    private static void parseDateTime(String[] splitLine, CalendarEventModel event)
+    private static void parseDateTime(
+        String[] splitLine, CalendarEventModel model)
     {
         String tz = Time.getCurrentTimezone();
         ArrayList<String> params = splitParameters(splitLine[1]);
@@ -478,13 +479,13 @@ public class VEvent {
         if (t.parse(splitLine[2])) { tz = "UTC"; }
         switch (splitLine[0]) {
             case "DTSTART":
-                event.mInstanceStart = event.mEventStart = t.normalize(false);
-                event.mTimezoneStart = tz;
-                event.mAllDay = t.allDay;
+                model.mInstanceStart = model.mEventStart = t.normalize(false);
+                model.mTimezoneStart = tz;
+                model.mAllDay = t.allDay;
                 break;
             case "DTEND":
-                event.mInstanceEnd = event.mEventEnd = t.normalize(false);
-                event.mTimezoneEnd = tz;
+                model.mInstanceEnd = model.mEventEnd = t.normalize(false);
+                model.mTimezoneEnd = tz;
                 break;
         }
     }
@@ -524,7 +525,7 @@ public class VEvent {
 
     // Extract one event from an ical file and populate a CalendarEventModel for it
     static public void populateFromEntries(
-        CalendarEventModel event, ListIterator<String> iter)
+        CalendarEventModel model, ListIterator<String> iter)
     {
         ArrayList<String> params;
         int n;
@@ -541,42 +542,42 @@ public class VEvent {
                     }
                     // DTSTAMP is ignored because Android doesn't handle it
                 case "UID":
-                    event.mUid = splitLine[2];
+                    model.mUid = splitLine[2];
                     continue;
                 case "DTSTART":
-                    parseDateTime(splitLine, event);
+                    parseDateTime(splitLine, model);
                     continue;
                 case "CLASS":
                     switch (splitLine[2].toUpperCase()) {
                         case "CONFIDENTIAL":
-                            event.mAccessLevel = Events.ACCESS_CONFIDENTIAL;
+                            model.mAccessLevel = Events.ACCESS_CONFIDENTIAL;
                             break;
                         case "PRIVATE":
-                            event.mAccessLevel = Events.ACCESS_PRIVATE;
+                            model.mAccessLevel = Events.ACCESS_PRIVATE;
                             break;
                         case "PUBLIC":
-                            event.mAccessLevel = Events.ACCESS_PUBLIC;
+                            model.mAccessLevel = Events.ACCESS_PUBLIC;
                             break;
                     }
                     continue;
                     // CREATED is ignored because Android doesn't handle it
                 case "DESCRIPTION":
-                    event.mDescription = unEscape(splitLine[2]);
+                    model.mDescription = unEscape(splitLine[2]);
                     continue;
                     // GEO is ignored because Android doesn't handle it
                     // LAST-MODIFIED is ignored because Android doesn't handle it
                 case "LOCATION":
-                    event.mLocation = unEscape(splitLine[2]);
+                    model.mLocation = unEscape(splitLine[2]);
                     continue;
                 case "ORGANIZER":
-                    event.mOrganizerDisplayName = null;
-                    event.mOrganizer = splitLine[2].replaceFirst(
+                    model.mOrganizerDisplayName = null;
+                    model.mOrganizer = splitLine[2].replaceFirst(
                         "[mM][aA][iI][lL][tT][oO]:", "");
                     params = splitParameters(splitLine[1]);
                     n = params.size();
                     for (int i = 0; i < n; i += 2) {
                         if (params.get(i).compareTo("CN") == 0) {
-                            event.mOrganizerDisplayName = params.get(i + 1);
+                            model.mOrganizerDisplayName = params.get(i + 1);
                         }
                     }
                     continue;
@@ -585,20 +586,20 @@ public class VEvent {
                 case "STATUS":
                     switch (splitLine[2].toUpperCase()) {
                         case "TENTATIVE":
-                            event.mEventStatus = Events.STATUS_TENTATIVE;
+                            model.mEventStatus = Events.STATUS_TENTATIVE;
                             break;
                         case "CANCELED":
-                            event.mEventStatus = Events.STATUS_CANCELED;
+                            model.mEventStatus = Events.STATUS_CANCELED;
                             break;
                         case "CONFIRMED":
-                            event.mEventStatus = Events.STATUS_CONFIRMED;
+                            model.mEventStatus = Events.STATUS_CONFIRMED;
                     }
                     continue;
                 case "SUMMARY":
-                    event.mTitle = unEscape(splitLine[2]);
+                    model.mTitle = unEscape(splitLine[2]);
                     continue;
                 case "TRANSP":
-                    event.mAvailability =
+                    model.mAvailability =
                         (splitLine[2].toUpperCase().compareTo("TRANSPARENT") == 0)
                             ? Events.AVAILABILITY_FREE
                             : Events.AVAILABILITY_BUSY;
@@ -606,13 +607,13 @@ public class VEvent {
                     // URL is ignored because Android doesn't handle it
                     // RECURRENCE-ID is ignored because Android doesn't handle it
                 case "RRULE":
-                    event.mRrule = splitLine[2];
+                    model.mRrule = splitLine[2];
                     continue;
                 case "DTEND":
-                    parseDateTime(splitLine, event);
+                    parseDateTime(splitLine, model);
                     continue;
                 case "DURATION":
-                    event.mDuration = splitLine[2];
+                    model.mDuration = splitLine[2];
                     continue;
                     // ATTACH is ignored because Android doesn't handle it
                 case "ATTENDEE":
@@ -676,16 +677,16 @@ public class VEvent {
                                 }
                         }
                     }
-                    event.mAttendeesList.put(email, attendee);
+                    model.mAttendeesList.put(email, attendee);
                     continue;
                     // CATEGORIES is ignored because Android doesn't handle it
                     // COMMENT is ignored because Android doesn't handle it
                     // CONTACT is ignored because Android doesn't handle it
                 case "EXDATE":
-                    event.mExdate = parseDateList(splitLine, event.mExdate);
+                    model.mExdate = parseDateList(splitLine, model.mExdate);
                     continue;
                 case "RDATE":
-                    event.mRdate = parseDateList(splitLine, event.mRdate);
+                    model.mRdate = parseDateList(splitLine, model.mRdate);
                     continue;
                     // REQUEST-STATUS is ignored because Android doesn't handle it
                     // RELATED-TO is ignored because Android doesn't handle it
@@ -798,9 +799,9 @@ public class VEvent {
                             break;
                         }
                         if ((minutes >= 0) && validAlarm) {
-                            event.mReminders.add(
+                            model.mReminders.add(
                                 CalendarEventModel.ReminderEntry.valueOf(minutes, method));
-                            event.mHasAlarm = true;
+                            model.mHasAlarm = true;
                             // Android can't do repeating reminders.
                             // So we translate a repeating alarm into multiple reminders.
                             if (duration > 0) {
@@ -814,7 +815,7 @@ public class VEvent {
                                         // the alarm, but currently we don't do that.
                                         break;
                                     }
-                                    event.mReminders.add(
+                                    model.mReminders.add(
                                         CalendarEventModel.ReminderEntry.valueOf(
                                             minutes, method));
                                 }

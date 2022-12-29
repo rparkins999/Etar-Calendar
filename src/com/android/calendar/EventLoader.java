@@ -72,9 +72,11 @@ public class EventLoader {
      * created are used, and the most recent call's worth of data is loaded into events and posted
      * via the uiCallback.
      */
-    public void loadEventsInBackground(final int numDays, final ArrayList<Event> events,
-                                       int startDay, final Runnable successCallback, final Runnable cancelCallback) {
-
+    public void loadEventsInBackground(
+        final int numDays, final ArrayList<Event> events,
+        int startDay, final Runnable successCallback,
+        final Runnable cancelCallback)
+    {
         // Increment the sequence number for requests.  We don't care if the
         // sequence numbers wrap around because we test for equality with the
         // latest one.
@@ -118,7 +120,8 @@ public class EventLoader {
          * The projection used by the EventDays query.
          */
         private static final String[] PROJECTION = {
-                CalendarContract.EventDays.STARTDAY, CalendarContract.EventDays.ENDDAY
+            CalendarContract.EventDays.STARTDAY,
+            CalendarContract.EventDays.ENDDAY
         };
         public int startDay;
         public int numDays;
