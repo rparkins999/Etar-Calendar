@@ -788,7 +788,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mReminderMethodValues = loadIntegerArray(r, R.array.reminder_methods_values);
         mReminderMethodLabels = loadStringArray(r, R.array.reminder_methods_labels);
 
-       int numReminders = 0;
+        int numReminders = 0;
         if (model.mHasAlarm) {
             ArrayList<ReminderEntry> reminders = model.mReminders;
             numReminders = reminders.size();

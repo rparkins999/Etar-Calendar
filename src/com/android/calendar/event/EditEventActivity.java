@@ -74,7 +74,6 @@ import com.android.calendar.icalendar.VCalendar;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 
 import ws.xsoh.etar.BuildConfig;
 import ws.xsoh.etar.R;
@@ -143,7 +142,6 @@ public class EditEventActivity extends AbstractCalendarActivity
     private CalendarEventModel mOriginalModel;
     private EditEventView mView;  // Despite its name, does not extend "View"
     private int mModification = Utils.MODIFY_UNINITIALIZED;
-    private ArrayList<CalendarEventModel.ReminderEntry> mReminders;
     private int mEventColor;
     private boolean mEventColorInitialized;
     private boolean mIsReadOnly;
@@ -227,6 +225,14 @@ public class EditEventActivity extends AbstractCalendarActivity
         synchronized (this) {
             mOutstandingQueries &= ~queryType;
             if (mOutstandingQueries == 0) {
+                if (mModel.mId == mModel.mOriginalId) {
+                    mModel.mIsFirstEventInSeries = true;
+                    mModel.mInstanceStart = mModel.mEventStart;
+                    mModel.mInstanceEnd = mModel.mEventEnd;
+                } else {
+                    mModel.mIsFirstEventInSeries = false;
+                }
+                mOriginalModel = new CalendarEventModel(mModel);
                 if (mModification == Utils.MODIFY_UNINITIALIZED) {
                     if (!TextUtils.isEmpty(mModel.mRrule)) {
                         displayEditWhichDialog();
@@ -236,7 +242,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                 }
                 mView.setModel(mModel);
                 mView.setModification(mModification);
-                invalidateOptionsMenu();
                 if (mColorPickerDialog == null) {
                     mColorPickerDialog =
                         EventColorPickerDialog.newInstance(
@@ -316,16 +321,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                             }
                             EditEventHelper.setModelFromCursor(mModel, cursor);
                             cursor.close();
-                            mOriginalModel = new CalendarEventModel(mModel);
-                            if (mModel.mId == mModel.mOriginalId) {
-                                mModel.mIsFirstEventInSeries = true;
-                                mModel.mInstanceStart = mModel.mEventStart;
-                                mModel.mInstanceEnd = mModel.mEventEnd;
-                            } else {
-                                // We probably shouldn't set mModel.mOriginalStart
-                                // or mModel.mOriginalStart here.
-                                mModel.mIsFirstEventInSeries = false;
-                            }
                             if (mEventColorInitialized) {
                                 mModel.setEventColor(mEventColor);
                             }
@@ -360,14 +355,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                                     selectionArgs,
                                     null /* sort order */);
                             } else {
-                                if (mReminders == null) {
-                                    // mReminders should not be null.
-                                    mReminders = new ArrayList<>();
-                                } else {
-                                    Collections.sort(mReminders);
-                                }
-                                mOriginalModel.mReminders = mReminders;
-                                mModel.mReminders = mModel.cloneReminders(mReminders);
                                 setModelIfDone(TOKEN_REMINDERS);
                             }
 
@@ -468,12 +455,10 @@ public class EditEventActivity extends AbstractCalendarActivity
                                         EditEventHelper.REMINDERS_INDEX_METHOD);
                                     CalendarEventModel.ReminderEntry re = CalendarEventModel.ReminderEntry.valueOf(minutes, method);
                                     mModel.mReminders.add(re);
-                                    mOriginalModel.mReminders.add(re);
                                 }
 
                                 // Sort appropriately for display
-                                Collections.sort(mModel.mReminders);
-                                Collections.sort(mOriginalModel.mReminders);
+                                mModel.normalizeReminders();
                             } finally {
                                 cursor.close();
                             }
