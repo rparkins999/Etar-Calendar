@@ -139,7 +139,7 @@ public class EditEventActivity extends AbstractCalendarActivity
 
     private EditEventHelper mHelper;
     private CalendarEventModel mModel = null;
-    private CalendarEventModel mOriginalModel;
+    private CalendarEventModel mOriginalModel = null;
     private EditEventView mView;  // Despite its name, does not extend "View"
     private int mModification = Utils.MODIFY_UNINITIALIZED;
     private int mEventColor;
@@ -232,7 +232,9 @@ public class EditEventActivity extends AbstractCalendarActivity
                 } else {
                     mModel.mIsFirstEventInSeries = false;
                 }
-                mOriginalModel = new CalendarEventModel(mModel);
+                if (mModel.mId >= 0) {
+                    mOriginalModel = new CalendarEventModel(mModel);
+                }
                 if (mModification == Utils.MODIFY_UNINITIALIZED) {
                     if (!TextUtils.isEmpty(mModel.mRrule)) {
                         displayEditWhichDialog();
@@ -292,7 +294,7 @@ public class EditEventActivity extends AbstractCalendarActivity
                     CalendarEventModel model = new CalendarEventModel();
                     EditEventHelper.setModelFromCursor(model, cursor);
                     cursor.close();
-                    // This calla an overload of delete()
+                    // This calls an overload of delete()
                     // which sets mInstanceStart and mInstanceEnd
                     ((DeleteEventHelper)cookie).deleteAfterQuery(model);
                 } else {
@@ -405,20 +407,13 @@ public class EditEventActivity extends AbstractCalendarActivity
                                             mModel.mIsOrganizer =
                                                 mModel.mOwnerAccount
                                                     .equalsIgnoreCase(email);
-                                            mOriginalModel.mOrganizer = email;
-                                            mOriginalModel.mIsOrganizer =
-                                                mOriginalModel.mOwnerAccount
-                                                    .equalsIgnoreCase(email);
                                         }
 
                                         if (TextUtils.isEmpty(name)) {
                                             mModel.mOrganizerDisplayName =
                                                 mModel.mOrganizer;
-                                            mOriginalModel.mOrganizerDisplayName =
-                                                mOriginalModel.mOrganizer;
                                         } else {
                                             mModel.mOrganizerDisplayName = name;
-                                            mOriginalModel.mOrganizerDisplayName = name;
                                         }
                                     }
 
@@ -429,15 +424,12 @@ public class EditEventActivity extends AbstractCalendarActivity
                                                 EditEventHelper.ATTENDEES_INDEX_ID);
                                             mModel.mOwnerAttendeeId = attendeeId;
                                             mModel.mSelfAttendeeStatus = status;
-                                            mOriginalModel.mOwnerAttendeeId = attendeeId;
-                                            mOriginalModel.mSelfAttendeeStatus = status;
                                             continue;
                                         }
                                     }
                                     CalendarEventModel.Attendee attendee = new CalendarEventModel.Attendee(
                                         name, email, status, type, identity, idNamespace);
                                     mModel.addAttendee(attendee);
-                                    mOriginalModel.addAttendee(attendee);
                                 }
                             } finally {
                                 cursor.close();
@@ -481,8 +473,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                                     // Populate model for an existing event
                                     EditEventHelper.setModelFromCalendarCursor(
                                         mModel, cursor);
-                                    EditEventHelper.setModelFromCalendarCursor(
-                                        mOriginalModel, cursor);
                                 }
                             } finally {
                                 cursor.close();
