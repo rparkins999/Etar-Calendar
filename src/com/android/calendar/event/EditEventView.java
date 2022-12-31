@@ -877,17 +877,10 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         // If the user is allowed to change the attendees set up the view and
         // validator
+        // FIXME is this where we need to allow adding attendees?
         if (!model.mHasAttendeeData) {
             mAttendeesGroup.setVisibility(View.GONE);
         }
-
-        mAllDayCheckBox.setOnCheckedChangeListener(
-            new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                setAllDayViewsVisibility(isChecked);
-            }
-        });
 
         boolean prevAllDay = mAllDayCheckBox.isChecked();
         mAllDay = false; // default to false. Let setAllDayViewsVisibility update it as needed
@@ -1003,6 +996,15 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mScrollView.setVisibility(View.VISIBLE);
         mLoadingMessage.setVisibility(View.GONE);
         sendAccessibilityEvent();
+
+        mAllDayCheckBox.setOnCheckedChangeListener(
+            new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    setAllDayViewsVisibility(isChecked);
+                }
+            });
+
     }
 
     public void updateHeadlineColor(CalendarEventModel model, int displayColor) {

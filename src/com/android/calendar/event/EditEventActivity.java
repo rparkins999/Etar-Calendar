@@ -919,7 +919,6 @@ public class EditEventActivity extends AbstractCalendarActivity
         }
         Intent mIntent = getIntent();
         setContentView(R.layout.simple_frame_layout_material);
-        findViewById(R.id.body_frame);
         mIsReadOnly = mIntent.getBooleanExtra(EXTRA_READ_ONLY,
             (savedInstanceState != null)
                 && savedInstanceState.getBoolean(
@@ -992,9 +991,10 @@ public class EditEventActivity extends AbstractCalendarActivity
         if (mModel == null) {
             // This sets mInstanceStart and mInstanceEnd
             mModel = new CalendarEventModel(this, mIntent);
-            if (mModel.mId < 0) {
-                mModel.mId = (savedInstanceState == null)
-                    ? -1 : savedInstanceState.getLong(
+            if (   (mModel.mId < 0)
+                && (savedInstanceState != null))
+            {
+                mModel.mId = savedInstanceState.getLong(
                     BUNDLE_KEY_EVENT_ID, -1);
             }
         }
