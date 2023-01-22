@@ -69,6 +69,7 @@ public class VCalendar {
             if (line.toUpperCase().startsWith("BEGIN:VEVENT")) {
                 // Offload to vevent for parsing
                 CalendarEventModel event = new CalendarEventModel();
+                // This sets mInstanceStart and mInstanceEnd
                 VEvent.populateFromEntries(event, iter);
                 CalendarApplication.mEvents.add(event);
             } else if (line.toUpperCase().startsWith("END:VCALENDAR")) {

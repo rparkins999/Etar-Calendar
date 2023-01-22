@@ -214,24 +214,49 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mActivity, "spinner_button_color");
 
         // cache top level view elements
-        mLoadingMessage = (TextView) view.findViewById(R.id.loading_message);
-        mScrollView = (ScrollView) view.findViewById(R.id.scroll_view);
+        mLoadingMessage = view.findViewById(R.id.loading_message);
+        mScrollView = view.findViewById(R.id.scroll_view);
 
         // cache all the widgets
-        mCalendarsSpinner = (Spinner) view.findViewById(R.id.calendars_spinner);
-        mTitleTextView = (TextView) view.findViewById(R.id.title);
-        mLocationTextView = (AutoCompleteTextView) view.findViewById(R.id.location);
-        mDescriptionTextView = (TextView) view.findViewById(R.id.description);
-        mStartDateButton = (Button) view.findViewById(R.id.start_date);
+        mCalendarsSpinner = view.findViewById(R.id.calendars_spinner);
+        mTitleTextView = view.findViewById(R.id.title);
+        mTitleTextView.setOnEditorActionListener(
+            new OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(
+                    TextView v, int actionId, KeyEvent event)
+                {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                       somethingChanged();
+                    }
+                    return false;
+                }
+            });
+        mLocationTextView =
+            view.findViewById(R.id.location);
+        mDescriptionTextView = view.findViewById(R.id.description);
+        mDescriptionTextView.setOnEditorActionListener(
+            new OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(
+                    TextView v, int actionId, KeyEvent event)
+                {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        somethingChanged();
+                    }
+                    return false;
+                }
+            });
+        mStartDateButton = view.findViewById(R.id.start_date);
         mStartDateButton.setTextColor(mSpinnerButtonColor);
-        mEndDateButton = (Button) view.findViewById(R.id.end_date);
+        mEndDateButton = view.findViewById(R.id.end_date);
         mEndDateButton.setTextColor(mSpinnerButtonColor);
-        mWhenView = (TextView) mView.findViewById(R.id.when);
-        mStartTimezoneLabel = (TextView) view.findViewById(R.id.start_timezone_label);
-        mStartTimezoneTextView = (TextView) mView.findViewById(R.id.start_timezone_textView);
-        mStartTimeButton = (Button) view.findViewById(R.id.start_time);
+        mWhenView = mView.findViewById(R.id.when);
+        mStartTimezoneLabel = view.findViewById(R.id.start_timezone_label);
+        mStartTimezoneTextView = mView.findViewById(R.id.start_timezone_textView);
+        mStartTimeButton = view.findViewById(R.id.start_time);
         mStartTimeButton.setTextColor(mSpinnerButtonColor);
-        mStartTimezoneButton = (Button) view.findViewById(R.id.start_timezone_button);
+        mStartTimezoneButton = view.findViewById(R.id.start_timezone_button);
         mStartTimezoneButton.setTextColor(mSpinnerButtonColor);
         mStartTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -240,11 +265,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         });
         mStartTimezoneRow = view.findViewById(R.id.start_timezone_button_row);
-        mEndTimezoneLabel = (TextView) view.findViewById(R.id.end_timezone_label);
-        mEndTimezoneTextView = (TextView) mView.findViewById(R.id.end_timezone_textView);
-        mEndTimeButton = (Button) view.findViewById(R.id.end_time);
+        mEndTimezoneLabel = view.findViewById(R.id.end_timezone_label);
+        mEndTimezoneTextView = mView.findViewById(R.id.end_timezone_textView);
+        mEndTimeButton = view.findViewById(R.id.end_time);
         mEndTimeButton.setTextColor(mSpinnerButtonColor);
-        mEndTimezoneButton = (Button) view.findViewById(R.id.end_timezone_button);
+        mEndTimezoneButton = view.findViewById(R.id.end_timezone_button);
         mEndTimezoneButton.setTextColor(mSpinnerButtonColor);
         mEndTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -253,19 +278,19 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         });
         mEndTimezoneRow = view.findViewById(R.id.end_timezone_button_row);
-        mStartTimeHome = (TextView) view.findViewById(R.id.start_time_home_tz);
+        mStartTimeHome = view.findViewById(R.id.start_time_home_tz);
         mStartTimeHome.setTextColor(mSpinnerButtonColor);
-        mStartDateHome = (TextView) view.findViewById(R.id.start_date_home_tz);
+        mStartDateHome = view.findViewById(R.id.start_date_home_tz);
         mStartDateHome.setTextColor(mSpinnerButtonColor);
-        mEndTimeHome = (TextView) view.findViewById(R.id.end_time_home_tz);
+        mEndTimeHome = view.findViewById(R.id.end_time_home_tz);
         mEndTimeHome.setTextColor(mSpinnerButtonColor);
-        mEndDateHome = (TextView) view.findViewById(R.id.end_date_home_tz);
+        mEndDateHome = view.findViewById(R.id.end_date_home_tz);
         mEndDateHome.setTextColor(mSpinnerButtonColor);
-        mAllDayCheckBox = (CheckBox) view.findViewById(R.id.is_all_day);
-        mRruleButton = (Button) view.findViewById(R.id.rrule);
+        mAllDayCheckBox = view.findViewById(R.id.is_all_day);
+        mRruleButton = view.findViewById(R.id.rrule);
         mRruleButton.setTextColor(mSpinnerButtonColor);
-        mAvailabilitySpinner = (Spinner) view.findViewById(R.id.availability);
-        mAccessLevelSpinner = (Spinner) view.findViewById(R.id.visibility);
+        mAvailabilitySpinner = view.findViewById(R.id.availability);
+        mAccessLevelSpinner = view.findViewById(R.id.visibility);
         mCalendarSelectorGroup = view.findViewById(R.id.calendar_selector_group);
         mCalendarSelectorWrapper = view.findViewById(R.id.calendar_selector_wrapper);
         mCalendarStaticGroup = view.findViewById(R.id.calendar_group);
@@ -286,49 +311,55 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mLocationTextView.setTag(mLocationTextView.getBackground());
         mLocationAdapter = new EventLocationAdapter(activity);
         mLocationTextView.setAdapter(mLocationAdapter);
-        mLocationTextView.setOnEditorActionListener(new OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    // Dismiss the suggestions dropdown.  Return false so the other
-                    // side effects still occur (soft keyboard going away, etc.).
+        mLocationTextView.setOnEditorActionListener(
+            new OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(
+                    TextView v, int actionId, KeyEvent event)
+                {
+                    if (actionId == EditorInfo.IME_ACTION_DONE) {
+                        // Dismiss the suggestions dropdown.  Return false
+                        // so the other side effects still occur
+                        // (soft keyboard going away, etc.).
                     mLocationTextView.dismissDropDown();
+                    somethingChanged();
+                    }
+                    return false;
                 }
-                return false;
-            }
-        });
-
+            });
         mAvailabilityExplicitlySet = false;
         mAllDayChangingAvailability = false;
         mAvailabilityCurrentlySelected = -1;
         mAvailabilitySpinner.setOnItemSelectedListener(
-                new OnItemSelectedListener() {
-                    @Override
-                    public void onItemSelected(AdapterView<?> parent,
-                                               View view, int position, long id) {
-                        // The spinner's onItemSelected gets called while it is being
-                        // initialized to the first item, and when we explicitly set it
-                        // in the allDay checkbox toggling, so we need these checks to
-                        // find out when the spinner is actually being clicked.
-
-                        // Set the initial selection.
-                        if (mAvailabilityCurrentlySelected == -1) {
-                            mAvailabilityCurrentlySelected = position;
-                        }
-
-                        if (mAvailabilityCurrentlySelected != position &&
-                                !mAllDayChangingAvailability) {
-                            mAvailabilityExplicitlySet = true;
-                        } else {
-                            mAvailabilityCurrentlySelected = position;
-                            mAllDayChangingAvailability = false;
-                }
-            }
-
-                    @Override
-                    public void onNothingSelected(AdapterView<?> arg0) {
+            new OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(
+                    AdapterView<?> parent, View view, int position, long id)
+                {
+                    // The spinner's onItemSelected gets called while it is
+                    // being initialized to the first item, and when we
+                    // explicitly set it in the allDay checkbox toggling,
+                    // so we need these checks to find out when the spinner
+                    // is actually being clicked.
+                    // Set the initial selection.
+                    if (mAvailabilityCurrentlySelected == -1) {
+                        mAvailabilityCurrentlySelected = position;
                     }
-                });
+                    if (   mAvailabilityCurrentlySelected != position
+                        && !mAllDayChangingAvailability)
+                    {
+                        mAvailabilityExplicitlySet = true;
+                    } else {
+                        mAvailabilityCurrentlySelected = position;
+                        mAllDayChangingAvailability = false;
+                    }
+                    somethingChanged();
+                }
+                @Override
+                public void onNothingSelected(AdapterView<?> arg0) {
+
+                }
+            });
 
 
         mDescriptionTextView.setTag(mDescriptionTextView.getBackground());
@@ -356,9 +387,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mEditOnlyList.add(mStartHomeGroup);
         mEditOnlyList.add(mEndHomeGroup);
 
-        mResponseRadioGroup = (RadioGroup) view.findViewById(R.id.response_value);
+        mResponseRadioGroup = view.findViewById(R.id.response_value);
         mRemindersContainer =
-            (LinearLayout) view.findViewById(R.id.reminder_items_container);
+            view.findViewById(R.id.reminder_items_container);
 
         mStartTimezone = Utils.getTimeZone(activity, null);
         mIsMultipane = activity.getResources().getBoolean(R.bool.tablet_config);
@@ -552,6 +583,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         parent.removeView(reminderItem);
         mReminderItems.remove(reminderItem);
         updateRemindersVisibility(mReminderItems.size());
+        somethingChanged();
     }
 
     @Override
@@ -563,6 +595,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mEventRecurrence.parse(mRrule);
         }
         populateRepeats();
+        somethingChanged();
     }
 
     // This is called if the user cancels the "No calendars" dialog.
@@ -609,6 +642,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mModel.mAllDay = mAllDayCheckBox.isChecked();
         mModel.mLocation = mLocationTextView.getText().toString();
         mModel.mDescription = mDescriptionTextView.getText().toString();
+        if (TextUtils.isEmpty(mModel.mTitle)) {
+            mModel.mTitle = null;
+        }
         if (TextUtils.isEmpty(mModel.mLocation)) {
             mModel.mLocation = null;
         }
@@ -656,7 +692,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mStartTime.minute = 0;
             mStartTime.second = 0;
             mStartTime.timezone = mStartTimezone;
-            mModel.mStart = mStartTime.normalize(true);
+            mModel.mEventStart = mStartTime.normalize(true);
 
             mEndTime.hour = 0;
             mEndTime.minute = 0;
@@ -666,17 +702,17 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             // end time should be Y + 1 (Oct.30).
             final long normalizedEndTimeMillis =
                     mEndTime.normalize(true) + DateUtils.DAY_IN_MILLIS;
-            if (normalizedEndTimeMillis < mModel.mStart) {
+            if (normalizedEndTimeMillis < mModel.mEventStart) {
                 // mEnd should be midnight of the next day of mStart.
-                mModel.mEnd = mModel.mStart + DateUtils.DAY_IN_MILLIS;
+                mModel.mEventEnd = mModel.mEventStart + DateUtils.DAY_IN_MILLIS;
             } else {
-                mModel.mEnd = normalizedEndTimeMillis;
+                mModel.mEventEnd = normalizedEndTimeMillis;
             }
         } else {
             mStartTime.timezone = mStartTimezone;
             mEndTime.timezone = mEndTimezone;
-            mModel.mStart = mStartTime.toMillis(true);
-            mModel.mEnd = mEndTime.toMillis(true);
+            mModel.mInstanceStart = mStartTime.toMillis(true);
+            mModel.mInstanceEnd = mEndTime.toMillis(true);
         }
         mModel.mTimezoneStart = mStartTimezone;
         mModel.mTimezoneEnd = mEndTimezone;
@@ -755,7 +791,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mReminderMethodValues = loadIntegerArray(r, R.array.reminder_methods_values);
         mReminderMethodLabels = loadStringArray(r, R.array.reminder_methods_labels);
 
-       int numReminders = 0;
+        int numReminders = 0;
         if (model.mHasAlarm) {
             ArrayList<ReminderEntry> reminders = model.mReminders;
             numReminders = reminders.size();
@@ -816,8 +852,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         boolean canRespond = EditEventHelper.canRespond(model);
 
-        long begin = model.mStart;
-        long end = model.mEnd;
+        long begin = model.mInstanceStart;
+        long end = model.mInstanceEnd;
         mStartTimezone = model.mTimezoneStart; // this will be UTC for all day events
         mEndTimezone = model.mTimezoneEnd; // this will be UTC for all day events
 
@@ -844,19 +880,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         // If the user is allowed to change the attendees set up the view and
         // validator
+        // FIXME is this where we need to allow adding attendees?
         if (!model.mHasAttendeeData) {
             mAttendeesGroup.setVisibility(View.GONE);
         }
 
-        mAllDayCheckBox.setOnCheckedChangeListener(
-            new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                setAllDayViewsVisibility(isChecked);
-            }
-        });
-
-        boolean prevAllDay = mAllDayCheckBox.isChecked();
         mAllDay = false; // default to false. Let setAllDayViewsVisibility update it as needed
         if (model.mAllDay) {
             mAllDayCheckBox.setChecked(true);
@@ -903,8 +931,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     });
         }
 
-        if (model.mTitle != null) {
-            mTitleTextView.setTextKeepState(model.mTitle);
+        if (   (mTitleTextView.length() == 0)
+            && (model.mTitle != null)) {
+            mTitleTextView.setText(model.mTitle);
         }
 
         if (model.mIsOrganizer || TextUtils.isEmpty(model.mOrganizer)
@@ -916,12 +945,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             ((TextView) mView.findViewById(R.id.organizer)).setText(model.mOrganizerDisplayName);
         }
 
-        if (model.mLocation != null) {
-            mLocationTextView.setTextKeepState(model.mLocation);
+        if (   (mLocationTextView.length() == 0)
+            && (model.mLocation != null)) {
+            mLocationTextView.setText(model.mLocation);
         }
 
-        if (model.mDescription != null) {
-            mDescriptionTextView.setTextKeepState(model.mDescription);
+        if (   (mDescriptionTextView.length() == 0)
+            && (model.mDescription != null)) {
+            mDescriptionTextView.setText(model.mDescription);
         }
 
         int availIndex = mAvailabilityValues.indexOf(model.mAvailability);
@@ -948,9 +979,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             // since we can't change the calendar.
             View calendarGroup = mView.findViewById(R.id.calendar_selector_group);
             calendarGroup.setVisibility(View.GONE);
-            TextView tv = (TextView) mView.findViewById(R.id.calendar_textview);
+            TextView tv = mView.findViewById(R.id.calendar_textview);
             tv.setText(model.mCalendarDisplayName);
-            tv = (TextView) mView.findViewById(R.id.calendar_textview_secondary);
+            tv = mView.findViewById(R.id.calendar_textview_secondary);
             if (tv != null) {
                 tv.setText(model.mOwnerAccount);
             }
@@ -970,6 +1001,15 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mScrollView.setVisibility(View.VISIBLE);
         mLoadingMessage.setVisibility(View.GONE);
         sendAccessibilityEvent();
+
+        mAllDayCheckBox.setOnCheckedChangeListener(
+            new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    setAllDayViewsVisibility(isChecked);
+                }
+            });
+
     }
 
     public void updateHeadlineColor(CalendarEventModel model, int displayColor) {
@@ -1283,6 +1323,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         } else {
             mAttendeesContainer.setVisibility(View.VISIBLE);
         }
+        somethingChanged();
     }
 
     private void updateRemindersVisibility(int numReminders) {
@@ -1314,6 +1355,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 null);
         }
         updateRemindersVisibility(mReminderItems.size());
+        somethingChanged();
     }
 
    /**
@@ -1322,7 +1364,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     protected void setAllDayViewsVisibility(boolean isChecked) {
         if (isChecked) {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
-                if (mAllDay != isChecked) {
+                if (!mAllDay) {
                     mEndTime.monthDay--;
                 }
 
@@ -1335,7 +1377,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         } else {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
-                if (mAllDay != isChecked) {
+                if (mAllDay) {
                     mEndTime.monthDay++;
                 }
             }
@@ -1446,11 +1488,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         // Update the UI elements.
         mReminderItems.clear();
         LinearLayout reminderLayout =
-            (LinearLayout) mScrollView.findViewById(R.id.reminder_items_container);
+            mScrollView.findViewById(R.id.reminder_items_container);
         reminderLayout.removeAllViews();
         prepareReminders();
         prepareAvailability();
         prepareAccess();
+        mActivity.invalidateOptionsMenu();
     }
 
     /* This sets the displayed times and dates.
@@ -1516,12 +1559,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     TimeZone.getTimeZone(tz).getDisplayName(
                     isDSTStart, TimeZone.SHORT, Locale.getDefault());
                 mSB.setLength(0);
-                StringBuilder time = new StringBuilder();
-                time.append(DateUtils.formatDateRange(
+                String time = DateUtils.formatDateRange(
                     mActivity, mF, millisStart, millisStart,
-                    timeFlags, tz))
-                    .append(" ").append(tzDisplay);
-                mStartTimeHome.setText(time.toString());
+                    timeFlags, tz) +
+                    " " + tzDisplay;
+                mStartTimeHome.setText(time);
                 mStartHomeGroup.setVisibility(View.VISIBLE);
             }
             if (mEndTime.gmtoff == gmtoff) {
@@ -1535,15 +1577,15 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     TimeZone.getTimeZone(tz).getDisplayName(
                     isDSTEnd, TimeZone.SHORT, Locale.getDefault());
                 mSB.setLength(0);
-                StringBuilder time = new StringBuilder();
-                time.append(DateUtils.formatDateRange(
-                        mActivity, mF, millisEnd, millisEnd,
-                        timeFlags, tz))
-                        .append(" ").append(tzDisplay);
-                mEndTimeHome.setText(time.toString());
+                String time = DateUtils.formatDateRange(
+                    mActivity, mF, millisEnd, millisEnd,
+                    timeFlags, tz) +
+                    " " + tzDisplay;
+                mEndTimeHome.setText(time);
                 mEndHomeGroup.setVisibility(View.VISIBLE);
             }
         }
+        somethingChanged();
     }
 
     @Override
@@ -1567,12 +1609,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                         .getInt(colorColumn)));
             }
 
-            TextView name = (TextView) view.findViewById(R.id.calendar_name);
+            TextView name = view.findViewById(R.id.calendar_name);
             if (name != null) {
                 String displayName = cursor.getString(nameColumn);
                 name.setText(displayName);
 
-                TextView accountName = (TextView) view.findViewById(R.id.account_name);
+                TextView accountName = view.findViewById(R.id.account_name);
                 if (accountName != null) {
                     accountName.setText(cursor.getString(ownerColumn));
                     accountName.setVisibility(TextView.VISIBLE);
@@ -1748,5 +1790,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
             mDatePickerDialog.show();
         }
+    }
+
+    // This gets called when anything changes,
+    // because the options menu may need to be updated.
+    private void somethingChanged() {
+        fillModelFromUI();
+        mActivity.invalidateOptionsMenu();
     }
 }

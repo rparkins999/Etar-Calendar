@@ -102,6 +102,7 @@ import ws.xsoh.etar.R;
 /**
  * View for multi-day view. So far only 1 and 7 day have been tested.
  */
+@SuppressLint("ViewConstructor")
 public class DayView extends View implements View.OnCreateContextMenuListener,
     ScaleGestureDetector.OnScaleGestureListener, View.OnClickListener,
     View.OnLongClickListener
@@ -185,7 +186,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     protected static StringBuilder mStringBuilder = new StringBuilder(50);
     // TODO recreate formatter when locale changes
     protected static Formatter mFormatter = new Formatter(mStringBuilder, Locale.getDefault());
-    private static String TAG = "DayView";
+    private static final String TAG = "DayView";
     private static final boolean DEBUG = false;
     private static final boolean DEBUG_SCALING = false;
     private static final boolean DEBUG_DPAD = false;
@@ -214,7 +215,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
      * This is the minimum size reserved for displaying regular events.
      * The expanded allDay region can't expand into this.
      */
-    private static int MIN_HOURS_HEIGHT = 180;
+    private static final int MIN_HOURS_HEIGHT = 180;
     private static int ALLDAY_TOP_MARGIN = 1;
     // The largest a single allDay event will become.
     private static int MAX_HEIGHT_OF_ONE_ALLDAY_EVENT = 34;
@@ -3026,7 +3027,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 mEvents = events;
                 mLoadedFirstJulianDay = mFirstJulianDay;
                 if (mAllDayEvents == null) {
-                    mAllDayEvents = new ArrayList<Event>();
+                    mAllDayEvents = new ArrayList<>();
                 } else {
                     mAllDayEvents.clear();
                 }
