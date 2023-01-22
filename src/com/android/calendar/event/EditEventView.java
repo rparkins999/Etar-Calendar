@@ -931,8 +931,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     });
         }
 
-        if (model.mTitle != null) {
-            mTitleTextView.setTextKeepState(model.mTitle);
+        if (   (mTitleTextView.length() == 0)
+            && (model.mTitle != null)) {
+            mTitleTextView.setText(model.mTitle);
         }
 
         if (model.mIsOrganizer || TextUtils.isEmpty(model.mOrganizer)
@@ -944,12 +945,14 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             ((TextView) mView.findViewById(R.id.organizer)).setText(model.mOrganizerDisplayName);
         }
 
-        if (model.mLocation != null) {
-            mLocationTextView.setTextKeepState(model.mLocation);
+        if (   (mLocationTextView.length() == 0)
+            && (model.mLocation != null)) {
+            mLocationTextView.setText(model.mLocation);
         }
 
-        if (model.mDescription != null) {
-            mDescriptionTextView.setTextKeepState(model.mDescription);
+        if (   (mDescriptionTextView.length() == 0)
+            && (model.mDescription != null)) {
+            mDescriptionTextView.setText(model.mDescription);
         }
 
         int availIndex = mAvailabilityValues.indexOf(model.mAvailability);
