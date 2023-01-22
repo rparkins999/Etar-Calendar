@@ -1,3 +1,2 @@
 include ':external:calendar'
-include ':external:colorpicker'
 include ':external:chips'
