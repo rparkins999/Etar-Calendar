@@ -214,12 +214,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mActivity, "spinner_button_color");
 
         // cache top level view elements
-        mLoadingMessage = (TextView) view.findViewById(R.id.loading_message);
-        mScrollView = (ScrollView) view.findViewById(R.id.scroll_view);
+        mLoadingMessage = view.findViewById(R.id.loading_message);
+        mScrollView = view.findViewById(R.id.scroll_view);
 
         // cache all the widgets
-        mCalendarsSpinner = (Spinner) view.findViewById(R.id.calendars_spinner);
-        mTitleTextView = (TextView) view.findViewById(R.id.title);
+        mCalendarsSpinner = view.findViewById(R.id.calendars_spinner);
+        mTitleTextView = view.findViewById(R.id.title);
         mTitleTextView.setOnEditorActionListener(
             new OnEditorActionListener() {
                 @Override
@@ -233,8 +233,8 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 }
             });
         mLocationTextView =
-            (AutoCompleteTextView) view.findViewById(R.id.location);
-        mDescriptionTextView = (TextView) view.findViewById(R.id.description);
+            view.findViewById(R.id.location);
+        mDescriptionTextView = view.findViewById(R.id.description);
         mDescriptionTextView.setOnEditorActionListener(
             new OnEditorActionListener() {
                 @Override
@@ -247,16 +247,16 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     return false;
                 }
             });
-        mStartDateButton = (Button) view.findViewById(R.id.start_date);
+        mStartDateButton = view.findViewById(R.id.start_date);
         mStartDateButton.setTextColor(mSpinnerButtonColor);
-        mEndDateButton = (Button) view.findViewById(R.id.end_date);
+        mEndDateButton = view.findViewById(R.id.end_date);
         mEndDateButton.setTextColor(mSpinnerButtonColor);
-        mWhenView = (TextView) mView.findViewById(R.id.when);
-        mStartTimezoneLabel = (TextView) view.findViewById(R.id.start_timezone_label);
-        mStartTimezoneTextView = (TextView) mView.findViewById(R.id.start_timezone_textView);
-        mStartTimeButton = (Button) view.findViewById(R.id.start_time);
+        mWhenView = mView.findViewById(R.id.when);
+        mStartTimezoneLabel = view.findViewById(R.id.start_timezone_label);
+        mStartTimezoneTextView = mView.findViewById(R.id.start_timezone_textView);
+        mStartTimeButton = view.findViewById(R.id.start_time);
         mStartTimeButton.setTextColor(mSpinnerButtonColor);
-        mStartTimezoneButton = (Button) view.findViewById(R.id.start_timezone_button);
+        mStartTimezoneButton = view.findViewById(R.id.start_timezone_button);
         mStartTimezoneButton.setTextColor(mSpinnerButtonColor);
         mStartTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -265,11 +265,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         });
         mStartTimezoneRow = view.findViewById(R.id.start_timezone_button_row);
-        mEndTimezoneLabel = (TextView) view.findViewById(R.id.end_timezone_label);
-        mEndTimezoneTextView = (TextView) mView.findViewById(R.id.end_timezone_textView);
-        mEndTimeButton = (Button) view.findViewById(R.id.end_time);
+        mEndTimezoneLabel = view.findViewById(R.id.end_timezone_label);
+        mEndTimezoneTextView = mView.findViewById(R.id.end_timezone_textView);
+        mEndTimeButton = view.findViewById(R.id.end_time);
         mEndTimeButton.setTextColor(mSpinnerButtonColor);
-        mEndTimezoneButton = (Button) view.findViewById(R.id.end_timezone_button);
+        mEndTimezoneButton = view.findViewById(R.id.end_timezone_button);
         mEndTimezoneButton.setTextColor(mSpinnerButtonColor);
         mEndTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -278,19 +278,19 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         });
         mEndTimezoneRow = view.findViewById(R.id.end_timezone_button_row);
-        mStartTimeHome = (TextView) view.findViewById(R.id.start_time_home_tz);
+        mStartTimeHome = view.findViewById(R.id.start_time_home_tz);
         mStartTimeHome.setTextColor(mSpinnerButtonColor);
-        mStartDateHome = (TextView) view.findViewById(R.id.start_date_home_tz);
+        mStartDateHome = view.findViewById(R.id.start_date_home_tz);
         mStartDateHome.setTextColor(mSpinnerButtonColor);
-        mEndTimeHome = (TextView) view.findViewById(R.id.end_time_home_tz);
+        mEndTimeHome = view.findViewById(R.id.end_time_home_tz);
         mEndTimeHome.setTextColor(mSpinnerButtonColor);
-        mEndDateHome = (TextView) view.findViewById(R.id.end_date_home_tz);
+        mEndDateHome = view.findViewById(R.id.end_date_home_tz);
         mEndDateHome.setTextColor(mSpinnerButtonColor);
-        mAllDayCheckBox = (CheckBox) view.findViewById(R.id.is_all_day);
-        mRruleButton = (Button) view.findViewById(R.id.rrule);
+        mAllDayCheckBox = view.findViewById(R.id.is_all_day);
+        mRruleButton = view.findViewById(R.id.rrule);
         mRruleButton.setTextColor(mSpinnerButtonColor);
-        mAvailabilitySpinner = (Spinner) view.findViewById(R.id.availability);
-        mAccessLevelSpinner = (Spinner) view.findViewById(R.id.visibility);
+        mAvailabilitySpinner = view.findViewById(R.id.availability);
+        mAccessLevelSpinner = view.findViewById(R.id.visibility);
         mCalendarSelectorGroup = view.findViewById(R.id.calendar_selector_group);
         mCalendarSelectorWrapper = view.findViewById(R.id.calendar_selector_wrapper);
         mCalendarStaticGroup = view.findViewById(R.id.calendar_group);
@@ -387,9 +387,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         mEditOnlyList.add(mStartHomeGroup);
         mEditOnlyList.add(mEndHomeGroup);
 
-        mResponseRadioGroup = (RadioGroup) view.findViewById(R.id.response_value);
+        mResponseRadioGroup = view.findViewById(R.id.response_value);
         mRemindersContainer =
-            (LinearLayout) view.findViewById(R.id.reminder_items_container);
+            view.findViewById(R.id.reminder_items_container);
 
         mStartTimezone = Utils.getTimeZone(activity, null);
         mIsMultipane = activity.getResources().getBoolean(R.bool.tablet_config);
@@ -885,7 +885,6 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             mAttendeesGroup.setVisibility(View.GONE);
         }
 
-        boolean prevAllDay = mAllDayCheckBox.isChecked();
         mAllDay = false; // default to false. Let setAllDayViewsVisibility update it as needed
         if (model.mAllDay) {
             mAllDayCheckBox.setChecked(true);
@@ -977,9 +976,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             // since we can't change the calendar.
             View calendarGroup = mView.findViewById(R.id.calendar_selector_group);
             calendarGroup.setVisibility(View.GONE);
-            TextView tv = (TextView) mView.findViewById(R.id.calendar_textview);
+            TextView tv = mView.findViewById(R.id.calendar_textview);
             tv.setText(model.mCalendarDisplayName);
-            tv = (TextView) mView.findViewById(R.id.calendar_textview_secondary);
+            tv = mView.findViewById(R.id.calendar_textview_secondary);
             if (tv != null) {
                 tv.setText(model.mOwnerAccount);
             }
@@ -1362,7 +1361,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     protected void setAllDayViewsVisibility(boolean isChecked) {
         if (isChecked) {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
-                if (mAllDay != isChecked) {
+                if (!mAllDay) {
                     mEndTime.monthDay--;
                 }
 
@@ -1375,7 +1374,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
             }
         } else {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
-                if (mAllDay != isChecked) {
+                if (mAllDay) {
                     mEndTime.monthDay++;
                 }
             }
@@ -1486,7 +1485,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         // Update the UI elements.
         mReminderItems.clear();
         LinearLayout reminderLayout =
-            (LinearLayout) mScrollView.findViewById(R.id.reminder_items_container);
+            mScrollView.findViewById(R.id.reminder_items_container);
         reminderLayout.removeAllViews();
         prepareReminders();
         prepareAvailability();
@@ -1557,12 +1556,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     TimeZone.getTimeZone(tz).getDisplayName(
                     isDSTStart, TimeZone.SHORT, Locale.getDefault());
                 mSB.setLength(0);
-                StringBuilder time = new StringBuilder();
-                time.append(DateUtils.formatDateRange(
+                String time = DateUtils.formatDateRange(
                     mActivity, mF, millisStart, millisStart,
-                    timeFlags, tz))
-                    .append(" ").append(tzDisplay);
-                mStartTimeHome.setText(time.toString());
+                    timeFlags, tz) +
+                    " " + tzDisplay;
+                mStartTimeHome.setText(time);
                 mStartHomeGroup.setVisibility(View.VISIBLE);
             }
             if (mEndTime.gmtoff == gmtoff) {
@@ -1576,12 +1574,11 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                     TimeZone.getTimeZone(tz).getDisplayName(
                     isDSTEnd, TimeZone.SHORT, Locale.getDefault());
                 mSB.setLength(0);
-                StringBuilder time = new StringBuilder();
-                time.append(DateUtils.formatDateRange(
-                        mActivity, mF, millisEnd, millisEnd,
-                        timeFlags, tz))
-                        .append(" ").append(tzDisplay);
-                mEndTimeHome.setText(time.toString());
+                String time = DateUtils.formatDateRange(
+                    mActivity, mF, millisEnd, millisEnd,
+                    timeFlags, tz) +
+                    " " + tzDisplay;
+                mEndTimeHome.setText(time);
                 mEndHomeGroup.setVisibility(View.VISIBLE);
             }
         }
@@ -1609,12 +1606,12 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                         .getInt(colorColumn)));
             }
 
-            TextView name = (TextView) view.findViewById(R.id.calendar_name);
+            TextView name = view.findViewById(R.id.calendar_name);
             if (name != null) {
                 String displayName = cursor.getString(nameColumn);
                 name.setText(displayName);
 
-                TextView accountName = (TextView) view.findViewById(R.id.account_name);
+                TextView accountName = view.findViewById(R.id.account_name);
                 if (accountName != null) {
                     accountName.setText(cursor.getString(ownerColumn));
                     accountName.setVisibility(TextView.VISIBLE);
