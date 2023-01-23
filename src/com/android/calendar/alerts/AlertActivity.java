@@ -28,13 +28,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.CalendarAlerts;
-import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -48,13 +46,8 @@ import androidx.annotation.Nullable;
 import com.android.calendar.AsyncQueryService;
 import com.android.calendar.CalendarApplication;
 import com.android.calendar.EventInfoActivity;
-import com.android.calendar.Utils;
 import com.android.calendar.alerts.GlobalDismissManager.AlarmId;
-import com.android.calendar.colorpicker.HsvColorComparator;
-import com.android.calendar.event.EditEventHelper;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -107,8 +100,8 @@ public class AlertActivity extends Activity
 
         @SuppressLint("NewApi")
         @Override
-        public void onItemClick(AdapterView<?> parent, View view, int position,
-                                long i) {
+        public void onItemClick(
+            AdapterView<?> parent, View view, int position, long i) {
             AlertActivity alertActivity = AlertActivity.this;
             Cursor cursor = alertActivity.getItemForView(view);
 
@@ -119,15 +112,15 @@ public class AlertActivity extends Activity
             // Mark this alarm as DISMISSED
             dismissAlarm(alarmId, eventId, startMillis);
 
-            // build an intent and task stack to start EventInfoActivity with AllInOneActivity
-            // as the parent activity rooted to home.
+            // build an intent and task stack to start EventInfoActivity with
+            // AllInOneActivity as the parent activity rooted to home.
             long endMillis = cursor.getLong(AlertActivity.INDEX_END);
-            Intent eventIntent = AlertUtils.buildEventViewIntent(AlertActivity.this, eventId,
-                    startMillis, endMillis);
+            Intent eventIntent = AlertUtils.buildEventViewIntent(
+                AlertActivity.this, eventId, startMillis, endMillis);
 
-            TaskStackBuilder.create(AlertActivity.this).addParentStack(EventInfoActivity.class)
-                    .addNextIntent(eventIntent).startActivities();
-
+            TaskStackBuilder.create(AlertActivity.this)
+                .addParentStack(EventInfoActivity.class)
+                .addNextIntent(eventIntent).startActivities();
             alertActivity.finish();
         }
     };
@@ -136,7 +129,8 @@ public class AlertActivity extends Activity
     private void dismissFiredAlarms() {
         ContentValues values = new ContentValues(1 /* size */);
         values.put(PROJECTION[INDEX_STATE], CalendarAlerts.STATE_DISMISSED);
-        String selection = CalendarAlerts.STATE + "=" + CalendarAlerts.STATE_FIRED;
+        String selection =
+            CalendarAlerts.STATE + "=" + CalendarAlerts.STATE_FIRED;
         mService.startUpdate(0, this, CalendarAlerts.CONTENT_URI,
             values, selection, null);
 
@@ -195,12 +189,12 @@ public class AlertActivity extends Activity
         mService = CalendarApplication.getAsyncQueryService();
         mAdapter = new AlertAdapter(this, R.layout.alert_item);
 
-        mListView = (ListView) findViewById(R.id.alert_container);
+        mListView = findViewById(R.id.alert_container);
         mListView.setItemsCanFocus(true);
         mListView.setAdapter(mAdapter);
         mListView.setOnItemClickListener(mViewListener);
 
-        mDismissAllButton = (Button) findViewById(R.id.dismiss_all);
+        mDismissAllButton = findViewById(R.id.dismiss_all);
         mDismissAllButton.setOnClickListener(this);
 
         // Disable the buttons, since they need mCursor, which is created asynchronously
@@ -308,6 +302,7 @@ public class AlertActivity extends Activity
      */
     @Override
     public void onInsertDone(@Nullable Object cookie, Uri uri) {
+        // never called
     }
 
     /**
@@ -320,6 +315,7 @@ public class AlertActivity extends Activity
      */
     @Override
     public void onUpdateDone(@Nullable Object cookie, int result) {
+        // no action required
     }
 
     /**
@@ -331,6 +327,7 @@ public class AlertActivity extends Activity
      */
     @Override
     public void onDeleteDone(@Nullable Object cookie, int result) {
+        // never called
     }
 
     /**
@@ -346,5 +343,6 @@ public class AlertActivity extends Activity
     public void onBatchDone(
         @Nullable Object cookie, ContentProviderResult[] results)
     {
+        // never called
     }
 }

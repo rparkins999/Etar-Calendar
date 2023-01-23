@@ -54,7 +54,6 @@ public class SelectVisibleCalendarsFragment extends Fragment
     OnCalendarColorsLoadedListener, AsyncQueryService.AsyncQueryDone
 {
 
-    private static final String TAG = "Calendar";
     private static final String IS_PRIMARY = "\"primary\"";
     private static final String SELECTION = Calendars.SYNC_EVENTS + "=?";
     private static final String[] SELECTION_ARGS = new String[] {"1"};
@@ -74,7 +73,6 @@ public class SelectVisibleCalendarsFragment extends Fragment
     private static int mQueryToken;
     private static int mCalendarItemLayout = R.layout.mini_calendar_item;
 
-    private View mView = null;
     private CalendarController mController;
     private ListView mList;
     private SelectCalendarsSimpleAdapter mAdapter;
@@ -119,8 +117,10 @@ public class SelectVisibleCalendarsFragment extends Fragment
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        mView = inflater.inflate(R.layout.select_calendars_fragment, null);
-        mList = (ListView)mView.findViewById(R.id.list);
+        @SuppressLint("InflateParams")
+        View mView = inflater.inflate(
+            R.layout.select_calendars_fragment, null);
+        mList = mView.findViewById(R.id.list);
 
         // Hide the Calendars to Sync button on tablets for now.
         // Long terms stick it in the list of calendars
@@ -220,6 +220,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
      */
     @Override
     public void onInsertDone(@Nullable Object cookie, Uri uri) {
+        // never called
     }
 
     /**
@@ -232,6 +233,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
      */
     @Override
     public void onUpdateDone(@Nullable Object cookie, int result) {
+        // no action required
     }
 
     /**
@@ -243,6 +245,7 @@ public class SelectVisibleCalendarsFragment extends Fragment
      */
     @Override
     public void onDeleteDone(@Nullable Object cookie, int result) {
+        // never called
     }
 
     /**
@@ -258,5 +261,6 @@ public class SelectVisibleCalendarsFragment extends Fragment
     public void onBatchDone(
         @Nullable Object cookie, ContentProviderResult[] results)
     {
+        // never called
     }
 }

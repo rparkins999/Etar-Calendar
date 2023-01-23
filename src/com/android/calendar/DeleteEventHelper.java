@@ -558,7 +558,8 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
      *                the type of each result depends on the operation.
      */
     @Override
-    public void onBatchDone(@Nullable Object cookie, ContentProviderResult[] results) {
-
+    public void onBatchDone(
+        @Nullable Object cookie, ContentProviderResult[] results) {
+        // never called
     }
 }

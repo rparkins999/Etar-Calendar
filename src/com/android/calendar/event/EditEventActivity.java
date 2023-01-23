@@ -74,6 +74,7 @@ import com.android.calendar.icalendar.VCalendar;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import ws.xsoh.etar.BuildConfig;
 import ws.xsoh.etar.R;
@@ -136,7 +137,7 @@ public class EditEventActivity extends AbstractCalendarActivity
     private boolean mDeleteDialogVisible = false;
 
     private boolean mShowColorPalette = false;
-
+    private ArrayList<CalendarEventModel.ReminderEntry> mReminders;
     private EditEventHelper mHelper;
     private CalendarEventModel mModel = null;
     private CalendarEventModel mOriginalModel = null;
@@ -666,6 +667,7 @@ public class EditEventActivity extends AbstractCalendarActivity
         inflater.inflate(R.menu.edit_event_title_bar, menu);
         if (menu instanceof MenuBuilder) {
             MenuBuilder m = (MenuBuilder) menu;
+            //noinspection RestrictedApi
             m.setOptionalIconsVisible(true);
         }
         return true;
@@ -981,8 +983,6 @@ public class EditEventActivity extends AbstractCalendarActivity
                         mOriginalModel = new CalendarEventModel(mModel);
                         if (mModel.mId == mModel.mOriginalId) {
                             mModel.mIsFirstEventInSeries = true;
-                            mModel.mOriginalStart = mModel.mStart;
-                            mModel.mOriginalEnd = mModel.mEnd;
                         } else {
                             // We probably shouldn't set mModel.mOriginalStart
                             // or mModel.mOriginalStart here.
@@ -1218,7 +1218,7 @@ public class EditEventActivity extends AbstractCalendarActivity
      */
     @Override
     public void onInsertDone(@Nullable Object cookie, Uri uri) {
-
+        // never called
     }
 
     /**
@@ -1231,7 +1231,7 @@ public class EditEventActivity extends AbstractCalendarActivity
      */
     @Override
     public void onUpdateDone(@Nullable Object cookie, int result) {
-
+        // no action required
     }
 
     /**
@@ -1243,7 +1243,7 @@ public class EditEventActivity extends AbstractCalendarActivity
      */
     @Override
     public void onDeleteDone(@Nullable Object cookie, int result) {
-
+        // never called
     }
 
     /**
@@ -1257,6 +1257,6 @@ public class EditEventActivity extends AbstractCalendarActivity
      */
     @Override
     public void onBatchDone(@Nullable Object cookie, ContentProviderResult[] results) {
-
+        // no action required
     }
 }

@@ -33,23 +33,23 @@ import com.android.calendar.CalendarApplication;
 import java.util.HashSet;
 
 /**
- * CalendarColorCache queries the provider and stores the account identifiers (name and type)
- * of the accounts which contain optional calendar colors, and thus should allow for the
- * user to choose calendar colors.
+ * CalendarColorCache queries the provider and stores the account identifiers
+ * (name and type) of the accounts which contain optional calendar colors,
+ * and thus should allow for the user to choose calendar colors.
  */
 public class CalendarColorCache implements AsyncQueryService.AsyncQueryDone
 {
 
-    private HashSet<String> mCache = new HashSet<String>();
+    private final HashSet<String> mCache = new HashSet<>();
 
     private static final String SEPARATOR = "::";
 
-    private AsyncQueryService mService;
-    private OnCalendarColorsLoadedListener mListener;
+    private final OnCalendarColorsLoadedListener mListener;
 
-    private StringBuffer mStringBuffer = new StringBuffer();
+    private final StringBuffer mStringBuffer = new StringBuffer();
 
-    private static String[] PROJECTION = new String[] {Colors.ACCOUNT_NAME, Colors.ACCOUNT_TYPE };
+    private static final String[] PROJECTION =
+        new String[] {Colors.ACCOUNT_NAME, Colors.ACCOUNT_TYPE };
 
     /**
      * Interface which provides callback after provider query of calendar colors.
@@ -64,8 +64,8 @@ public class CalendarColorCache implements AsyncQueryService.AsyncQueryDone
 
     public CalendarColorCache(Context context, OnCalendarColorsLoadedListener listener) {
         mListener = listener;
-        mService = CalendarApplication.getAsyncQueryService();
-        mService.startQuery(null, this, Colors.CONTENT_URI,
+        CalendarApplication.getAsyncQueryService().startQuery(
+            null, this, Colors.CONTENT_URI,
             PROJECTION, Colors.COLOR_TYPE + "=" + Colors.TYPE_CALENDAR,
             null, null);
     }
@@ -132,6 +132,7 @@ public class CalendarColorCache implements AsyncQueryService.AsyncQueryDone
      */
     @Override
     public void onInsertDone(@Nullable Object cookie, Uri uri) {
+        // never called
     }
 
     /**
@@ -144,6 +145,7 @@ public class CalendarColorCache implements AsyncQueryService.AsyncQueryDone
      */
     @Override
     public void onUpdateDone(@Nullable Object cookie, int result) {
+        // never called
     }
 
     /**
@@ -155,6 +157,7 @@ public class CalendarColorCache implements AsyncQueryService.AsyncQueryDone
      */
     @Override
     public void onDeleteDone(@Nullable Object cookie, int result) {
+        // never called
     }
 
     /**
@@ -170,5 +173,6 @@ public class CalendarColorCache implements AsyncQueryService.AsyncQueryDone
     public void onBatchDone(
         @Nullable Object cookie, ContentProviderResult[] results)
     {
+        // never called
     }
 }

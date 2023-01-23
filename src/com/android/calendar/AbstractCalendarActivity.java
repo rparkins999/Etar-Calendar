@@ -19,12 +19,4 @@ package com.android.calendar;
 import androidx.appcompat.app.AppCompatActivity;
 
 public abstract class AbstractCalendarActivity extends AppCompatActivity {
-    protected AsyncQueryService mService;
-
-    public synchronized AsyncQueryService getAsyncQueryService() {
-        if (mService == null) {
-            mService = new AsyncQueryService(this);
-        }
-        return mService;
-    }
 }

@@ -1306,8 +1306,9 @@ public class EventInfoFragment extends DialogFragment
         } else {
             values.put(Events.EVENT_COLOR_KEY, NO_EVENT_COLOR);
         }
-        mService.startUpdate(null, this, ContentUris.withAppendedId(Events.CONTENT_URI, mEventId), values,
-                null, null);
+        mService.startUpdate(null, this,
+            ContentUris.withAppendedId(Events.CONTENT_URI, mEventId),
+            values, null, null);
         return true;
     }
 
@@ -1454,7 +1455,7 @@ public class EventInfoFragment extends DialogFragment
 
         mService.startBatch(
             null, this,  CalendarContract.AUTHORITY, ops);
-   }
+    }
 
     private void doEdit() {
         Context c = getActivity();
@@ -2100,8 +2101,8 @@ public class EventInfoFragment extends DialogFragment
     }
 
     /**
-     * Add a new reminder when the user hits the "add reminder" button.  We use the default
-     * reminder time and method.
+     * Add a new reminder when the user hits the "add reminder" button.
+     * We use the default reminder time and method.
      */
     private void addReminder() {
         // TODO: when adding a new reminder, make it different from the
@@ -2193,8 +2194,8 @@ public class EventInfoFragment extends DialogFragment
     }
 
     /**
-     * Email all the attendees of the event, except for the viewer (so as to not email
-     * himself) and resources like conference rooms.
+     * Email all the attendees of the event, except for the viewer
+     * (so as to not email himself) and resources like conference rooms.
      */
     private void emailAttendees() {
         Intent i = new Intent(getActivity(), QuickResponseActivity.class);
@@ -2463,7 +2464,7 @@ public class EventInfoFragment extends DialogFragment
      */
     @Override
     public void onInsertDone(@Nullable Object cookie, Uri uri) {
-
+        // never called
     }
 
     /**
@@ -2476,7 +2477,7 @@ public class EventInfoFragment extends DialogFragment
      */
     @Override
     public void onUpdateDone(@Nullable Object cookie, int result) {
-
+        // no action required
     }
 
     /**
@@ -2488,7 +2489,7 @@ public class EventInfoFragment extends DialogFragment
      */
     @Override
     public void onDeleteDone(@Nullable Object cookie, int result) {
-
+        // never called
     }
 
     /**
@@ -2501,6 +2502,9 @@ public class EventInfoFragment extends DialogFragment
      *                the type of each result depends on the operation.
      */
     @Override
-    public void onBatchDone(@Nullable Object cookie, ContentProviderResult[] results) {
+    public void onBatchDone(
+        @Nullable Object cookie, ContentProviderResult[] results)
+    {
+        // no action required
     }
 }

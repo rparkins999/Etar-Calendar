@@ -53,6 +53,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.TimeZone;
 
+/* Doesn't implement interface AsyncQueryService.AsyncQueryDone
+ * because we don't need any of the callbacks and AsyncQueryService
+ * doesn't call them if the caller passed is null.
+ */
 public class EditEventHelper {
     private static final String TAG = "EditEventHelper";
 
@@ -177,8 +181,6 @@ public class EditEventHelper {
     protected static final int MODIFY_SELECTED = 1;
     protected static final int MODIFY_ALL_FOLLOWING = 2;
     protected static final int MODIFY_ALL = 3;
-
-    protected static final int DAY_IN_SECONDS = 24 * 60 * 60;
 
     private final AsyncQueryService mService;
 
@@ -324,8 +326,9 @@ public class EditEventHelper {
             return false;
         }
 
-        // It's a problem if we try to save a non-existent or invalid model or if we're
-        // modifying an existing event and we have the wrong original model
+        // It's a problem if we try to save a non-existent or invalid model
+        // or if we're modifying an existing event
+        // and we have the wrong original model
         if (model == null) {
             Log.e(TAG, "Attempted to save null model.");
             return false;
@@ -365,11 +368,11 @@ public class EditEventHelper {
             values.put(Events.UID_2445, model.mUid);
         }
 
-        if (model.mId < 0) {
+        if (originalModel == null) {
             // Add hasAttendeeData for a new event
             values.put(Events.HAS_ATTENDEE_DATA, 1);
             values.put(Events.STATUS, Events.STATUS_CONFIRMED);
-            eventIdIndex = ops.size();
+            eventIdIndex = 0;
             ContentProviderOperation.Builder b
                 = ContentProviderOperation.newInsert( Events.CONTENT_URI).withValues(values);
             ops.add(b.build());
@@ -397,7 +400,7 @@ public class EditEventHelper {
             values.put(Events.ORIGINAL_ALL_DAY, allDay ? 1 : 0);
             values.put(Events.STATUS, originalModel.mEventStatus);
 
-            eventIdIndex = ops.size();
+            eventIdIndex = 0;
             ContentProviderOperation.Builder b = ContentProviderOperation.newInsert(
                     Events.CONTENT_URI).withValues(values);
             ops.add(b.build());
@@ -429,12 +432,14 @@ public class EditEventHelper {
                         = ContentProviderOperation.newUpdate(uri).withValues(values);
                     ops.add(b.build());
                 } else {
-                    // We need to update the existing recurrence to end before the exception
-                    // event starts.  If the recurrence rule has a COUNT, we need to adjust
-                    // that in the original and in the exception.  This call rewrites the
-                    // original event's recurrence rule (in "ops"), and returns a new rule
-                    // for the exception.  If the exception explicitly set a new rule,
-                    // however, we don't want to overwrite it.
+                    // We need to update the existing recurrence to end before
+                    // the exception event starts.  If the recurrence rule has
+                    // a COUNT, we need to adjust that in the original
+                    // and in the exception.  This call rewrites the
+                    // original event's recurrence rule (in "ops"), and returns
+                    // a new rule for the exception.  If the exception
+                    // explicitly set a new rule, however,
+                    // we don't want to overwrite it.
                     String newRrule = updatePastEvents(
                         ops, originalModel, model.mInstanceStart);
                     if (model.mRrule.equals(originalModel.mRrule)) {
@@ -515,7 +520,10 @@ public class EditEventHelper {
                     }
                     ops.add(b.build());
                 }
-            } else if (model.mSelfAttendeeStatus != originalModel.mSelfAttendeeStatus) {
+            } else if (   (originalModel != null)
+                       && (model.mSelfAttendeeStatus
+                            != originalModel.mSelfAttendeeStatus))
+            {
                 if (DEBUG) {
                     Log.d(TAG, "Setting attendee status to "
                         + model.mSelfAttendeeStatus);
@@ -536,7 +544,6 @@ public class EditEventHelper {
                 // Hit the content provider only if this is a new event
                 // or the user/ has changed it
                 if (   newEvent
-                    || (originalModel == null)
                     || model.differentAttendees(originalModel))
                 {
                     // figure out which attendees need to be added and which ones
@@ -549,7 +556,6 @@ public class EditEventHelper {
                     // new events (being inserted into the Events table) won't
                     // have any existing attendees.
                     if (!newEvent) {
-                        removedAttendees.clear();
                         HashMap<String, Attendee> originalAttendees
                             = originalModel.mAttendeesList;
                         for (String originalEmail : originalAttendees.keySet()) {
