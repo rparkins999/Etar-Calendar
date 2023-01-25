@@ -51,6 +51,31 @@ import static com.android.calendar.event.EditEventActivity.EXTRA_EVENT_REMINDERS
  * Stores all the information that we can ever want about a calendar event.
  * Most of it gets into the database, but some is only needed while we are
  * creating or editing the event.
+ *
+ * for a normal event (not related to a recurrence)
+ * mOriginalId is zero
+ * mRrule is null
+ * mEventStart and mInstanceStart are both the start time of the event
+ * mEventEnd and mInstanceEnd are both the end time of the event
+
+ * for the first instance of a recurrence
+ * mOriginalId is zero
+ * mRrule is the rule (as a text string)
+ * mEventStart and mInstanceStart are both the start time of the instance
+ * mEventEnd and mInstanceEnd are both the end time of the instance
+
+ * for a non-first instance of a recurrence
+ * mOriginalId is zero
+ * mRrule is the rule (as a text string)
+ * mEventStart is the start time of the first instance of the recurrence
+ * mInstanceStart is the start time of the instance
+ * mEventEnd and mInstanceEnd are both the end time of the instance
+
+ * for an exception to a recurrence
+ * mOriginalId is nonzero (the id of the recurrence)
+ * mRrule is null
+ * mEventStart and mInstanceStart are both the start time of the exception
+ * mEventEnd and mInstanceEnd are both the end time of the exception
  */
 public class CalendarEventModel implements Serializable {
     // The event ID of the event in the db.

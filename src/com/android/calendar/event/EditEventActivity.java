@@ -70,6 +70,8 @@ import com.android.calendar.colorpicker.ColorPickerSwatch;
 import com.android.calendar.colorpicker.HsvColorComparator;
 import com.android.calendar.icalendar.IcalendarUtils;
 import com.android.calendar.icalendar.VCalendar;
+import com.android.calendarcommon2.DateException;
+import com.android.calendarcommon2.Duration;
 
 import java.io.File;
 import java.io.IOException;
@@ -162,8 +164,8 @@ public class EditEventActivity extends AbstractCalendarActivity
                 // If this event has not been synced, then don't allow deleting
                 // or changing a single instance.
                 if (isFirstEventInSeries) {
-                    // Still display the option so the user knows all events are
-                    // changing
+                    // Still display the option so the user knows
+                    // all events are changing
                     items = new CharSequence[1];
                 } else {
                     items = new CharSequence[2];
@@ -226,10 +228,8 @@ public class EditEventActivity extends AbstractCalendarActivity
         synchronized (this) {
             mOutstandingQueries &= ~queryType;
             if (mOutstandingQueries == 0) {
-                if (mModel.mId == mModel.mOriginalId) {
+                if (mModel.mInstanceStart == mModel.mEventStart) {
                     mModel.mIsFirstEventInSeries = true;
-                    mModel.mInstanceStart = mModel.mEventStart;
-                    mModel.mInstanceEnd = mModel.mEventEnd;
                 } else {
                     mModel.mIsFirstEventInSeries = false;
                 }
@@ -622,11 +622,21 @@ public class EditEventActivity extends AbstractCalendarActivity
                                 defaultStartMillis + 30 * DateUtils.MINUTE_IN_MILLIS;
                         }
                     }
+                    if (!TextUtils.isEmpty(mModel.mDuration)) {
+                        try {
+                            Duration d = new Duration();
+                            d.parse(mModel.mDuration);
+                            mModel.mEventEnd = d.addTo( mModel.mEventStart);
+                        } catch (DateException ignore) {}
+                    }
                     if (mModel.mEventEnd < mModel.mEventStart) {
                         // use a default value instead
                         mModel.mEventEnd = mModel.mEventStart
                             + Utils.getDefaultEventDurationInMillis(this);
                     }
+
+                    mModel.mInstanceStart = mModel.mEventStart;
+                    mModel.mInstanceEnd = mModel.mEventEnd;
                 } catch (IndexOutOfBoundsException ignore) {
                 }
             }

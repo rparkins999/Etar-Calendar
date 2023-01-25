@@ -479,12 +479,12 @@ public class VEvent {
         if (t.parse(splitLine[2])) { tz = "UTC"; }
         switch (splitLine[0]) {
             case "DTSTART":
-                model.mInstanceStart = model.mEventStart = t.normalize(false);
+                model.mEventStart = t.normalize(false);
                 model.mTimezoneStart = tz;
                 model.mAllDay = t.allDay;
                 break;
             case "DTEND":
-                model.mInstanceEnd = model.mEventEnd = t.normalize(false);
+                model.mEventEnd = t.normalize(false);
                 model.mTimezoneEnd = tz;
                 break;
         }
