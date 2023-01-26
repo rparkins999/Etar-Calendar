@@ -398,7 +398,7 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
             case DELETE_ALL_FOLLOWING: {
                 // If we are deleting the first event in the series and all
                 // following events, then just fall through to delete all.
-                if (dtstart != mInstanceStart) {
+                if (dtstart == mInstanceStart) {
                     Uri uri = ContentUris.withAppendedId(deleteContentUri, id);
                     mService.startDelete(null, this, uri,
                         null, null);
