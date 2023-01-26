@@ -662,14 +662,14 @@ public class EditEventHelper {
             return;
         }
 
-        // If we are modifying all events then we need to set DTSTART to the
-        // start time of the first event in the series, not the current
-        // date and time. If the start time of the event was changed
-        // (from, say, 3pm to 4pm), then we want to add the time difference
-        // to the start time of the first event in the series (the DTSTART
-        // value). If we are modifying one instance or all following instances,
-        // then we leave the DTSTART field alone.
         if (modifyWhich == MODIFY_ALL) {
+            // If we are modifying all events then we need to set DTSTART to the
+            // start time of the first event in the series, not the current
+            // date and time. If the start time of the event was changed
+            // (from, say, 3pm to 4pm), then we want to add the time difference
+            // to the start time of the first event in the series (the DTSTART
+            // value). If we are modifying one instance or all following
+            // instances,  then we leave the DTSTART field alone.
             long oldStartMillis = originalModel.mEventStart;
             if (oldBegin != newBegin) {
                 // The user changed the start time of this event
@@ -894,8 +894,11 @@ public class EditEventHelper {
         String rrule = model.mRrule;
 
         values.put(Events.RRULE, rrule);
-        long end = model.mEventEnd;
-        long start = model.mEventStart;
+        // Get the duration from the instance in case we are modifying
+        // all the events in the series but the selected instance
+        // isn't the first in the series.
+        long end = model.mInstanceEnd;
+        long start = model.mInstanceStart;
         String duration = model.mDuration;
 
         boolean isAllDay = model.mAllDay;
