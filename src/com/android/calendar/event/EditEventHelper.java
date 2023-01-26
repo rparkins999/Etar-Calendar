@@ -405,21 +405,22 @@ public class EditEventHelper {
                     Events.CONTENT_URI).withValues(values);
             ops.add(b.build());
             forceSaveReminders = true;
-
         } else if (modifyWhich == MODIFY_ALL_FOLLOWING) {
-
             if (TextUtils.isEmpty(model.mRrule)) {
                 // We've changed a recurring event to a non-recurring event.
-                // If the event we are editing is the first in the series,
-                // then delete the whole series. Otherwise, update the series
-                // to end at the new start time.
+                // We need to truncate the series before the instance we are
+                // editing, and later we will recreate that instance as a
+                // non-recurring event.
                 if (isFirstEventInSeries(model, originalModel)) {
+                    // The instance we are editing is the first in the series,
+                    // delete the whole series.
                     ops.add(ContentProviderOperation.newDelete(uri).build());
                 } else {
-                    // Update the current repeating event to end at the new start time.  We
-                    // ignore the RRULE returned because the exception event
-                    // doesn't want one.
-                    updatePastEvents(ops, originalModel, model.mInstanceStart);
+                    // The instance we are editing isn't the first in the series,
+                    // update the series to end before the instance we are
+                    // editing. We ignore the RRULE returned because the
+                    // non-recurring event doesn't want one.
+                    updatePastEvents(ops, originalModel);
                 }
                 eventIdIndex = ops.size();
                 values.put(Events.STATUS, originalModel.mEventStatus);
@@ -435,13 +436,12 @@ public class EditEventHelper {
                     // We need to update the existing recurrence to end before
                     // the exception event starts.  If the recurrence rule has
                     // a COUNT, we need to adjust that in the original
-                    // and in the exception.  This call rewrites the
+                    // and in the exception. This call rewrites the
                     // original event's recurrence rule (in "ops"), and returns
                     // a new rule for the exception.  If the exception
                     // explicitly set a new rule, however,
                     // we don't want to overwrite it.
-                    String newRrule = updatePastEvents(
-                        ops, originalModel, model.mInstanceStart);
+                    String newRrule = updatePastEvents( ops, originalModel);
                     if (model.mRrule.equals(originalModel.mRrule)) {
                         values.put(Events.RRULE, newRrule);
                     }
@@ -689,22 +689,20 @@ public class EditEventHelper {
     }
 
     /**
-     * Prepares an update to the original event so it stops where the new series
-     * begins. When we update 'this and all following' events we need to change
-     * the original event to end before a new series starts. This creates an
-     * update to the old event's rrule to do that.
+     * When we update 'this and all following' events we need to change
+     * the original event to end before the new series starts. This creates
+     * an update to the old event's rrule to do that.
      *<p>
-     * If the event's recurrence rule has a COUNT, we also need to reduce the count in the
-     * RRULE for the exception event.
+     * If the event's recurrence rule has a COUNT, we also need to reduce
+     * the count in the RRULE for the exception event.
      *
      * @param ops The list of operations to add the update to
      * @param originalModel The original event that we're updating
-     * @param endTimeMillis The time before which the event must end (i.e. the start time of the
-     *        exception event instance).
      * @return A replacement exception recurrence rule.
      */
     public String updatePastEvents(ArrayList<ContentProviderOperation> ops,
-            CalendarEventModel originalModel, long endTimeMillis) {
+                                   CalendarEventModel originalModel)
+    {
         boolean origAllDay = originalModel.mAllDay;
         String origRrule = originalModel.mRrule;
         String newRrule = origRrule;
@@ -714,6 +712,10 @@ public class EditEventHelper {
 
         // Get the start time of the first instance in the original recurrence.
         long startTimeMillis = originalModel.mEventStart;
+        // Get the original start time of the instance that we are modifying,
+        // not the current start time because we may have modified it.
+        // The original recurrence must now end before this.
+        long endTimeMillis = originalModel.mInstanceStart;
         Time dtstart = new Time();
         dtstart.timezone = originalModel.mTimezoneStart;
         dtstart.set(startTimeMillis);
@@ -722,10 +724,12 @@ public class EditEventHelper {
 
         if (origRecurrence.count > 0) {
             /*
-             * Generate the full set of instances for this recurrence, from the first to the
-             * one just before endTimeMillis.  The list should never be empty, because this method
-             * should not be called for the first instance.  All we're really interested in is
-             * the *number* of instances found.
+             * Generate the full set of instances for this recurrence,
+             * from the first to the one just before endTimeMillis.
+             * The list should never be empty, because this method
+             * should not be called for the first instance.
+             * All we're really interested in is  the *number*
+             * of instances found.
              *
              * TODO: the model assumes RRULE and ignores RDATE, EXRULE, and EXDATE.  For the
              * current environment this is reasonable, but that may not hold in the future.
