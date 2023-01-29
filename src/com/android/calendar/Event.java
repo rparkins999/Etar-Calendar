@@ -33,9 +33,6 @@ import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Instances;
-
-import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -52,6 +49,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ws.xsoh.etar.R;
 
 // TODO: should Event be Parcelable so it can be passed via Intents?
+/* Note that "Event" here is actually a (non-deleted and non-excepted)
+ * instance from the virtual CalendarContract.Instances table, not an event
+ * from the CalendarContract.Events table.
+ * I really ought to rename it everywhere as "Instance", but this is a
+ * massive task to fix what the original Google developers got wrong.
+ */
 public class Event implements Cloneable {
 
     private static final String TAG = "CalEvent";
@@ -179,7 +182,7 @@ public class Event implements Cloneable {
             Debug.startMethodTracing("loadEvents");
         }
 
-        if (Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(context,
+        if (Build.VERSION.SDK_INT >= 23 && context.checkSelfPermission(
                 Manifest.permission.READ_CALENDAR)
                 != PackageManager.PERMISSION_GRANTED) {
             //If permission is not granted then just return.
@@ -536,7 +539,7 @@ public class Event implements Cloneable {
      * events.
      */
     @Override
-    public boolean equals(@Nullable Object obj) {
+    public boolean equals(Object obj) {
         if (   (obj == null)
             || (obj.getClass() != getClass()))
         {

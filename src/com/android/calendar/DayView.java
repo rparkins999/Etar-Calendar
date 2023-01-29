@@ -47,7 +47,6 @@ import android.os.Handler;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
-import androidx.core.content.ContextCompat;
 import android.text.Layout.Alignment;
 import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
@@ -758,7 +757,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         Uri uri = Calendars.CONTENT_URI;
         @SuppressLint("DefaultLocale")
         String where = String.format(CALENDARS_WHERE, calId);
-        if (Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(context,
+        if (Build.VERSION.SDK_INT >= 23 && context.checkSelfPermission(
                 Manifest.permission.READ_CALENDAR)
                 != PackageManager.PERMISSION_GRANTED) {
             //If permission is not granted then just return.

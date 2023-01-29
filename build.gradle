@@ -31,7 +31,6 @@ project(':external:calendar') {
 
     android {
         compileSdkVersion 29
-        buildToolsVersion '29.0.2'
 
         defaultConfig {
             minSdkVersion 19
@@ -63,7 +62,6 @@ project(':external:chips') {
 
     android {
         compileSdkVersion 29
-        buildToolsVersion '29.0.2'
 
         defaultConfig {
             minSdkVersion 19

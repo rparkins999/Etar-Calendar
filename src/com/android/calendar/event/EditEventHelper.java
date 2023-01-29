@@ -354,6 +354,10 @@ public class EditEventHelper {
             return false;
         }
 
+        if (modifyWhich == MODIFY_ALL_FOLLOWING) {
+
+        }
+
         ArrayList<ContentProviderOperation> ops = new ArrayList<>();
         int eventIdIndex = -1;
 
@@ -386,12 +390,12 @@ public class EditEventHelper {
             ops.add(ContentProviderOperation.newUpdate(uri).withValues(values).build());
 
         } else if (TextUtils.isEmpty(originalModel.mRrule)) {
-            // This event was changed from a non-repeating event to a
-            // repeating event.
+            // This event was changed from a non-recurring event to a
+            // recurring event.
             ops.add(ContentProviderOperation.newUpdate(uri).withValues(values).build());
 
         } else if (modifyWhich == MODIFY_SELECTED) {
-            // Modify contents of the current instance of repeating event
+            // Modify contents of the current instance of recurring event
             // Create a recurrence exception
             values.put(Events.ORIGINAL_SYNC_ID, originalModel.mSyncId);
             values.put(Events.ORIGINAL_INSTANCE_TIME,
@@ -426,6 +430,20 @@ public class EditEventHelper {
                 values.put(Events.STATUS, originalModel.mEventStatus);
                 ops.add(ContentProviderOperation.newInsert(
                     Events.CONTENT_URI).withValues(values).build());
+                /* This fixes a subtle bug where this and future instances of
+                 * a recurring event are modified. If there are some events
+                 * in the modified range which are exceptions to the
+                 * recurrence, the Android CalendarProvider knows not to
+                 * display the corresponding instances because the exception
+                 * events have an ORIGINAL_ID field which points to the
+                 * recurrence. However when changing this and future
+                 * instances, we create a new recurrence with a different ID,
+                 * so the ORIGINAL_ID fields of the exception events
+                 * no longer point to it and the excepted instances reappear.
+                 * In order to prevent this from happening, we have to update
+                 * the ORIGINAL_ID fields of all the exception events in the
+                 * modified range to point to the new recurrence.
+                 */
             } else {
                 if (isFirstEventInSeries(model, originalModel)) {
                     checkTimeDependentFields(originalModel, model, values, modifyWhich);
@@ -484,11 +502,12 @@ public class EditEventHelper {
         }
 
         if (newEvent) {
-            saveRemindersWithBackRef(ops, eventIdIndex, reminders, originalReminders,
-                    forceSaveReminders);
+            saveRemindersWithBackRef(ops, eventIdIndex, reminders,
+                originalReminders, forceSaveReminders);
         } else if (model.mId >= 0) {
             long eventId = ContentUris.parseId(uri);
-            saveReminders(ops, eventId, reminders, originalReminders, forceSaveReminders);
+            saveReminders(ops, eventId, reminders, originalReminders,
+                forceSaveReminders);
         }
 
         ContentProviderOperation.Builder b;

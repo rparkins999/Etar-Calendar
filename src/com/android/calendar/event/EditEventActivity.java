@@ -228,11 +228,8 @@ public class EditEventActivity extends AbstractCalendarActivity
         synchronized (this) {
             mOutstandingQueries &= ~queryType;
             if (mOutstandingQueries == 0) {
-                if (mModel.mInstanceStart == mModel.mEventStart) {
-                    mModel.mIsFirstEventInSeries = true;
-                } else {
-                    mModel.mIsFirstEventInSeries = false;
-                }
+                mModel.mIsFirstEventInSeries =
+                    mModel.mInstanceStart == mModel.mEventStart;
                 if (mModel.mId >= 0) {
                     mOriginalModel = new CalendarEventModel(mModel);
                 }
