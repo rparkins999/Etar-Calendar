@@ -37,8 +37,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
-
 import com.android.calendar.event.EditEventHelper;
 import com.android.calendar.persistence.CalendarRepository;
 import com.android.calendarcommon2.EventRecurrence;
@@ -477,7 +475,7 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
      *               may be empty if nothing matched or null if it failed.
      */
     @Override
-    public void onQueryDone(@Nullable Object cookie, Cursor cursor) {
+    public void onQueryDone(Object cookie, Cursor cursor) {
         if (   (cursor != null)
             && cursor.moveToFirst())
         {
@@ -501,7 +499,7 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
      *               null indicates failure.
      */
     @Override
-    public void onInsertDone(@Nullable Object cookie, Uri uri) {
+    public void onInsertDone(Object cookie, Uri uri) {
         if (uri != null) {
             tidyup();
         } else {
@@ -520,7 +518,7 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
      *               zero indicates failure.
      */
     @Override
-    public void onUpdateDone(@Nullable Object cookie, int result) {
+    public void onUpdateDone(Object cookie, int result) {
         if (result == 1) {
             tidyup();
         } else {
@@ -538,7 +536,7 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
      * @param result the number of rows deleted: zero indicates failure.
      */
     @Override
-    public void onDeleteDone(@Nullable Object cookie, int result) {
+    public void onDeleteDone(Object cookie, int result) {
         if (result == 1) {
             tidyup();
         } else {
@@ -558,8 +556,7 @@ public class DeleteEventHelper implements AsyncQueryService.AsyncQueryDone
      *                the type of each result depends on the operation.
      */
     @Override
-    public void onBatchDone(
-        @Nullable Object cookie, ContentProviderResult[] results) {
+    public void onBatchDone(Object cookie, ContentProviderResult[] results) {
         // never called
     }
 }

@@ -53,7 +53,7 @@ class MainListPreferences : PreferenceFragmentCompat() {
         super.onActivityCreated(savedInstanceState)
         activity?.title = getString(R.string.preferences_title)
 
-        val factory = MainListViewModelFactory(activity!!.application)
+        val factory = MainListViewModelFactory(requireActivity().application)
         mainListViewModel = ViewModelProvider(this, factory).get(MainListViewModel::class.java)
 
         // Add an observer on the LiveData returned by getCalendarsOrderedByAccount.
@@ -74,7 +74,7 @@ class MainListPreferences : PreferenceFragmentCompat() {
             val accountCategoryUniqueKey = "account_category_${calendar.accountName}_${calendar.accountType}"
             var accountCategory = screen.findPreference<PreferenceCategory>(accountCategoryUniqueKey)
             if (accountCategory == null) {
-                accountCategory = PreferenceCategory(context).apply {
+                accountCategory = PreferenceCategory(requireContext()).apply {
                     key = accountCategoryUniqueKey
                     title = calendar.accountName
                     order = if (calendar.isLocal) 10 else 11 // show offline calendar first
@@ -87,7 +87,7 @@ class MainListPreferences : PreferenceFragmentCompat() {
             val calendarUniqueKey = "calendar_preference_${calendar.id}"
             var calendarPreference = screen.findPreference<Preference>(calendarUniqueKey)
             if (calendarPreference == null) {
-                calendarPreference = Preference(context)
+                calendarPreference = Preference(requireContext())
                 accountCategory.addPreference(calendarPreference)
             }
             calendarPreference.apply {
@@ -138,11 +138,11 @@ class MainListPreferences : PreferenceFragmentCompat() {
 
     private fun getCalendarIcon(color: Int, visible: Boolean, syncEvents: Boolean): Drawable {
         val icon = if (!syncEvents) {
-            ContextCompat.getDrawable(context!!, R.drawable.ic_sync_off_light)
+            ContextCompat.getDrawable(requireContext(), R.drawable.ic_sync_off_light)
         } else if (visible) {
-            ContextCompat.getDrawable(context!!, R.drawable.circle)
+            ContextCompat.getDrawable(requireContext(), R.drawable.circle)
         } else {
-            ContextCompat.getDrawable(context!!, R.drawable.circle_outline)
+            ContextCompat.getDrawable(requireContext(), R.drawable.circle_outline)
         }
 
         icon!!.mutate().setColorFilter(color, Mode.SRC_IN)
@@ -150,18 +150,18 @@ class MainListPreferences : PreferenceFragmentCompat() {
     }
 
     private fun addGeneralPreferences(screen: PreferenceScreen) {
-        val generalPreference = Preference(context).apply {
+        val generalPreference = Preference(requireContext()).apply {
             title = getString(R.string.preferences_list_general)
             fragment = GeneralPreferences::class.java.name
         }
-        val addCaldavPreference = Preference(context).apply {
+        val addCaldavPreference = Preference(requireContext()).apply {
             title = getString(R.string.preferences_list_add_remote)
         }
         addCaldavPreference.setOnPreferenceClickListener {
             launchDavX5Login()
             true
         }
-        val addOfflinePreference = Preference(context).apply {
+        val addOfflinePreference = Preference(requireContext()).apply {
             title = getString(R.string.preferences_list_add_offline)
         }
         addOfflinePreference.setOnPreferenceClickListener {
@@ -175,7 +175,7 @@ class MainListPreferences : PreferenceFragmentCompat() {
 
     private fun addOfflineCalendar() {
         val dialog = AddOfflineCalendarDialogFragment()
-        dialog.show(fragmentManager!!, "addOfflineCalendar")
+        dialog.show(requireFragmentManager(), "addOfflineCalendar")
     }
 
     /**
@@ -185,20 +185,21 @@ class MainListPreferences : PreferenceFragmentCompat() {
         val davX5Intent = Intent()
         davX5Intent.setClassName("at.bitfire.davdroid", "at.bitfire.davdroid.ui.setup.LoginActivity")
 
-        if (activity!!.packageManager.resolveActivity(davX5Intent, 0) != null) {
+        if (requireActivity().packageManager.resolveActivity(davX5Intent, 0) != null) {
             startActivityForResult(davX5Intent, ACTION_REQUEST_CODE_DAVX5_SETUP)
         } else {
             // DAVx5 is not installed
             val installIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=at.bitfire.davdroid"))
 
             // launch market
-            if (installIntent.resolveActivity(activity!!.packageManager) != null) {
+            if (installIntent.resolveActivity(requireActivity().packageManager) != null) {
                 startActivity(installIntent)
             } else {
                 // no f-droid market app or Play store installed -> launch browser for f-droid url
                 val downloadIntent = Intent(Intent.ACTION_VIEW,
                         Uri.parse("https://f-droid.org/repository/browse/?fdid=at.bitfire.davdroid"))
-                if (downloadIntent.resolveActivity(activity!!.packageManager) != null) {
+                if (downloadIntent.resolveActivity(
+                        requireActivity().packageManager) != null) {
                     startActivity(downloadIntent)
                 } else {
                     Toast.makeText(activity, "No browser available!", Toast.LENGTH_LONG).show()

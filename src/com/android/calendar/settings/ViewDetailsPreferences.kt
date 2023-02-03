@@ -22,11 +22,14 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Bundle
-import androidx.preference.*
+import androidx.preference.ListPreference
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import com.android.calendar.Utils
 import com.android.calendar.Utils.SHARED_PREFS_NAME
-import java.util.*
 import ws.xsoh.etar.R
+import java.util.*
 
 
 class ViewDetailsPreferences : PreferenceFragmentCompat() {
@@ -74,7 +77,7 @@ class ViewDetailsPreferences : PreferenceFragmentCompat() {
                 val newEntries = Arrays.copyOf(entries, entries.size - 1)
                 displayTime.entries = newEntries
             }
-            if (displayTime.entry == null || displayTime.entry.isEmpty()) {
+            if (displayTime.entry == null || displayTime.entry!!.isEmpty()) {
                 displayTime.value = getDefaultTimeToShow(activity).toString()
             }
         }
@@ -171,7 +174,8 @@ class ViewDetailsPreferences : PreferenceFragmentCompat() {
         }
 
         fun setDefaultValues(context: Context?) {
-            PreferenceManager.setDefaultValues(context, SHARED_PREFS_NAME, Context.MODE_PRIVATE,
+            PreferenceManager.setDefaultValues(
+                context!!, SHARED_PREFS_NAME, Context.MODE_PRIVATE,
                     R.xml.view_details_preferences, true)
         }
     }

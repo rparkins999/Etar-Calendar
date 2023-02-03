@@ -20,6 +20,7 @@ package com.android.calendar.settings
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.fragment.app.FragmentFactory
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.android.calendar.DynamicTheme
@@ -46,7 +47,7 @@ class SettingsActivity : AppCompatActivity(),
         dynamicTheme.onCreate(this)
 
         val fragment = if (intent.hasExtra(EXTRA_SHOW_FRAGMENT)) {
-            supportFragmentManager.fragmentFactory.instantiate(
+            FragmentFactory().instantiate(
                     classLoader,
                     intent.getStringExtra(EXTRA_SHOW_FRAGMENT)!!
             )
@@ -80,9 +81,8 @@ class SettingsActivity : AppCompatActivity(),
     ): Boolean {
         // Instantiate the new Fragment
         val args = pref.extras
-        val fragment = supportFragmentManager.fragmentFactory.instantiate(
-                classLoader,
-                pref.fragment
+        val fragment = FragmentFactory().instantiate(
+                classLoader, pref.fragment!!
         ).apply {
             arguments = args
             setTargetFragment(caller, 0)

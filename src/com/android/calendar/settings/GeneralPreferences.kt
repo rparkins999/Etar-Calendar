@@ -107,7 +107,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         copyDbPref = preferenceScreen.findPreference(KEY_OTHER_COPY_DB)!!
         skipRemindersPref = preferenceScreen.findPreference(KEY_OTHER_REMINDERS_RESPONDED)!!
 
-        val prefs = CalendarUtils.getSharedPreferences(activity!!,
+        val prefs = CalendarUtils.getSharedPreferences(requireActivity(),
                 Utils.SHARED_PREFS_NAME)
 
         if (Utils.isOreoOrLater()) {
@@ -115,7 +115,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
         } else {
             alertPref = preferenceScreen.findPreference(KEY_ALERTS)!!
             vibratePref = preferenceScreen.findPreference(KEY_ALERTS_VIBRATE)!!
-            val vibrator = activity!!.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            val vibrator = requireActivity().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if (!vibrator.hasVibrator()) {
                 val alertGroup = preferenceScreen
                         .findPreference<PreferenceCategory>(KEY_ALERTS_CATEGORY)!!
@@ -129,7 +129,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
             val editor = prefs.edit()
             editor.putString(KEY_ALERTS_RINGTONE, ringtoneUriString).apply()
 
-            val ringtoneDisplayString = getRingtoneTitleFromUri(activity!!, ringtoneUriString)
+            val ringtoneDisplayString = getRingtoneTitleFromUri(requireActivity(), ringtoneUriString)
             ringtonePref.summary = ringtoneDisplayString ?: ""
         }
 
@@ -158,7 +158,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
                 System.currentTimeMillis(), false)
         homeTzPref.summary = timezoneName ?: timeZoneId
 
-        val tzpd = activity!!.supportFragmentManager
+        val tzpd = requireActivity().supportFragmentManager
                 .findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER) as TimeZonePickerDialogX?
         tzpd?.setOnTimeZoneSetListener(this)
 
@@ -192,28 +192,28 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     private fun showColorPickerDialog() {
         val colorPickerDialog = ColorPickerDialogX()
         val selectedColorName = Utils.getSharedPreference(activity, KEY_COLOR_PREF, "teal")
-        val selectedColor = ContextCompat.getColor(context!!, DynamicTheme.getColorId(selectedColorName))
+        val selectedColor = ContextCompat.getColor(requireContext(), DynamicTheme.getColorId(selectedColorName))
         colorPickerDialog.initialize(R.string.preferences_color_pick,
-                intArrayOf(ContextCompat.getColor(context!!, R.color.colorPrimary),
-                        ContextCompat.getColor(context!!, R.color.colorBluePrimary),
-                        ContextCompat.getColor(context!!, R.color.colorPurplePrimary),
-                        ContextCompat.getColor(context!!, R.color.colorRedPrimary),
-                        ContextCompat.getColor(context!!, R.color.colorOrangePrimary),
-                        ContextCompat.getColor(context!!, R.color.colorGreenPrimary)),
+                intArrayOf(ContextCompat.getColor(requireContext(), R.color.colorPrimary),
+                        ContextCompat.getColor(requireContext(), R.color.colorBluePrimary),
+                        ContextCompat.getColor(requireContext(), R.color.colorPurplePrimary),
+                        ContextCompat.getColor(requireContext(), R.color.colorRedPrimary),
+                        ContextCompat.getColor(requireContext(), R.color.colorOrangePrimary),
+                        ContextCompat.getColor(requireContext(), R.color.colorGreenPrimary)),
                 selectedColor, 3, 2)
         colorPickerDialog.setOnColorSelectedListener { colour ->
             Utils.setSharedPreference(activity, KEY_COLOR_PREF, DynamicTheme.getColorName(colorMap.get(colour)))
         }
-        colorPickerDialog.show(fragmentManager!!, "colorpicker")
+        colorPickerDialog.show(requireFragmentManager(), "colorpicker")
     }
 
     private fun initializeColorMap() {
-        colorMap.put(ContextCompat.getColor(context!!, R.color.colorPrimary), R.color.colorPrimary)
-        colorMap.put(ContextCompat.getColor(context!!, R.color.colorBluePrimary), R.color.colorBluePrimary)
-        colorMap.put(ContextCompat.getColor(context!!, R.color.colorOrangePrimary), R.color.colorOrangePrimary)
-        colorMap.put(ContextCompat.getColor(context!!, R.color.colorGreenPrimary), R.color.colorGreenPrimary)
-        colorMap.put(ContextCompat.getColor(context!!, R.color.colorRedPrimary), R.color.colorRedPrimary)
-        colorMap.put(ContextCompat.getColor(context!!, R.color.colorPurplePrimary), R.color.colorPurplePrimary)
+        colorMap.put(ContextCompat.getColor(requireContext(), R.color.colorPrimary), R.color.colorPrimary)
+        colorMap.put(ContextCompat.getColor(requireContext(), R.color.colorBluePrimary), R.color.colorBluePrimary)
+        colorMap.put(ContextCompat.getColor(requireContext(), R.color.colorOrangePrimary), R.color.colorOrangePrimary)
+        colorMap.put(ContextCompat.getColor(requireContext(), R.color.colorGreenPrimary), R.color.colorGreenPrimary)
+        colorMap.put(ContextCompat.getColor(requireContext(), R.color.colorRedPrimary), R.color.colorRedPrimary)
+        colorMap.put(ContextCompat.getColor(requireContext(), R.color.colorPurplePrimary), R.color.colorPurplePrimary)
     }
 
     private fun showTimezoneDialog() {
@@ -222,7 +222,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
             putString(TimeZonePickerDialogX.BUNDLE_TIME_ZONE, Utils.getTimeZone(activity, null))
         }
 
-        val fm = activity!!.supportFragmentManager
+        val fm = requireActivity().supportFragmentManager
         var tzpd: TimeZonePickerDialogX? = fm.findFragmentByTag(FRAG_TAG_TIME_ZONE_PICKER) as TimeZonePickerDialogX?
         tzpd?.dismiss()
 
@@ -234,7 +234,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
 
     override fun onStart() {
         super.onStart()
-        preferenceScreen.sharedPreferences.registerOnSharedPreferenceChangeListener(this)
+        preferenceScreen.sharedPreferences?.registerOnSharedPreferenceChangeListener(this)
         setPreferenceListeners(this)
     }
 
@@ -260,7 +260,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     }
 
     override fun onStop() {
-        preferenceScreen.sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
+        preferenceScreen.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(this)
         super.onStop()
     }
 
@@ -314,7 +314,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
                 hideDeclinedPref.isChecked = newValue as Boolean
                 val intent = Intent(Utils.getWidgetScheduledUpdateAction(activity))
                 intent.setDataAndType(CalendarContract.CONTENT_URI, Utils.APPWIDGET_DATA_TYPE)
-                activity!!.sendBroadcast(intent)
+                requireActivity().sendBroadcast(intent)
                 return true
             }
             weekStartPref -> {
@@ -368,13 +368,13 @@ class GeneralPreferences : PreferenceFragmentCompat(),
 
         for (i in 0 until count) {
             val value = Integer.parseInt(values[i].toString())
-            entries[i] = EventViewUtils.constructReminderLabel(activity!!, value, false)
+            entries[i] = EventViewUtils.constructReminderLabel(requireActivity(), value, false)
         }
 
         snoozeDelayPref.entries = entries
     }
 
-    override fun onPreferenceTreeClick(preference: Preference?): Boolean {
+    override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference!!.key) {
             KEY_COLOR_PREF -> {
                 showColorPickerDialog()
@@ -423,7 +423,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
     private fun showNotificationChannel() {
         val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
             putExtra(Settings.EXTRA_CHANNEL_ID, "alert_channel_01")
-            putExtra(Settings.EXTRA_APP_PACKAGE, activity!!.packageName)
+            putExtra(Settings.EXTRA_APP_PACKAGE, requireActivity().packageName)
         }
         startActivity(intent)
     }
@@ -464,7 +464,7 @@ class GeneralPreferences : PreferenceFragmentCompat(),
             val ringtoneString = ringtone?.toString() ?: ""
 
             Utils.setRingtonePreference(activity, ringtoneString)
-            val ringtoneDisplayString = getRingtoneTitleFromUri(activity!!, ringtoneString)
+            val ringtoneDisplayString = getRingtoneTitleFromUri(requireActivity(), ringtoneString)
             ringtonePref.summary = ringtoneDisplayString ?: ""
         } else {
             super.onActivityResult(requestCode, resultCode, data)
