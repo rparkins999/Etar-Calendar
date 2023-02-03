@@ -63,7 +63,9 @@ public class AboutActivity extends AppCompatActivity {
         }
         catch (PackageManager.NameNotFoundException ignore) {}
         ((TextView) findViewById(R.id.committed)).setText(
-            getString(R.string.build_git));
+            getString(R.string.build_git1) + "\n" +
+            getString(R.string.build_git2) + "\n" +
+            getString(R.string.build_git3));
         findViewById(R.id.authorsLayout).setOnClickListener(
             new View.OnClickListener() {
                 public void onClick(View v) {
