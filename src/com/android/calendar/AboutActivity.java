@@ -17,11 +17,13 @@
  */
 package com.android.calendar;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -35,6 +37,7 @@ import ws.xsoh.etar.R;
 
 public class AboutActivity extends AppCompatActivity {
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,10 +65,14 @@ public class AboutActivity extends AppCompatActivity {
             );
         }
         catch (PackageManager.NameNotFoundException ignore) {}
-        ((TextView) findViewById(R.id.committed)).setText(
-            getString(R.string.build_git1) + "\n" +
-            getString(R.string.build_git2) + "\n" +
-            getString(R.string.build_git3));
+        // Show git data if using git
+        String s = getString(R.string.build_git1);
+        if (!TextUtils.isEmpty(s)) {
+            ((TextView) findViewById(R.id.committed)).setText(
+                getString(R.string.build_git1) + "\n" +
+                getString(R.string.build_git2) + "\n" +
+                getString(R.string.build_git3));
+        }
         findViewById(R.id.authorsLayout).setOnClickListener(
             new View.OnClickListener() {
                 public void onClick(View v) {

@@ -94,8 +94,10 @@ import java.util.TimeZone;
 
 import ws.xsoh.etar.R;
 
-public class EditEventView implements View.OnClickListener, DialogInterface.OnCancelListener,
-        DialogInterface.OnClickListener, OnItemSelectedListener,
+public class EditEventView
+    implements View.OnClickListener, OnItemSelectedListener,
+        DialogInterface.OnDismissListener,
+        DialogInterface.OnCancelListener, DialogInterface.OnClickListener,
         RecurrencePickerDialog.OnRecurrenceSetListener,
         TimeZonePickerDialog.OnTimeZoneSetListener {
 
@@ -160,14 +162,13 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private ProgressDialog mLoadingCalendarsDialog;
     private AlertDialog mNoCalendarsDialog;
 
-    private final Activity mActivity;
+    private final EditEventActivity mActivity;
     private final EditDoneRunnable mDone;
     private final View mView;
     private CalendarEventModel mModel;
     private Cursor mCalendarsCursor;
     private final Rfc822Validator mEmailValidator;
-    private TimePickerDialog mStartTimePickerDialog;
-    private TimePickerDialog mEndTimePickerDialog;
+    private TimePickerDialog mTimePickerDialog;
     private DatePickerDialog mDatePickerDialog;
     /**
      * Contents of the "minutes" spinner.  This has default values from the XML file,
@@ -205,7 +206,9 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
     private final ArrayList<ReminderEntry> mUnsupportedReminders = new ArrayList<>();
     private String mRrule;
 
-    public EditEventView(Activity activity, View view, EditDoneRunnable done) {
+    public EditEventView(
+        EditEventActivity activity, View view, EditDoneRunnable done)
+    {
 
         mActivity = activity;
         mView = view;
@@ -1010,6 +1013,17 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
                 }
             });
 
+        // only one of these can be visible
+        if (mActivity.getStartDateDialogVisibility()) {
+            showDatePickerDialog(mStartDateButton, mStartTime);
+        } else if (mActivity.getEndDateDialogVisibility()) {
+            showDatePickerDialog(mEndDateButton, mEndTime);
+        } else if (mActivity.getStartTimeDialogVisibility()) {
+            showTimePickerDialog(mStartTimeButton, mStartTime);
+        } else if (mActivity.getEndTimeDialogVisibility()) {
+            showTimePickerDialog(mEndTimeButton, mEndTime);
+        }
+
     }
 
     public void updateHeadlineColor(CalendarEventModel model, int displayColor) {
@@ -1623,6 +1637,19 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
     }
 
+    // This is called when mDatePickerDialog or mTimePickerDialog
+    // is dismissed.
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        if (dialog == mDatePickerDialog) {
+            mActivity.setStartDateDialogVisibility(false);
+            mActivity.setEndDateDialogVisibility(false);
+        } else {
+            mActivity.setStartTimeDialogVisibility(false);
+            mActivity.setEndTimeDialogVisibility(false);
+        }
+    }
+
     /* This class is used to update the time buttons. */
     private class TimeListener implements TimePickerDialog.OnTimeSetListener {
         private final View mView;
@@ -1676,6 +1703,19 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
     }
 
+    private void showTimePickerDialog(View v, Time time) {
+        mTimePickerDialog = new TimePickerDialog(
+            mActivity, new TimeListener(v),
+            time.hour, time.minute, DateFormat.is24HourFormat(mActivity));
+        mTimePickerDialog.setOnDismissListener(this);
+        mTimePickerDialog.show();
+        if (v == mStartTimeButton) {
+            mActivity.setStartTimeDialogVisibility(true);
+        } else {
+            mActivity.setEndTimeDialogVisibility(true);
+        }
+    }
+
     private class TimeClickListener implements View.OnClickListener {
         private final Time mTime;
 
@@ -1685,27 +1725,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         @Override
         public void onClick(View v) {
-
-            TimePickerDialog dialog;
-            if (v == mStartTimeButton) {
-                if (mStartTimePickerDialog != null) {
-                    mStartTimePickerDialog.dismiss();
-                }
-                mStartTimePickerDialog = new TimePickerDialog(mActivity, new TimeListener(v),
-                        mTime.hour, mTime.minute, DateFormat.is24HourFormat(mActivity));
-                dialog = mStartTimePickerDialog;
-            } else {
-                if (mEndTimePickerDialog != null) {
-                    mEndTimePickerDialog.dismiss();
-                }
-                mEndTimePickerDialog = new TimePickerDialog(mActivity, new TimeListener(v),
-                        mTime.hour, mTime.minute, DateFormat.is24HourFormat(mActivity));
-                dialog = mEndTimePickerDialog;
-
-            }
-
-            dialog.show();
-
+            showTimePickerDialog(v, mTime);
         }
     }
 
@@ -1768,6 +1788,22 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
         }
     }
 
+    private void showDatePickerDialog(View v, Time time) {
+        mDatePickerDialog = new DatePickerDialog(
+            mActivity, new DateListener(v),
+            time.year, time.month, time.monthDay);
+        if (Build.VERSION.SDK_INT >= 21) {
+            mDatePickerDialog.getDatePicker().setFirstDayOfWeek(Utils.getFirstDayOfWeekAsCalendar(mActivity));
+        }
+        mDatePickerDialog.setOnDismissListener(this);
+        mDatePickerDialog.show();
+        if (v == mStartDateButton) {
+            mActivity.setStartDateDialogVisibility(true);
+        } else {
+            mActivity.setEndDateDialogVisibility(true);
+        }
+    }
+
     private class DateClickListener implements View.OnClickListener {
         private final Time mTime;
 
@@ -1777,18 +1813,7 @@ public class EditEventView implements View.OnClickListener, DialogInterface.OnCa
 
         @Override
         public void onClick(View v) {
-
-
-            final DateListener listener = new DateListener(v);
-            if (mDatePickerDialog != null) {
-                mDatePickerDialog.dismiss();
-            }
-            mDatePickerDialog = new DatePickerDialog(mActivity, listener,
-                    mTime.year, mTime.month, mTime.monthDay);
-            if (Build.VERSION.SDK_INT >= 21) {
-                mDatePickerDialog.getDatePicker().setFirstDayOfWeek(Utils.getFirstDayOfWeekAsCalendar(mActivity));
-            }
-            mDatePickerDialog.show();
+            showDatePickerDialog(v, mTime);
         }
     }
 

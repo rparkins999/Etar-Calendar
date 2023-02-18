@@ -108,6 +108,14 @@ public class EditEventActivity extends AbstractCalendarActivity
         "key_delete_dialog_visible";
     private static final String BUNDLE_COLORPICKER_DIALOG_VISIBLE =
         "key_colorpicker_dialog_visible";
+    private static final String BUNDLE_START_DATE_DIALOG_VISIBLE =
+        "key_start_date_dialog_visible";
+    private static final String BUNDLE_END_DATE_DIALOG_VISIBLE =
+        "key_end_date_dialog_visible";
+    private static final String BUNDLE_START_TIME_DIALOG_VISIBLE =
+        "key_start_time_dialog_visible";
+    private static final String BUNDLE_END_TIME_DIALOG_VISIBLE =
+        "key_end_time_dialog_visible";
     private static final boolean DEBUG = false;
 
     // Copy of "this" for use in nested classes
@@ -137,6 +145,10 @@ public class EditEventActivity extends AbstractCalendarActivity
     private boolean mColorPickerDialogVisible = false;
     private DeleteEventHelper mDeleteHelper;
     private boolean mDeleteDialogVisible = false;
+    private boolean mStartDateDialogVisible = false;
+    private boolean mEndDateDialogVisible = false;
+    private boolean mStartTimeDialogVisible = false;
+    private boolean mEndTimeDialogVisible = false;
 
     private boolean mShowColorPalette = false;
     private ArrayList<CalendarEventModel.ReminderEntry> mReminders;
@@ -224,6 +236,31 @@ public class EditEventActivity extends AbstractCalendarActivity
         }
     }
 
+    public void setStartDateDialogVisibility(boolean visible) {
+        mStartDateDialogVisible = visible;
+    }
+    public void setEndDateDialogVisibility(boolean visible) {
+        mEndDateDialogVisible = visible;
+    }
+    public void setStartTimeDialogVisibility(boolean visible) {
+        mStartTimeDialogVisible = visible;
+    }
+    public void setEndTimeDialogVisibility(boolean visible) {
+        mEndTimeDialogVisible = visible;
+    }
+    public boolean getStartDateDialogVisibility () {
+        return mStartDateDialogVisible;
+    }
+    public boolean getEndDateDialogVisibility () {
+        return mEndDateDialogVisible;
+    }
+    public boolean getStartTimeDialogVisibility () {
+        return mStartTimeDialogVisible;
+    }
+    public boolean getEndTimeDialogVisibility () {
+        return mEndTimeDialogVisible;
+    }
+
     private void setModelIfDone(int queryType) {
         synchronized (this) {
             mOutstandingQueries &= ~queryType;
@@ -265,9 +302,9 @@ public class EditEventActivity extends AbstractCalendarActivity
         }
     }
 
-                    // This doesn't set mInstanceStart and mInstanceEnd
-                    // This calls an overload of delete()
-                    // which sets mInstanceStart and mInstanceEnd
+    // This doesn't set mInstanceStart and mInstanceEnd
+    // This calls an overload of delete()
+    // which sets mInstanceStart and mInstanceEnd
     class Done implements EditEventHelper.EditDoneRunnable {
         private int mCode = -1;
 
@@ -523,6 +560,8 @@ public class EditEventActivity extends AbstractCalendarActivity
         }
     }
 
+    // The requirement for a super call here appears to be a mistake
+    @SuppressLint("MissingSuperCall")
     public void onRequestPermissionsResult(
         int requestCode, @NonNull String[] permissions,
         @NonNull int[] grantResults)
@@ -567,7 +606,7 @@ public class EditEventActivity extends AbstractCalendarActivity
             mIsReadOnly ? R.layout.edit_event_single_column
                 : R.layout.edit_event, null);
         ((ViewGroup) findViewById(R.id.body_frame)).addView(v);
-        mView = new EditEventView(this, v, mOnDone);
+        //mView = new EditEventView(this, v, mOnDone);
 
         Toolbar myToolbar = findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
@@ -598,6 +637,18 @@ public class EditEventActivity extends AbstractCalendarActivity
             mColorPickerDialogVisible =
                 savedInstanceState.getBoolean(
                     BUNDLE_COLORPICKER_DIALOG_VISIBLE, false);
+            mStartDateDialogVisible =
+                savedInstanceState.getBoolean(
+                    BUNDLE_START_DATE_DIALOG_VISIBLE, false);
+            mEndDateDialogVisible =
+                savedInstanceState.getBoolean(
+                    BUNDLE_END_DATE_DIALOG_VISIBLE, false);
+            mStartTimeDialogVisible =
+                savedInstanceState.getBoolean(
+                    BUNDLE_START_TIME_DIALOG_VISIBLE, false);
+            mEndTimeDialogVisible =
+                savedInstanceState.getBoolean(
+                    BUNDLE_END_TIME_DIALOG_VISIBLE, false);
         } else {
             synchronized (CalendarApplication.mEvents) {
                 try {
@@ -638,6 +689,7 @@ public class EditEventActivity extends AbstractCalendarActivity
                 }
             }
         }
+        mView = new EditEventView(this, v, mOnDone);
         if (mModel == null) {
             // This sets mInstanceStart and mInstanceEnd
             mModel = new CalendarEventModel(this, mIntent);
@@ -941,6 +993,14 @@ public class EditEventActivity extends AbstractCalendarActivity
             mDeleteDialogVisible);
         outState.putBoolean(BUNDLE_COLORPICKER_DIALOG_VISIBLE,
             mColorPickerDialogVisible);
+        outState.putBoolean(BUNDLE_START_DATE_DIALOG_VISIBLE,
+            mStartDateDialogVisible);
+        outState.putBoolean(BUNDLE_END_DATE_DIALOG_VISIBLE,
+            mEndDateDialogVisible);
+        outState.putBoolean(BUNDLE_START_TIME_DIALOG_VISIBLE,
+            mStartTimeDialogVisible);
+        outState.putBoolean(BUNDLE_END_TIME_DIALOG_VISIBLE,
+            mEndTimeDialogVisible);
         outState.putLong(BUNDLE_KEY_EVENT_ID, mModel.mId);
     }
 
@@ -988,13 +1048,10 @@ public class EditEventActivity extends AbstractCalendarActivity
                         EditEventHelper.setModelFromCursor(mModel, cursor);
                         cursor.close();
                         mOriginalModel = new CalendarEventModel(mModel);
-                        if (mModel.mId == mModel.mOriginalId) {
-                            mModel.mIsFirstEventInSeries = true;
-                        } else {
-                            // We probably shouldn't set mModel.mOriginalStart
-                            // or mModel.mOriginalStart here.
-                            mModel.mIsFirstEventInSeries = false;
-                        }
+                        // We probably shouldn't set mModel.mOriginalStart
+                        // or mModel.mOriginalStart here.
+                        mModel.mIsFirstEventInSeries =
+                            mModel.mId == mModel.mOriginalId;
                         if (mEventColorInitialized) {
                             mModel.setEventColor(mEventColor);
                         }

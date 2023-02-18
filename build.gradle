@@ -3,13 +3,14 @@ def gitdata2 = new ByteArrayOutputStream()
 def gitdata3 = new ByteArrayOutputStream()
 // change this line to /* if not using git
 exec {
-    commandLine "git", "--no-pager", "show",
-            "--date=format:%H:%M:%S GMT%z %a %b %d %Y", "-s",
+    commandLine "git", "--no-pager", "show", "-s",
             "--format=from commit %H"
     standardOutput = gitdata1
 }
 exec {
-    commandLine "git", "--no-pager", "show", "-s", "--format=of %ad"
+    commandLine "git", "--no-pager", "show", "-s",
+            "--date=format:%H:%M:%S GMT%z %a %b %d %Y",
+            "--format=of %ad"
     standardOutput = gitdata2
 }
 exec {
