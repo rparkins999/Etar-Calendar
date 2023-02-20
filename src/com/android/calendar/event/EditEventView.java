@@ -324,8 +324,8 @@ public class EditEventView
                         // Dismiss the suggestions dropdown.  Return false
                         // so the other side effects still occur
                         // (soft keyboard going away, etc.).
-                    mLocationTextView.dismissDropDown();
-                    somethingChanged();
+                        mLocationTextView.dismissDropDown();
+                        somethingChanged();
                     }
                     return false;
                 }
