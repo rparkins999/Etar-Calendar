@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2020
+ * Modifications from the original version Copyright (C) Richard Parkins 2023
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ import ws.xsoh.etar.R;
 @SuppressLint("ViewConstructor")
 public class DayView extends View implements View.OnCreateContextMenuListener,
     ScaleGestureDetector.OnScaleGestureListener, View.OnClickListener,
-    View.OnLongClickListener
+    View.OnLongClickListener, DialogInterface.OnDismissListener
 {
     /* package */ static final int MINUTES_PER_HOUR = 60;
     /* package */ static final int MINUTES_PER_DAY = MINUTES_PER_HOUR * 24;
@@ -4519,9 +4519,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         setSelectionTime(mClickedDay, mClickedHour);
         mSelectionAllday = mClickedAllday;
 
-        // A long click will always go to the event creation view, but we may not
-        // actually create an event. If (and only if) we did a long click on
-        // the currently selected event, we leave it selected.
+        // A long click will always go to the event creation view, but we may
+        // not actually create an event. If (and only if) we did a long click
+        // on the currently selected event, we leave it selected.
         if ((mClickedEvent == null) || (!mClickedEvent.equals(mSelectedEvent))) {
             setSelectedEvent(null);
         }
@@ -5211,13 +5211,20 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
         super.onDetachedFromWindow();
     }
 
+    // Called when the New Event Dialog is dismissed
     @Override
-    public boolean onLongClick(View v) {
+    public void onDismiss(DialogInterface dialog) {
+        // This test is always true, but is needed to satisfy the compiler.
+        if (mContext instanceof AllInOneActivity) {
+            ((AllInOneActivity)mContext).setNED(-1, false);
+        }
+    }
+
+    public void showNewEventDialog(long time, boolean allDay) {
         int flags = DateUtils.FORMAT_SHOW_WEEKDAY;
-        final long time = mSelectionTime.toMillis(true);
         final long extraLong;
         final CharSequence[] items;
-        if (mSelectionAllday) {
+        if (allDay) {
             extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
             items = mLongPressItemsAllDay;
         } else {
@@ -5229,7 +5236,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
             flags |= DateUtils.FORMAT_24HOUR;
         }
         invalidate();
-        new AlertDialog.Builder(mContext)
+        AlertDialog newEventDialog = new AlertDialog.Builder(mContext)
             .setTitle(Utils.formatDateRange(mContext, time, time, flags))
             .setItems(items, new DialogInterface.OnClickListener() {
                 @Override
@@ -5241,7 +5248,20 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                             -1, -1, extraLong, -1);
                     }
                 }
-            }).show().setCanceledOnTouchOutside(true);
+            }).create();
+        newEventDialog.setCanceledOnTouchOutside(true);
+        newEventDialog.setOnDismissListener(this);
+        newEventDialog.show();
+        // This test is always true, but is needed to satisfy the compiler.
+        if (mContext instanceof AllInOneActivity) {
+            ((AllInOneActivity)mContext).setNED(time, allDay);
+        }
+    }
+
+    @Override
+    public boolean onLongClick(View v) {
+        showNewEventDialog(mSelectionTime.toMillis(true),
+            mSelectionAllday);
         return true;
     }
 

@@ -18,6 +18,7 @@
 
 package com.android.calendar;
 
+import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
@@ -76,6 +77,7 @@ public class DayFragment extends Fragment implements CalendarController.ActionHa
         mSelectedDay.setToNow();
     }
 
+    @SuppressLint("ValidFragment")
     public DayFragment(long timeMillis, int numOfDays) {
         mNumDays = numOfDays;
         if (timeMillis == 0) {
@@ -106,9 +108,14 @@ public class DayFragment extends Fragment implements CalendarController.ActionHa
 
         mViewSwitcher = (ViewSwitcher) v.findViewById(R.id.switcher);
         mViewSwitcher.setFactory(this);
-        mViewSwitcher.getCurrentView().requestFocus();
-        ((DayView) mViewSwitcher.getCurrentView()).updateTitle();
-
+        DayView dv = (DayView)(mViewSwitcher.getCurrentView());
+        dv.requestFocus();
+        dv.updateTitle();
+        Context context = getActivity();
+        // This test is always true, but is needed to satisfy the compiler.
+        if (context instanceof AllInOneActivity) {
+            ((AllInOneActivity)context).ShowNEDifNeeded(dv);
+        }
         return v;
     }
 
