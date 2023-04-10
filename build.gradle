@@ -19,6 +19,24 @@ exec {
 }
 //*/
 
+// Update these three to make new version
+def VERSIONCODE = 23
+def VERSIONNAME = "1.0.21"
+def CHANGESTRING = "Many changes since Etar-Group version"
+
+def CHANGELOGS = "fastlane/metadata/android/en-US/changeLogs/"
+def CHANGEFILE = CHANGELOGS + VERSIONCODE + ".txt"
+exec {
+    commandLine "echo", "${CHANGESTRING.toString()}"
+    standardOutput = new FileOutputStream(rootProject.file(CHANGEFILE))
+}
+exec {
+    commandLine "git", "add", "${CHANGELOGS.toString()}"
+}
+exec {
+    commandLine "sed", "-i", "/This is version/cThis is version " + VERSIONNAME + ".", "README.md"
+}
+
 buildscript {
     ext.kotlin_version = '1.7.21'
     repositories {
@@ -129,8 +147,8 @@ android {
         minSdkVersion 19
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 29
-        versionCode 23
-        versionName "1.0.21"
+        versionCode VERSIONCODE
+        versionName VERSIONNAME
         applicationId "ws.xsoh.etar"
     }
 

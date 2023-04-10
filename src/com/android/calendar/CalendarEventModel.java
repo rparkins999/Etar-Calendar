@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2020
+ * Modifications from the original version Copyright (C) Richard Parkins 2023
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -47,8 +47,7 @@ import static android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME;
 import static android.provider.CalendarContract.EXTRA_EVENT_END_TIME;
 import static com.android.calendar.event.EditEventActivity.EXTRA_EVENT_REMINDERS;
 
-/**
- * Stores all the information that we can ever want about a calendar event.
+/* Stores all the information that we can ever want about a calendar event.
  * Most of it gets into the database, but some is only needed while we are
  * creating or editing the event.
  *
@@ -68,8 +67,8 @@ import static com.android.calendar.event.EditEventActivity.EXTRA_EVENT_REMINDERS
  * mOriginalId is zero
  * mRrule is the rule (as a text string)
  * mEventStart is the start time of the first instance of the recurrence
- * mInstanceStart is the start time of the instance
- * mEventEnd and mInstanceEnd are both the end time of the instance
+ * mInstanceStart is the start time of this instance
+ * mEventEnd and mInstanceEnd are both the end time of this instance
 
  * for an exception to a recurrence
  * mOriginalId is nonzero (the id of the recurrence)
@@ -95,7 +94,8 @@ public class CalendarEventModel implements Serializable {
     // it is the start time of the instance being edited.
     // In all other cases it is the same as mEventStart.
     public long mInstanceStart = -1;
-    public String mTimezoneStart; // Displayed timezone for start
+    // Displayed timezone for start
+    public String mTimezoneStart;
     // End time of event, in UTC milliseconds since the epoch.
     // Recurring events have a duration, not an end time, so this is -1.
     // When creating a new event, it is the requested end time.
@@ -116,8 +116,10 @@ public class CalendarEventModel implements Serializable {
     public String mRrule = null;
     // Currently the UI doesn't allow display or editing of RDATEs or EXDATEs
     // but Android handles them, so we can read and write them in an ical file
-    public String mRdate = null; // list of extra dates or datetimes
-    public String mExdate = null; // list of excluded dates or datetimes
+    // list of extra dates or datetimes
+    public String mRdate = null;
+    // list of excluded dates or datetimes
+    public String mExdate = null;
     public boolean mIsFirstEventInSeries = true;
     public String mTitle = null; // Summary in the ical file
     public String mLocation = null;
@@ -137,8 +139,9 @@ public class CalendarEventModel implements Serializable {
     public String mCalendarAccountType;
     public String mCalendarAllowedAttendeeTypes;
     public String mCalendarAllowedAvailability;
-    public int mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
-    // PROVIDER_NOTES owner account comes from the calendars table
+    public int mCalendarAccessLevel
+        = Calendars.CAL_ACCESS_CONTRIBUTOR;
+    // from the calendars table
     public String mOwnerAccount = null;
     public boolean mGuestsCanInviteOthers = false;
     public boolean mGuestsCanModify = false;
@@ -166,7 +169,8 @@ public class CalendarEventModel implements Serializable {
     // updated with an event cursor.
     public boolean mModelUpdatedWithEventCursor = false;
 
-    // This doesn't set mInstanceStart and mInstanceEnd
+    // This just creates an empty model:
+    // it doesn't set mInstanceStart and mInstanceEnd.
     public CalendarEventModel() {
         mReminders = new ArrayList<>();
         mDefaultReminders = new ArrayList<>();
@@ -176,7 +180,9 @@ public class CalendarEventModel implements Serializable {
 
     // This little utility gets around the unchecked cast error
     // produced by using the generic clone().
-    public ArrayList<ReminderEntry> cloneReminders (ArrayList<ReminderEntry> other) {
+    public ArrayList<ReminderEntry> cloneReminders (
+        ArrayList<ReminderEntry> other)
+    {
         ArrayList<ReminderEntry> result = new ArrayList<>(other.size());
         for (ReminderEntry entry : other) {
             result.add(ReminderEntry.valueOf(entry.getMinutes(), entry.getMethod()));
@@ -282,9 +288,10 @@ public class CalendarEventModel implements Serializable {
             mId = Long.parseLong(intent.getData().getLastPathSegment());
         } catch (NullPointerException | NumberFormatException ignored) { }
 
-        // FIXME this is wrong for instance of recurring event
-        // because we lose which instance it is
         long value = intent.getLongExtra(EXTRA_EVENT_BEGIN_TIME, -1);
+        // If mId>=0 (this is an existing event) mEventStart will be overwritten
+        // by the event start time from the database, which may be different
+        // if this is an instance of a recurring event
         if (value >= 0) { mInstanceStart = mEventStart = value; }
         value = intent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
         if (value >= 0) { mInstanceEnd = mEventEnd = value; }

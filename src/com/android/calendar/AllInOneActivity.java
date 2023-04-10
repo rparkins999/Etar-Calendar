@@ -78,6 +78,7 @@ import android.widget.Toast;
 import com.android.calendar.CalendarController.ActionHandler;
 import com.android.calendar.CalendarController.ActionInfo;
 import com.android.calendar.CalendarController.ControllerAction;
+import com.android.calendar.DayView;
 import com.android.calendar.CalendarController.ViewType;
 import com.android.calendar.agenda.AgendaFragment;
 import com.android.calendar.alerts.AlertService;
@@ -501,12 +502,21 @@ public class AllInOneActivity extends AbstractCalendarActivity implements Action
             @Override
             public void onClick(View v) {
                 //Create new Event
+                final long extraLong;
+                final long eventLength;
+                if (DayView.mSelectionAllday) {
+                    eventLength = DayView.MILLIS_PER_DAY;
+                    extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
+                } else {
+                    eventLength = MILLIS_PER_HOUR;
+                    extraLong = 0;
+                }
                 long startMillis = DayView.mSelectionTime.toMillis(true);
                 mController.sendEventActionWithExtra(
                     this, ControllerAction.CREATE_EVENT, -1,
                     startMillis,
-                    startMillis + MILLIS_PER_HOUR, 0, 0,
-                    (DayView.mSelectionAllday ? 0x10L : 0L), -1);
+                    startMillis + eventLength, 0, 0,
+                    extraLong, -1);
             }
         });
     }

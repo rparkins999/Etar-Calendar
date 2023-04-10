@@ -110,7 +110,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     /* package */ static final int MINUTES_PER_DAY = MINUTES_PER_HOUR * 24;
     //* package */ static final int MILLIS_PER_MINUTE = 60 * 1000;
     /* package */ static final int MILLIS_PER_HOUR = (3600 * 1000);
-    //* package */ static final int MILLIS_PER_DAY = MILLIS_PER_HOUR * 24;
+    /* package */ static final int MILLIS_PER_DAY = MILLIS_PER_HOUR * 24;
     private static final String PERIOD_SPACE = ". ";
     private static final long INVALID_EVENT_ID = -1; //This is used for remembering a null event
     // Duration of the allday expansion
@@ -5223,12 +5223,15 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     public void showNewEventDialog(long time, boolean allDay) {
         int flags = DateUtils.FORMAT_SHOW_WEEKDAY;
         final long extraLong;
+        final long eventLength;
         final CharSequence[] items;
         if (allDay) {
+            eventLength = MILLIS_PER_DAY;
             extraLong = CalendarController.EXTRA_CREATE_ALL_DAY;
             items = mLongPressItemsAllDay;
         } else {
             flags |= DateUtils.FORMAT_SHOW_TIME;
+            eventLength = MILLIS_PER_HOUR;
             extraLong = 0;
             items = mLongPressItems;
         }
@@ -5243,8 +5246,9 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
                 public void onClick(DialogInterface dialog, int which) {
                     if (which == 0) {
                         mController.sendEventActionWithExtra(
-                            this, ControllerAction.CREATE_EVENT, -1,
-                            time, time + MILLIS_PER_HOUR,
+                            this, ControllerAction.CREATE_EVENT,
+                            -1, time,
+                            time + eventLength,
                             -1, -1, extraLong, -1);
                     }
                 }

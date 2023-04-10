@@ -169,6 +169,43 @@
             android:layout_marginRight="24dip" />
     </LinearLayout>
 
+    <!-- TIME ZONE - Read-only textview version -->
+    <LinearLayout
+        android:id="@+id/start_timezone_textview_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dip"
+        android:focusable="true"
+        android:minHeight="48dip"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/start_timezone_textView"
+            style="@style/TextAppearance.EditEvent_Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip" />
+    </LinearLayout>
+    <!-- TIME ZONE - Read-only textview version -->
+    <LinearLayout
+        android:id="@+id/end_timezone_textview_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dip"
+        android:focusable="true"
+        android:minHeight="48dip"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/end_timezone_textView"
+            style="@style/TextAppearance.EditEvent_Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip" />
+    </LinearLayout>
+
     <!-- FROM - Read/write version which launches the date/time pickers -->
     <LinearLayout
         android:id="@+id/from_row"
@@ -209,6 +246,23 @@
                 android:contentDescription="@string/accessibility_pick_start_time" />
         </LinearLayout>
     </LinearLayout>
+    <!-- TIME ZONE -->
+    <LinearLayout
+        android:id="@+id/start_timezone_button_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dip"
+        android:minHeight="48dip"
+        android:orientation="vertical">
+        <Button
+            android:id="@+id/start_timezone_button"
+            style="@style/TextAppearance.EditEvent_SpinnerButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/accessibility_pick_time_zone"
+            android:gravity="start|center_vertical" />
+    </LinearLayout>
+    <!-- Home time and date shown if different -->
     <LinearLayout android:id="@+id/from_row_home_tz"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -232,42 +286,6 @@
             android:gravity="end|center_vertical" />
     </LinearLayout>
 
-    <!-- TIME ZONE - Read-only textview version -->
-    <LinearLayout
-        android:id="@+id/start_timezone_textview_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:focusable="true"
-        android:minHeight="48dip"
-        android:orientation="vertical"
-        android:visibility="gone">
-        <TextView
-            android:id="@+id/start_timezone_textView"
-            style="@style/TextAppearance.EditEvent_Value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dip"
-            android:layout_marginRight="24dip" />
-    </LinearLayout>
-
-    <!-- TIME ZONE - Read/write version with button to launch picker -->
-    <LinearLayout
-        android:id="@+id/start_timezone_button_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:minHeight="48dip"
-        android:orientation="vertical">
-        <Button
-            android:id="@+id/start_timezone_button"
-            style="@style/TextAppearance.EditEvent_SpinnerButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/accessibility_pick_time_zone"
-            android:gravity="start|center_vertical" />
-    </LinearLayout>
-
     <!-- TO - Read/write version which launches the date/time pickers -->
     <LinearLayout
         android:id="@+id/to_row"
@@ -281,7 +299,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/edit_event_to_label" />
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -308,6 +325,23 @@
                 android:contentDescription="@string/accessibility_pick_end_time" />
         </LinearLayout>
     </LinearLayout>
+    <!-- TIME ZONE  -->
+    <LinearLayout
+        android:id="@+id/end_timezone_button_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dip"
+        android:minHeight="48dip"
+        android:orientation="vertical">
+        <Button
+            android:id="@+id/end_timezone_button"
+            style="@style/TextAppearance.EditEvent_SpinnerButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/accessibility_pick_time_zone"
+            android:gravity="start|center_vertical" />
+    </LinearLayout>
+    <!-- Home time and date shown if different -->
     <LinearLayout
         android:id="@+id/to_row_home_tz"
         android:layout_width="match_parent"
@@ -331,43 +365,6 @@
             android:layout_weight="4"
             android:gravity="end|center_vertical" />
     </LinearLayout>
-
-    <!-- TIME ZONE - Read-only textview version -->
-    <LinearLayout
-        android:id="@+id/end_timezone_textview_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:focusable="true"
-        android:minHeight="48dip"
-        android:orientation="vertical"
-        android:visibility="gone">
-        <TextView
-            android:id="@+id/end_timezone_textView"
-            style="@style/TextAppearance.EditEvent_Value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="24dip"
-            android:layout_marginRight="24dip" />
-    </LinearLayout>
-
-    <!-- TIME ZONE - Read/write version with button to launch picker -->
-    <LinearLayout
-        android:id="@+id/end_timezone_button_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dip"
-        android:minHeight="48dip"
-        android:orientation="vertical">
-        <Button
-            android:id="@+id/end_timezone_button"
-            style="@style/TextAppearance.EditEvent_SpinnerButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/accessibility_pick_time_zone"
-            android:gravity="start|center_vertical" />
-    </LinearLayout>
-
 
     <!-- ALL DAY -->
     <LinearLayout

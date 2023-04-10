@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2022
+ * Modifications from the original version Copyright (C) Richard Parkins 2023
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -302,9 +302,9 @@ public class EditEventActivity extends AbstractCalendarActivity
         }
     }
 
-    // This doesn't set mInstanceStart and mInstanceEnd
+    // This doesn't set mModel.mInstanceStart and mModel.mInstanceEnd
     // This calls an overload of delete()
-    // which sets mInstanceStart and mInstanceEnd
+    // which sets mModel.mInstanceStart and mModel.mInstanceEnd
     class Done implements EditEventHelper.EditDoneRunnable {
         private int mCode = -1;
 

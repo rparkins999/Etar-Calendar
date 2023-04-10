@@ -2,7 +2,9 @@
 # Etar Calendar
 Etar (from Arabic:  `إِيتَار`)  is an open source material designed calendar made for everyone!
 
-This version is only available from this github repository. It has various modifications which I (rparkins999) consider to be User Interface improvements.
+This is version 1.0.21.
+
+It is only available from this github repository. It has various modifications which I (rparkins999) consider to be User Interface improvements.
 
 ![Etar Calendar](metadata/animation.gif)
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2020
+ * Modifications from the original version Copyright (C) Richard Parkins 2023
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 package com.android.calendar.event;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.FragmentManager;
@@ -37,7 +36,6 @@ import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
-import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -99,16 +97,18 @@ public class EditEventView
         DialogInterface.OnDismissListener,
         DialogInterface.OnCancelListener, DialogInterface.OnClickListener,
         RecurrencePickerDialog.OnRecurrenceSetListener,
-        TimeZonePickerDialog.OnTimeZoneSetListener {
-
+        TimeZonePickerDialog.OnTimeZoneSetListener
+{
     private static final String TAG = "EditEvent";
-    private static final String GOOGLE_SECONDARY_CALENDAR = "calendar.google.com";
+    private static final String GOOGLE_SECONDARY_CALENDAR
+        = "calendar.google.com";
     private static final String PERIOD_SPACE = ". ";
-
-    private static final String FRAG_TAG_TIME_ZONE_PICKER = "timeZonePickerDialogFragment";
-    private static final String FRAG_TAG_RECUR_PICKER = "recurrencePickerDialogFragment";
-    private static final StringBuilder mSB = new StringBuilder(50);
-    private static final Formatter mF = new Formatter(mSB, Locale.getDefault());
+    private static final String FRAG_TAG_TIME_ZONE_PICKER
+        = "timeZonePickerDialogFragment";
+    private static final String FRAG_TAG_RECUR_PICKER
+        = "recurrencePickerDialogFragment";
+    private static final StringBuilder mSB
+        = new StringBuilder(50);
     public boolean mIsMultipane;
     ArrayList<View> mEditOnlyList = new ArrayList<>();
     ArrayList<View> mEditViewList = new ArrayList<>();
@@ -142,9 +142,7 @@ public class EditEventView
     TextView mDescriptionTextView;
     TextView mWhenView;
     TextView mStartTimezoneTextView;
-    TextView mStartTimezoneLabel;
     TextView mEndTimezoneTextView;
-    TextView mEndTimezoneLabel;
     LinearLayout mRemindersContainer;
     AttendeesView mAttendeesContainer;
     View mCalendarSelectorGroup;
@@ -161,31 +159,29 @@ public class EditEventView
     private final int[] mOriginalPadding = new int[4];
     private ProgressDialog mLoadingCalendarsDialog;
     private AlertDialog mNoCalendarsDialog;
-
     private final EditEventActivity mActivity;
     private final EditDoneRunnable mDone;
     private final View mView;
     private CalendarEventModel mModel;
     private Cursor mCalendarsCursor;
     private final Rfc822Validator mEmailValidator;
-    private TimePickerDialog mTimePickerDialog;
     private DatePickerDialog mDatePickerDialog;
-    /**
-     * Contents of the "minutes" spinner.  This has default values from the XML file,
-     * augmented with any additional values that were already associated with the event.
+    /* Contents of the "minutes" spinner.  This has default values from the
+     * XML file, augmented with any additional values that were already
+     * associated with the event.
      */
     private ArrayList<Integer> mReminderMinuteValues;
     private ArrayList<String> mReminderMinuteLabels;
-    /**
-     * Contents of the "methods" spinner.  The "values" list specifies the method constant
-     * (e.g. {@link Reminders#METHOD_ALERT}) associated with the labels.
+    /* Contents of the "methods" spinner.  The "values" list specifies the
+     * method constant (e.g. {@link Reminders#METHOD_ALERT}) associated with
+     * the labels.
      */
     private ArrayList<Integer> mReminderMethodValues;
     private ArrayList<String> mReminderMethodLabels;
-    /**
-     * Contents of the "availability" spinner. The "values" list specifies the
-     * type constant (e.g. {@link Events#AVAILABILITY_BUSY}) associated with the
-     * labels. Any types that aren't allowed by the Calendar will be removed.
+    /* Contents of the "availability" spinner. The "values" list specifies the
+     * type constant (e.g. {@link Events#AVAILABILITY_BUSY}) associated with
+     * the labels. Any types that aren't allowed by the Calendar will be
+     * removed.
      */
     private ArrayList<Integer> mAvailabilityValues;
     private ArrayAdapter<String> mAvailabilityAdapter;
@@ -195,31 +191,46 @@ public class EditEventView
     private int mDefaultReminderMinutes;
     private boolean mSaveAfterQueryComplete = false;
     private TimeZonePickerUtils mTzPickerUtils;
+    /* Note that we always leave mStartTime and mEndTime set to the times
+     * that we get from the database (when editing an event) or from the
+     * intent (when creating a new event). For all day events we calculate
+     * the correct dates when updating the display. This avoids changing
+     * the stored dates and times if the user checks the ALL DAY box and then
+     * unchecks it again. Although the database provides the start and
+     * non-inclusive end *time* of an all day event (24 hours apart for a
+     * single day event), the convention is to display the start and
+     * inclusive end *date* (the same for a single day event). We deal with
+     * that when updating the display. When creating a new event, mStartTime
+     * and mEndTime are in the device's current time zone, which may not be
+     * UTC, so we have to be careful when updating the display to show the
+     * correct date.
+     */
     private final Time mStartTime;
     private final Time mEndTime;
     private String mStartTimezone;
     private String mEndTimezone;
-    private boolean mAllDay = false;
-    private int mModification = EditEventHelper.MODIFY_UNINITIALIZED;
-    private final EventRecurrence mEventRecurrence = new EventRecurrence();
-    private final ArrayList<LinearLayout> mReminderItems = new ArrayList<>(0);
-    private final ArrayList<ReminderEntry> mUnsupportedReminders = new ArrayList<>();
+    private boolean mIsAllDay = false;
+    private int mModification
+        = EditEventHelper.MODIFY_UNINITIALIZED;
+    private final EventRecurrence mEventRecurrence
+        = new EventRecurrence();
+    private final ArrayList<LinearLayout> mReminderItems
+        = new ArrayList<>(0);
+    private final ArrayList<ReminderEntry>
+        mUnsupportedReminders = new ArrayList<>();
     private String mRrule;
 
     public EditEventView(
         EditEventActivity activity, View view, EditDoneRunnable done)
     {
-
         mActivity = activity;
         mView = view;
         mDone = done;
         mSpinnerButtonColor = DynamicTheme.getColor(
             mActivity, "spinner_button_color");
-
         // cache top level view elements
         mLoadingMessage = view.findViewById(R.id.loading_message);
         mScrollView = view.findViewById(R.id.scroll_view);
-
         // cache all the widgets
         mCalendarsSpinner = view.findViewById(R.id.calendars_spinner);
         mTitleTextView = view.findViewById(R.id.title);
@@ -235,8 +246,7 @@ public class EditEventView
                     return false;
                 }
             });
-        mLocationTextView =
-            view.findViewById(R.id.location);
+        mLocationTextView = view.findViewById(R.id.location);
         mDescriptionTextView = view.findViewById(R.id.description);
         mDescriptionTextView.setOnEditorActionListener(
             new OnEditorActionListener() {
@@ -255,8 +265,8 @@ public class EditEventView
         mEndDateButton = view.findViewById(R.id.end_date);
         mEndDateButton.setTextColor(mSpinnerButtonColor);
         mWhenView = mView.findViewById(R.id.when);
-        mStartTimezoneLabel = view.findViewById(R.id.start_timezone_label);
-        mStartTimezoneTextView = mView.findViewById(R.id.start_timezone_textView);
+        mStartTimezoneTextView
+            = mView.findViewById(R.id.start_timezone_textView);
         mStartTimeButton = view.findViewById(R.id.start_time);
         mStartTimeButton.setTextColor(mSpinnerButtonColor);
         mStartTimezoneButton = view.findViewById(R.id.start_timezone_button);
@@ -268,7 +278,6 @@ public class EditEventView
             }
         });
         mStartTimezoneRow = view.findViewById(R.id.start_timezone_button_row);
-        mEndTimezoneLabel = view.findViewById(R.id.end_timezone_label);
         mEndTimezoneTextView = mView.findViewById(R.id.end_timezone_textView);
         mEndTimeButton = view.findViewById(R.id.end_time);
         mEndTimeButton.setTextColor(mSpinnerButtonColor);
@@ -306,10 +315,9 @@ public class EditEventView
         mStartHomeGroup = view.findViewById(R.id.from_row_home_tz);
         mEndHomeGroup = view.findViewById(R.id.to_row_home_tz);
         mAttendeesContainer = view.findViewById(R.id.long_attendee_list);
-
         mColorPickerNewEvent = view.findViewById(R.id.change_color_new_event);
-        mColorPickerExistingEvent = view.findViewById(R.id.change_color_existing_event);
-
+        mColorPickerExistingEvent = view.findViewById(
+            R.id.change_color_existing_event);
         mTitleTextView.setTag(mTitleTextView.getBackground());
         mLocationTextView.setTag(mLocationTextView.getBackground());
         mLocationAdapter = new EventLocationAdapter(activity);
@@ -363,14 +371,13 @@ public class EditEventView
 
                 }
             });
-
-
         mDescriptionTextView.setTag(mDescriptionTextView.getBackground());
         mAttendeesContainer.setTag(mAttendeesContainer.getBackground());
         mOriginalPadding[0] = mLocationTextView.getPaddingLeft();
         mOriginalPadding[1] = mLocationTextView.getPaddingTop();
         mOriginalPadding[2] = mLocationTextView.getPaddingRight();
         mOriginalPadding[3] = mLocationTextView.getPaddingBottom();
+
         mEditViewList.add(mTitleTextView);
         mEditViewList.add(mLocationTextView);
         mEditViewList.add(mDescriptionTextView);
@@ -394,8 +401,11 @@ public class EditEventView
         mRemindersContainer =
             view.findViewById(R.id.reminder_items_container);
 
+        mIsMultipane = activity.getResources().getBoolean(
+            R.bool.tablet_config);
+
+        // Do we really need these initialisations?
         mStartTimezone = Utils.getTimeZone(activity, null);
-        mIsMultipane = activity.getResources().getBoolean(R.bool.tablet_config);
         mStartTime = new Time(mStartTimezone);
         mEndTimezone = mStartTimezone;
         mEndTime = new Time(mEndTimezone);
@@ -412,10 +422,10 @@ public class EditEventView
         }
     }
 
-    /**
-     * Loads an integer array asset into a list.
-     */
-    private static ArrayList<Integer> loadIntegerArray(Resources r, int resNum) {
+    // Loads an integer array asset into a list.
+    private static ArrayList<Integer> loadIntegerArray(
+        Resources r, int resNum)
+    {
         int[] vals = r.getIntArray(resNum);
         ArrayList<Integer> list = new ArrayList<>(vals.length);
         for (int val : vals) {
@@ -424,46 +434,42 @@ public class EditEventView
         return list;
     }
 
-    /**
-     * Loads a String array asset into a list.
-     */
-    private static ArrayList<String> loadStringArray(Resources r, int resNum) {
+    // Loads a String array asset into a list.
+    private static ArrayList<String> loadStringArray(
+        Resources r, int resNum)
+    {
         return new ArrayList<>(Arrays.asList(r.getStringArray(resNum)));
     }
 
-    // Fills in the date and time fields
-    private void setDateTimeListeners() {
-        mStartDateButton.setOnClickListener(new DateClickListener(mStartTime));
-        mEndDateButton.setOnClickListener(new DateClickListener(mEndTime));
-        mStartTimeButton.setOnClickListener(new TimeClickListener(mStartTime));
-        mEndTimeButton.setOnClickListener(new TimeClickListener(mEndTime));
-    }
-
-    private void fixStartTimeZone(long timeMillis, String timeZone) {
+    private void fixStartTimeZone(
+        long timeMillis, String timeZone)
+    {
         mStartTimezone = timeZone;
         if (mTzPickerUtils == null) {
             mTzPickerUtils = new TimeZonePickerUtils(mActivity);
         }
         CharSequence displayName =
             mTzPickerUtils.getGmtDisplayName(
-                mActivity,timeZone, timeMillis, false);
+                mActivity, timeZone, timeMillis, false);
         mStartTimezoneTextView.setText(displayName);
         mStartTimezoneButton.setText(displayName);
     }
 
-    private void fixEndTimeZone(long timeMillis, String timeZone) {
+    private void fixEndTimeZone(
+        long timeMillis, String timeZone)
+    {
         mEndTimezone = timeZone;
         if (mTzPickerUtils == null) {
             mTzPickerUtils = new TimeZonePickerUtils(mActivity);
         }
         CharSequence displayName =
             mTzPickerUtils.getGmtDisplayName(
-                mActivity,timeZone, timeMillis, false);
+                mActivity, timeZone, timeMillis, false);
         mEndTimezoneTextView.setText(displayName);
         mEndTimezoneButton.setText(displayName);
     }
 
-    // Implements OnTimeZoneSetListener
+    // Implements TimeZonePickerDialog.OnTimeZoneSetListener
     @Override
     public void onTimeZoneSet(TimeZoneInfo tzi, boolean isStart) {
         if (isStart) {
@@ -505,9 +511,8 @@ public class EditEventView
         String repeatString;
         boolean enabled;
         if (!TextUtils.isEmpty(mRrule)) {
-            repeatString = EventRecurrenceFormatter.getRepeatString(mActivity, r,
-                    mEventRecurrence, true);
-
+            repeatString = EventRecurrenceFormatter.getRepeatString(
+                mActivity, r, mEventRecurrence, true);
             if (repeatString == null) {
                 repeatString = r.getString(R.string.custom);
                 Log.e(TAG, "Can't generate display string for " + mRrule);
@@ -534,15 +539,14 @@ public class EditEventView
         mRruleButton.setEnabled(enabled);
     }
 
-    /**
-     * Does prep steps for saving a calendar event.
+    /* Does prep steps for saving a calendar event.
      *
      * This triggers a parse of the attendees list and checks if the event is
      * ready to be saved. An event is ready to be saved so long as a model
-     * exists and has a calendar it can be associated with, either because it's
-     * an existing event or we've finished querying.
+     * exists and has a calendar it can be associated with, either because
+     * it's an existing event or we've finished querying.
      *
-     * @return false if there is no model or no calendar had been loaded yet,
+     * Returns false if there is no model or no calendar had been loaded yet,
      * true otherwise.
      */
     public boolean prepareForSave() {
@@ -688,29 +692,19 @@ public class EditEventView
         }
 
         if (mModel.mAllDay) {
-            // Reset start and end time, increment the monthDay by 1, and set
-            // the timezone to UTC, as required for all-day events.
-            mStartTimezone = Time.TIMEZONE_UTC;
+            // For all-day events, set the timezone to UTS
+            // and the to start of day.
             mStartTime.hour = 0;
             mStartTime.minute = 0;
             mStartTime.second = 0;
-            mStartTime.timezone = mStartTimezone;
+            mStartTime.timezone = mStartTimezone = Time.TIMEZONE_UTC;
             mModel.mEventStart = mStartTime.normalize(true);
 
             mEndTime.hour = 0;
             mEndTime.minute = 0;
             mEndTime.second = 0;
-            mEndTime.timezone = mEndTimezone;
-            // When a user see the event duration as "X - Y" (e.g. Oct. 28 - Oct. 29),
-            // end time should be Y + 1 (Oct.30).
-            final long normalizedEndTimeMillis =
-                    mEndTime.normalize(true) + DateUtils.DAY_IN_MILLIS;
-            if (normalizedEndTimeMillis < mModel.mEventStart) {
-                // mEnd should be midnight of the next day of mStart.
-                mModel.mEventEnd = mModel.mEventStart + DateUtils.DAY_IN_MILLIS;
-            } else {
-                mModel.mEventEnd = normalizedEndTimeMillis;
-            }
+            mEndTime.timezone = mEndTimezone = Time.TIMEZONE_UTC;
+            mModel.mEventEnd = mEndTime.normalize(true);
         } else {
             mStartTime.timezone = mStartTimezone;
             mEndTime.timezone = mEndTimezone;
@@ -857,20 +851,8 @@ public class EditEventView
 
         long begin = model.mInstanceStart;
         long end = model.mInstanceEnd;
-        mStartTimezone = model.mTimezoneStart; // this will be UTC for all day events
-        mEndTimezone = model.mTimezoneEnd; // this will be UTC for all day events
 
         // Set up the starting times
-        if (begin > 0) {
-            mStartTime.timezone = mStartTimezone;
-            mStartTime.set(begin);
-            mStartTime.normalize(true);
-        }
-        if (end > 0) {
-            mEndTime.timezone = mEndTimezone;
-            mEndTime.set(end);
-            mEndTime.normalize(true);
-        }
 
         mRrule = model.mRrule;
         if (!TextUtils.isEmpty(mRrule)) {
@@ -888,7 +870,7 @@ public class EditEventView
             mAttendeesGroup.setVisibility(View.GONE);
         }
 
-        mAllDay = false; // default to false. Let setAllDayViewsVisibility update it as needed
+        mIsAllDay = false; // default to false. Let setAllDayViewsVisibility update it as needed
         if (model.mAllDay) {
             mAllDayCheckBox.setChecked(true);
             // put things back in local time for all day events
@@ -898,6 +880,14 @@ public class EditEventView
             mEndTime.normalize(true);
         } else {
             mAllDayCheckBox.setChecked(false);
+            if (begin > 0) {
+                mStartTime.timezone = mStartTimezone = model.mTimezoneStart;
+                mStartTime.set(begin);
+            }
+            if (end > 0) {
+                mEndTime.timezone = mEndTimezone = model.mTimezoneEnd;
+                mEndTime.set(end);
+            }
         }
 
         fixStartTimeZone(mStartTime.normalize(true),
@@ -996,7 +986,10 @@ public class EditEventView
             updateHeadlineColor(model, model.getEventColor());
         }
 
-        setDateTimeListeners();
+        mStartDateButton.setOnClickListener(new DateClickListener(mStartTime));
+        mEndDateButton.setOnClickListener(new DateClickListener(mEndTime));
+        mStartTimeButton.setOnClickListener(new TimeClickListener(mStartTime));
+        mEndTimeButton.setOnClickListener(new TimeClickListener(mEndTime));
         populateRepeats();
         updateAttendees(model.mAttendeesList);
 
@@ -1118,8 +1111,9 @@ public class EditEventView
         long startMillis = mStartTime.normalize(true);
         long endMillis = mEndTime.normalize(true);
         mSB.setLength(0);
-        when = DateUtils
-                .formatDateRange(mActivity, mF, startMillis, endMillis, flags, tz).toString();
+        when = DateUtils.formatDateRange(
+            mActivity, new Formatter(mSB, Locale.getDefault()),
+            startMillis, endMillis, flags, tz).toString();
         mWhenView.setText(when);
     }
 
@@ -1378,7 +1372,7 @@ public class EditEventView
     protected void setAllDayViewsVisibility(boolean isChecked) {
         if (isChecked) {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
-                if (!mAllDay) {
+                if (!mIsAllDay) {
                     mEndTime.monthDay--;
                 }
 
@@ -1391,7 +1385,7 @@ public class EditEventView
             }
         } else {
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
-                if (mAllDay) {
+                if (mIsAllDay) {
                     mEndTime.monthDay++;
                 }
             }
@@ -1419,7 +1413,7 @@ public class EditEventView
             }
         }
 
-        mAllDay = isChecked;
+        mIsAllDay = isChecked;
         updateTimes();
     }
 
@@ -1513,32 +1507,42 @@ public class EditEventView
     /* This sets the displayed times and dates.
      * If the event is all day, only the start and end date
      * (it can be a multiple day event) are shown, but no times.
-     * if the start zone isn't in the local time zone,
+     * if the start time zone isn't in the local time zone,
      * the start date and time in the local time zone are shown.
-     * if the end zone isn't in the local time zone,
+     * if the end time zone isn't in the local time zone,
      * the end date and time in the local time zone are shown.
      */
     private void updateTimes() {
-        long millisStart = mStartTime.toMillis(false);
-        long millisEnd = mEndTime.toMillis(false);
+        Formatter formatter = new Formatter(mSB, Locale.getDefault());
         int dateFlags = DateUtils.FORMAT_ABBREV_ALL
             | DateUtils.FORMAT_SHOW_DATE
             | DateUtils.FORMAT_SHOW_YEAR
             | DateUtils.FORMAT_SHOW_WEEKDAY;
-        int timeFlags = DateUtils.FORMAT_SHOW_TIME;
-        boolean is24Format = DateFormat.is24HourFormat(mActivity);
-        if (is24Format) {
-            timeFlags |= DateUtils.FORMAT_24HOUR;
-        }
-        mSB.setLength(0);
-        mStartDateButton.setText(DateUtils.formatDateRange(
-            mActivity, mF, millisStart, millisStart,
-            dateFlags, mStartTimezone).toString());
-        mSB.setLength(0);
-        mEndDateButton.setText(DateUtils.formatDateRange(
-            mActivity, mF, millisEnd, millisEnd,
-            dateFlags, mEndTimezone).toString());
-        if (mAllDayCheckBox.isChecked()) {
+        if (mIsAllDay) {
+            // show the start and end dates
+            Time displayedStart = new Time(mStartTime);
+            displayedStart.hour = 0;
+            displayedStart.minute = 0;
+            displayedStart.second = 0;
+            Time displayedEnd = new Time(mEndTime);
+            long millisEnd = displayedEnd.toMillis(false);
+            if (   displayedEnd.after(displayedStart)
+                && (displayedEnd.hour == 0)
+                && (displayedEnd.minute == 0)
+                && (displayedEnd.second == 0))
+            {
+                // End time is on a day boundary, move back to previous day
+                displayedEnd.set(millisEnd - DateUtils.DAY_IN_MILLIS);
+            }
+            displayedEnd.hour = 0;
+            displayedEnd.minute = 0;
+            displayedEnd.second = 0;
+            mSB.setLength(0);
+            mStartDateButton.setText(DateUtils.formatDateTime(
+                mActivity, displayedStart.toMillis(false),
+                dateFlags));
+            mEndDateButton.setText(DateUtils.formatDateTime(
+                mActivity, millisEnd, dateFlags));
             mStartTimeButton.setVisibility(View.GONE);
             mStartHomeGroup.setVisibility(View.GONE);
             mStartTimezoneRow.setVisibility(View.GONE);
@@ -1546,53 +1550,70 @@ public class EditEventView
             mEndHomeGroup.setVisibility(View.GONE);
             mEndTimezoneRow.setVisibility(View.GONE);
         } else {
-            mStartTimeButton.setVisibility(View.VISIBLE);
+            // show atart and end dates and times
+            long millisStart = mStartTime.toMillis(false);
+            long millisEnd = mEndTime.toMillis(false);
+            int timeFlags = DateUtils.FORMAT_SHOW_TIME;
+            if (DateFormat.is24HourFormat(mActivity)) {
+                timeFlags |= DateUtils.FORMAT_24HOUR;
+            }
             mSB.setLength(0);
-            mStartTimeButton.setText(DateUtils.formatDateRange(
-                mActivity, mF, millisStart, millisStart,
-                timeFlags, mStartTimezone).toString());
-            mStartTimezoneRow.setVisibility(View.VISIBLE);
+            mStartDateButton.setText(DateUtils.formatDateRange(
+                mActivity, formatter, millisStart, millisStart,
+                dateFlags, mStartTimezone).toString());
+            mSB.setLength(0);
+            mEndDateButton.setText(DateUtils.formatDateRange(
+                mActivity, formatter, millisEnd, millisEnd,
+                dateFlags, mEndTimezone).toString());
+            mStartTimeButton.setVisibility(View.VISIBLE);
             mEndTimeButton.setVisibility(View.VISIBLE);
             mSB.setLength(0);
+            mStartTimeButton.setText(DateUtils.formatDateRange(
+                mActivity, formatter, millisStart, millisStart,
+                timeFlags, mStartTimezone).toString());
+            mSB.setLength(0);
             mEndTimeButton.setText(DateUtils.formatDateRange(
-                mActivity, mF, millisEnd, millisEnd,
+                mActivity, formatter, millisEnd, millisEnd,
                 timeFlags, mEndTimezone).toString());
+            mStartTimezoneRow.setVisibility(View.VISIBLE);
             mEndTimezoneRow.setVisibility(View.VISIBLE);
-            boolean isDSTStart = mStartTime.isDst != 0;
-            boolean isDSTEnd = mEndTime.isDst != 0;
             String tz = Utils.getTimeZone(mActivity, null);
-            long gmtoff = new Time(tz).gmtoff;
-            if (mStartTime.gmtoff == gmtoff) {
+            Time hereNow = new Time();
+            hereNow.setToNow();
+            if (mStartTime.gmtoff == hereNow.gmtoff) {
+                // start time is in local time zone
                 mStartHomeGroup.setVisibility(View.GONE);
-            } else { // show local start date and time
+            } else { // show local start date and time as well
                 mSB.setLength(0);
                 mStartDateHome.setText(DateUtils.formatDateRange(
-                        mActivity, mF, millisStart, millisStart,
-                        dateFlags, tz).toString());
+                    mActivity, formatter, millisStart, millisStart,
+                    dateFlags, tz).toString());
                 String tzDisplay =
                     TimeZone.getTimeZone(tz).getDisplayName(
-                    isDSTStart, TimeZone.SHORT, Locale.getDefault());
+                        hereNow.isDst > 0,
+                        TimeZone.SHORT, Locale.getDefault());
                 mSB.setLength(0);
                 String time = DateUtils.formatDateRange(
-                    mActivity, mF, millisStart, millisStart,
+                    mActivity, formatter, millisStart, millisStart,
                     timeFlags, tz) +
                     " " + tzDisplay;
                 mStartTimeHome.setText(time);
                 mStartHomeGroup.setVisibility(View.VISIBLE);
             }
-            if (mEndTime.gmtoff == gmtoff) {
+            if (mEndTime.gmtoff == hereNow.gmtoff) {
                 mEndHomeGroup.setVisibility(View.GONE);
             } else {
                 mSB.setLength(0);
                 mEndDateHome.setText(DateUtils.formatDateRange(
-                    mActivity, mF, millisEnd, millisEnd,
+                    mActivity, formatter, millisEnd, millisEnd,
                     dateFlags, tz).toString());
                 String tzDisplay =
                     TimeZone.getTimeZone(tz).getDisplayName(
-                    isDSTEnd, TimeZone.SHORT, Locale.getDefault());
+                        hereNow.isDst > 0,
+                        TimeZone.SHORT, Locale.getDefault());
                 mSB.setLength(0);
                 String time = DateUtils.formatDateRange(
-                    mActivity, mF, millisEnd, millisEnd,
+                    mActivity, formatter, millisEnd, millisEnd,
                     timeFlags, tz) +
                     " " + tzDisplay;
                 mEndTimeHome.setText(time);
@@ -1679,7 +1700,7 @@ public class EditEventView
                 startMillis = startTime.normalize(true);
                 fixStartTimeZone(startMillis, startTime.timezone);
 
-                // Also update the end tim
+                // Also update the end time
                 // to keep the duration constant.
                 endTime.hour = hourOfDay + hourDuration;
                 endTime.minute = minute + minuteDuration;
@@ -1704,7 +1725,7 @@ public class EditEventView
     }
 
     private void showTimePickerDialog(View v, Time time) {
-        mTimePickerDialog = new TimePickerDialog(
+        TimePickerDialog mTimePickerDialog = new TimePickerDialog(
             mActivity, new TimeListener(v),
             time.hour, time.minute, DateFormat.is24HourFormat(mActivity));
         mTimePickerDialog.setOnDismissListener(this);
