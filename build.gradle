@@ -20,8 +20,8 @@ exec {
 //*/
 
 // Update these three to make new version
-def VERSIONCODE = 23
-def VERSIONNAME = "1.0.21"
+def VERSIONCODE = 24
+def VERSIONNAME = "1.1"
 def CHANGESTRING = "Many changes since Etar-Group version"
 
 def CHANGELOGS = "fastlane/metadata/android/en-US/changeLogs/"
