@@ -20,9 +20,9 @@ exec {
 //*/
 
 // Update these three to make new version
-def VERSIONCODE = 24
-def VERSIONNAME = "1.1"
-def CHANGESTRING = "Many changes since Etar-Group version"
+def VERSIONCODE = 25
+def VERSIONNAME = "1.2"
+def CHANGESTRING = "Fix problem with too many classes"
 
 def CHANGELOGS = "fastlane/metadata/android/en-US/changeLogs/"
 def CHANGEFILE = CHANGELOGS + VERSIONCODE + ".txt"
@@ -64,7 +64,7 @@ project(':external:calendar') {
         compileSdkVersion 33
 
         defaultConfig {
-            minSdkVersion 19
+            minSdkVersion 21
             //noinspection ExpiredTargetSdkVersion
             targetSdkVersion 29
         }
@@ -95,7 +95,7 @@ project(':external:chips') {
         compileSdkVersion 33
 
         defaultConfig {
-            minSdkVersion 19
+            minSdkVersion 21
             //noinspection ExpiredTargetSdkVersion
             targetSdkVersion 29
         }
@@ -144,7 +144,7 @@ android {
     compileSdkVersion 33
 
     defaultConfig {
-        minSdkVersion 19
+        minSdkVersion 21
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 29
         versionCode VERSIONCODE
