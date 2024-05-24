@@ -38,17 +38,17 @@ import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Reminders;
 import android.provider.Settings;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
-import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
@@ -64,12 +64,12 @@ import android.widget.ResourceCursorAdapter;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
 import android.widget.TimePicker;
 
 import com.android.calendar.CalendarEventModel;
 import com.android.calendar.CalendarEventModel.Attendee;
 import com.android.calendar.CalendarEventModel.ReminderEntry;
+import com.android.calendar.DayView;
 import com.android.calendar.DynamicTheme;
 import com.android.calendar.EventInfoFragment;
 import com.android.calendar.EventRecurrenceFormatter;
@@ -191,24 +191,34 @@ public class EditEventView
     private int mDefaultReminderMinutes;
     private boolean mSaveAfterQueryComplete = false;
     private TimeZonePickerUtils mTzPickerUtils;
-    /* Note that we always leave mStartTime and mEndTime set to the times
-     * that we get from the database (when editing an event) or from the
-     * intent (when creating a new event). For all day events we calculate
-     * the correct dates when updating the display. This avoids changing
-     * the stored dates and times if the user checks the ALL DAY box and then
-     * unchecks it again. Although the database provides the start and
-     * non-inclusive end *time* of an all day event (24 hours apart for a
-     * single day event), the convention is to display the start and
-     * inclusive end *date* (the same for a single day event). We deal with
-     * that when updating the display. When creating a new event, mStartTime
-     * and mEndTime are in the device's current time zone, which may not be
-     * UTC, so we have to be careful when updating the display to show the
-     * correct date.
+    /* This is the start time as displayed.
+     * If this isn't an all day event, this is the start time of
+     * the instance in the event's start timezone, from the database
+     * or from the intent. If the event's start timezone isn't the
+     * same as the user's current timezone, the start time in
+     * the user's current timezone will be shown as well.
+     * If this is an all day event, this is 00:00 on the first day of
+     * the event in the user's current timezone, but only the date
+     * is displayed and can be edited.
      */
     private final Time mStartTime;
+    /* This is the end time as displayed.
+     * If this isn't an all day event, this is the end time of
+     * the instnce in the event's end timezone, from the database
+     * or from the intent. If the event's end timezone isn't the
+     * same as the user's current timezone, the end time in
+     * the user's current timezone will be shown as well.
+     * If this is an all day event, this is 00:00 on the last day of
+     * the event in the user's current timezone, but only the date
+     * is displayed and can be edited. Note that this differs from the
+     * database representation of the end time of an all day event,
+     * which is 00:00 on the day *after* the last day of the event.
+     */
     private final Time mEndTime;
     private String mStartTimezone;
     private String mEndTimezone;
+    // This ISN'T the flag for an all day event,
+    // but the flag for displaying it in teh all day region.
     private boolean mIsAllDay = false;
     private int mModification
         = EditEventHelper.MODIFY_UNINITIALIZED;
@@ -234,32 +244,8 @@ public class EditEventView
         // cache all the widgets
         mCalendarsSpinner = view.findViewById(R.id.calendars_spinner);
         mTitleTextView = view.findViewById(R.id.title);
-        mTitleTextView.setOnEditorActionListener(
-            new OnEditorActionListener() {
-                @Override
-                public boolean onEditorAction(
-                    TextView v, int actionId, KeyEvent event)
-                {
-                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-                       somethingChanged();
-                    }
-                    return false;
-                }
-            });
         mLocationTextView = view.findViewById(R.id.location);
         mDescriptionTextView = view.findViewById(R.id.description);
-        mDescriptionTextView.setOnEditorActionListener(
-            new OnEditorActionListener() {
-                @Override
-                public boolean onEditorAction(
-                    TextView v, int actionId, KeyEvent event)
-                {
-                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-                        somethingChanged();
-                    }
-                    return false;
-                }
-            });
         mStartDateButton = view.findViewById(R.id.start_date);
         mStartDateButton.setTextColor(mSpinnerButtonColor);
         mEndDateButton = view.findViewById(R.id.end_date);
@@ -274,7 +260,11 @@ public class EditEventView
         mStartTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showTimezoneDialog(true);
+                // Don't allow user to change the start timezone
+                // while the all day box is checked.
+                if(!mAllDayCheckBox.isChecked()) {
+                    showTimezoneDialog(true);
+                }
             }
         });
         mStartTimezoneRow = view.findViewById(R.id.start_timezone_button_row);
@@ -286,7 +276,11 @@ public class EditEventView
         mEndTimezoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showTimezoneDialog(false);
+                // Don't allow user to change the end timezone
+                // while the all day box is checked.
+                if(!mAllDayCheckBox.isChecked()) {
+                    showTimezoneDialog(false);
+                }
             }
         });
         mEndTimezoneRow = view.findViewById(R.id.end_timezone_button_row);
@@ -322,22 +316,6 @@ public class EditEventView
         mLocationTextView.setTag(mLocationTextView.getBackground());
         mLocationAdapter = new EventLocationAdapter(activity);
         mLocationTextView.setAdapter(mLocationAdapter);
-        mLocationTextView.setOnEditorActionListener(
-            new OnEditorActionListener() {
-                @Override
-                public boolean onEditorAction(
-                    TextView v, int actionId, KeyEvent event)
-                {
-                    if (actionId == EditorInfo.IME_ACTION_DONE) {
-                        // Dismiss the suggestions dropdown.  Return false
-                        // so the other side effects still occur
-                        // (soft keyboard going away, etc.).
-                        mLocationTextView.dismissDropDown();
-                        somethingChanged();
-                    }
-                    return false;
-                }
-            });
         mAvailabilityExplicitlySet = false;
         mAllDayChangingAvailability = false;
         mAvailabilityCurrentlySelected = -1;
@@ -359,12 +337,13 @@ public class EditEventView
                     if (   mAvailabilityCurrentlySelected != position
                         && !mAllDayChangingAvailability)
                     {
+                        mAvailabilityCurrentlySelected = position;
                         mAvailabilityExplicitlySet = true;
+                        somethingChanged();
                     } else {
                         mAvailabilityCurrentlySelected = position;
                         mAllDayChangingAvailability = false;
                     }
-                    somethingChanged();
                 }
                 @Override
                 public void onNothingSelected(AdapterView<?> arg0) {
@@ -472,16 +451,25 @@ public class EditEventView
     // Implements TimeZonePickerDialog.OnTimeZoneSetListener
     @Override
     public void onTimeZoneSet(TimeZoneInfo tzi, boolean isStart) {
+        long startMillis = mStartTime.normalize(true);
+        long endMillis = mEndTime.normalize(true);
         if (isStart) {
             mStartTime.timezone = tzi.mTzId;
             long timeMillis = mStartTime.normalize(true);
+            if (timeMillis >= endMillis) {
+                mEndTime.set(timeMillis + endMillis - startMillis);
+            }
             fixStartTimeZone(timeMillis, tzi.mTzId);
         } else {
             mEndTime.timezone = tzi.mTzId;
             long timeMillis = mEndTime.normalize(true);
+            if (timeMillis <= startMillis) {
+                mStartTime.set(timeMillis - (endMillis - startMillis));
+            }
             fixEndTimeZone(timeMillis, tzi.mTzId);
         }
         updateTimes();
+        somethingChanged();
     }
 
     private void showTimezoneDialog(boolean isStart) {
@@ -489,8 +477,8 @@ public class EditEventView
         b.putLong(
             TimeZonePickerDialog.BUNDLE_EVENT_TIME_MILLIS,
                   mStartTime.toMillis(false));
-        b.putString(
-            TimeZonePickerDialog.BUNDLE_EVENT_TIME_ZONE, mStartTimezone);
+        b.putString(TimeZonePickerDialog.BUNDLE_EVENT_TIME_ZONE,
+            isStart ? mStartTimezone : mEndTimezone);
         b.putBoolean(
             TimeZonePickerDialog.BUNDLE_EVENT_IS_START, isStart);
 
@@ -646,7 +634,6 @@ public class EditEventView
         mModel.normalizeReminders();
         mModel.mHasAlarm = mReminderItems.size() > 0;
         mModel.mTitle = mTitleTextView.getText().toString();
-        mModel.mAllDay = mAllDayCheckBox.isChecked();
         mModel.mLocation = mLocationTextView.getText().toString();
         mModel.mDescription = mDescriptionTextView.getText().toString();
         if (TextUtils.isEmpty(mModel.mTitle)) {
@@ -691,28 +678,64 @@ public class EditEventView
             }
         }
 
-        if (mModel.mAllDay) {
-            // For all-day events, set the timezone to UTS
-            // and the to start of day.
-            mStartTime.hour = 0;
-            mStartTime.minute = 0;
-            mStartTime.second = 0;
-            mStartTime.timezone = mStartTimezone = Time.TIMEZONE_UTC;
-            mModel.mEventStart = mStartTime.normalize(true);
-
-            mEndTime.hour = 0;
-            mEndTime.minute = 0;
-            mEndTime.second = 0;
-            mEndTime.timezone = mEndTimezone = Time.TIMEZONE_UTC;
-            mModel.mEventEnd = mEndTime.normalize(true);
+        if (mAllDayCheckBox.isChecked()) {
+            // Event is (now) an all day event,
+            // set the model's timezone to UTC
+            // and the model's time to start of day.
+            Time t = new Time(mStartTime);
+            // Same date and time (00:00) in UTC
+            t.timezone = Time.TIMEZONE_UTC;
+            long startMillis = t.toMillis(true);
+            t.set(mEndTime);
+            t.timezone = Time.TIMEZONE_UTC;
+            t.hour = 24; // add back the day that we took off
+            long endMillis = t.toMillis(true);
+            if (!mModel.mAllDay) {
+                // mAllDayCheckBox has changed to checked.
+                // Save some information in case it was a mistake.
+                mModel.mSaveInstanceStart = mModel.mInstanceStart;
+                mModel.mSaveTimezoneStart = mModel.mTimezoneStart;
+                mModel.mSaveInstanceEnd = mModel.mInstanceEnd;
+                mModel.mSaveTimezoneEnd = mModel.mTimezoneEnd;
+            } else {
+                if (mModel.mInstanceStart != startMillis) {
+                    // User changed start time while all mAllDayCheckBox
+                    // was checked, so update the saved copy.
+                    mModel.mSaveInstanceStart = startMillis;
+                }
+                if (mModel.mSaveInstanceEnd != endMillis) {
+                    // User changed end time while mAllDayCheckBox
+                    // was checked, so update the saved copy.
+                    mModel.mSaveInstanceEnd = endMillis;
+                }
+            }
+            mModel.mInstanceStart = startMillis;
+            mModel.mInstanceEnd = endMillis;
+            mModel.mTimezoneStart = Time.TIMEZONE_UTC;
+            mModel.mTimezoneEnd = Time.TIMEZONE_UTC;
+            mModel.mAllDay = true;
         } else {
-            mStartTime.timezone = mStartTimezone;
-            mEndTime.timezone = mEndTimezone;
-            mModel.mInstanceStart = mStartTime.toMillis(true);
-            mModel.mInstanceEnd = mEndTime.toMillis(true);
+            if (mModel.mAllDay) {
+                // mAllDayCheckBox has changed to unchecked
+                // set mModel.mInstanceStart and mModel.mInstanceEnd
+                // from saved copies, which will have been updated
+                // if user changed time while mAllDayCheckBox was checked.
+                mModel.mInstanceStart = mModel.mSaveInstanceStart;
+                mModel.mTimezoneStart = mModel.mSaveTimezoneStart;
+                mModel.mInstanceEnd = mModel.mSaveInstanceEnd;
+                mModel.mTimezoneEnd = mModel.mSaveTimezoneEnd;
+            } else {
+                // Time or timezone may have changed
+                // while mAllDayCheckBox was unchecked
+                mModel.mInstanceStart = mStartTime.toMillis(true);
+                mModel.mSaveTimezoneStart =
+                    mModel.mTimezoneStart = mStartTime.timezone;
+                mModel.mInstanceEnd = mEndTime.toMillis(true);
+                mModel.mSaveTimezoneEnd =
+                    mModel.mTimezoneEnd = mEndTime.timezone;
+            }
+            mModel.mAllDay = false;
         }
-        mModel.mTimezoneStart = mStartTimezone;
-        mModel.mTimezoneEnd = mEndTimezone;
         mModel.mAccessLevel = mAccessLevelSpinner.getSelectedItemPosition();
         // TODO set correct availability value
         mModel.mAvailability = mAvailabilityValues.get(mAvailabilitySpinner
@@ -850,7 +873,15 @@ public class EditEventView
         boolean canRespond = EditEventHelper.canRespond(model);
 
         long begin = model.mInstanceStart;
+        if (begin > 0) {
+            mStartTime.timezone = mStartTimezone = mModel.mTimezoneStart;
+            mStartTime.set(begin);
+        }
         long end = model.mInstanceEnd;
+        if (begin > 0) {
+            mEndTime.timezone = mEndTimezone = mModel.mTimezoneEnd;
+            mEndTime.set(end);
+        }
 
         // Set up the starting times
 
@@ -870,24 +901,26 @@ public class EditEventView
             mAttendeesGroup.setVisibility(View.GONE);
         }
 
-        mIsAllDay = false; // default to false. Let setAllDayViewsVisibility update it as needed
+        // Default to false. Let setAllDayViewsVisibility update it as needed.
+        mIsAllDay = false;
         if (model.mAllDay) {
             mAllDayCheckBox.setChecked(true);
             // put things back in local time for all day events
-            mStartTimezone = Utils.getTimeZone(mActivity, null);
+            mEndTimezone = mStartTimezone
+                = Utils.getTimeZone(mActivity, null);
+            // This leaves the same date and time (00:00) in the local timezone
             mStartTime.timezone = mStartTimezone;
-            mEndTime.timezone = mStartTimezone;
-            mEndTime.normalize(true);
+            // Subtract a day to display the end date as the last day,
+            // not the day after it.
+            // mEndTime is currently UTC, so this can't move us
+            // across a DST boundary.
+            mEndTime.set(end - DayView.MILLIS_PER_DAY);
+            // This leaves the same date and time (00:00) in the local timezone
+            mEndTime.timezone = mEndTimezone;
+            // Now there *can* be a DST boundary between mStartTime and
+            // mEndTime if this is a multiple day event.
         } else {
             mAllDayCheckBox.setChecked(false);
-            if (begin > 0) {
-                mStartTime.timezone = mStartTimezone = model.mTimezoneStart;
-                mStartTime.set(begin);
-            }
-            if (end > 0) {
-                mEndTime.timezone = mEndTimezone = model.mTimezoneEnd;
-                mEndTime.set(end);
-            }
         }
 
         fixStartTimeZone(mStartTime.normalize(true),
@@ -924,10 +957,35 @@ public class EditEventView
                     });
         }
 
+        /* This replaces  the OnEditorActionListener in order to handle
+         * the case pf an external keyboard which has no dismiss key
+         * to generate EditorInfo.IME_ACTION_DONE.
+         */
+        TextWatcher tw = new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s)
+            {
+                somethingChanged();
+            }
+            @Override
+            public void beforeTextChanged(
+                    CharSequence s, int start, int count, int after)
+            {}
+            @Override
+            public void onTextChanged(
+                    CharSequence s, int start, int before, int count)
+            {}
+        };
+
         if (   (mTitleTextView.length() == 0)
             && (model.mTitle != null)) {
             mTitleTextView.setText(model.mTitle);
         }
+        /*
+         * Note we do this after sstting the text since that action
+         * would call afterTextChanged().
+         */
+        mTitleTextView.addTextChangedListener(tw);
 
         if (model.mIsOrganizer || TextUtils.isEmpty(model.mOrganizer)
                 || model.mOrganizer.endsWith(GOOGLE_SECONDARY_CALENDAR)) {
@@ -942,11 +1000,21 @@ public class EditEventView
             && (model.mLocation != null)) {
             mLocationTextView.setText(model.mLocation);
         }
+        /*
+         * Note we do this after sstting the text since that action
+         * would call afterTextChanged().
+         */
+        mLocationTextView.addTextChangedListener(tw);
 
         if (   (mDescriptionTextView.length() == 0)
             && (model.mDescription != null)) {
             mDescriptionTextView.setText(model.mDescription);
         }
+        /*
+         * Note we do this after sstting the text since that action
+         * would call afterTextChanged().
+         */
+        mDescriptionTextView.addTextChangedListener(tw);
 
         int availIndex = mAvailabilityValues.indexOf(model.mAvailability);
         if (availIndex != -1) {
@@ -1003,6 +1071,7 @@ public class EditEventView
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                     setAllDayViewsVisibility(isChecked);
+                    somethingChanged();
                 }
             });
 
@@ -1164,7 +1233,7 @@ public class EditEventView
 
         if (mSaveAfterQueryComplete) {
             mLoadingCalendarsDialog.cancel();
-            if (prepareForSave() && fillModelFromUI()) {
+            if (prepareForSave()) {
                 int exit = (mView.getWindowVisibility() == View.VISIBLE)
                     ? Utils.DONE_EXIT : 0;
                 mDone.setDoneCode(Utils.DONE_SAVE | exit);
@@ -1371,6 +1440,7 @@ public class EditEventView
      */
     protected void setAllDayViewsVisibility(boolean isChecked) {
         if (isChecked) {
+            // FIXME should we be doing this here?
             if (mEndTime.hour == 0 && mEndTime.minute == 0) {
                 if (!mIsAllDay) {
                     mEndTime.monthDay--;
@@ -1521,28 +1591,14 @@ public class EditEventView
         if (mIsAllDay) {
             // show the start and end dates
             Time displayedStart = new Time(mStartTime);
-            displayedStart.hour = 0;
-            displayedStart.minute = 0;
-            displayedStart.second = 0;
             Time displayedEnd = new Time(mEndTime);
-            long millisEnd = displayedEnd.toMillis(false);
-            if (   displayedEnd.after(displayedStart)
-                && (displayedEnd.hour == 0)
-                && (displayedEnd.minute == 0)
-                && (displayedEnd.second == 0))
-            {
-                // End time is on a day boundary, move back to previous day
-                displayedEnd.set(millisEnd - DateUtils.DAY_IN_MILLIS);
-            }
-            displayedEnd.hour = 0;
-            displayedEnd.minute = 0;
-            displayedEnd.second = 0;
             mSB.setLength(0);
             mStartDateButton.setText(DateUtils.formatDateTime(
                 mActivity, displayedStart.toMillis(false),
                 dateFlags));
             mEndDateButton.setText(DateUtils.formatDateTime(
-                mActivity, millisEnd, dateFlags));
+                mActivity, displayedEnd.toMillis(false),
+                dateFlags));
             mStartTimeButton.setVisibility(View.GONE);
             mStartHomeGroup.setVisibility(View.GONE);
             mStartTimezoneRow.setVisibility(View.GONE);
@@ -1620,7 +1676,6 @@ public class EditEventView
                 mEndHomeGroup.setVisibility(View.VISIBLE);
             }
         }
-        somethingChanged();
     }
 
     @Override
@@ -1685,26 +1740,19 @@ public class EditEventView
             Time startTime = mStartTime;
             Time endTime = mEndTime;
 
-            // Cache the start and end millis so that we limit the number
-            // of calls to normalize() and toMillis(), which are fairly
-            // expensive.
-            long startMillis;
-            long endMillis;
             if (mView == mStartTimeButton) {
                 // The start time was changed.
-                int hourDuration = endTime.hour - startTime.hour;
-                int minuteDuration = endTime.minute - startTime.minute;
-
+                // Gat the actual duration of the event even if the
+                // start and end times have different GMT offsets.
+                long duration =
+                    endTime.normalize(false)
+                        - startTime.normalize(false);
                 startTime.hour = hourOfDay;
                 startTime.minute = minute;
-                startMillis = startTime.normalize(true);
+                long startMillis = startTime.normalize(true);
                 fixStartTimeZone(startMillis, startTime.timezone);
-
-                // Also update the end time
-                // to keep the duration constant.
-                endTime.hour = hourOfDay + hourDuration;
-                endTime.minute = minute + minuteDuration;
-
+                // Update the end time to keep the duration constant.
+                endTime.set(startMillis + duration);
             } else {
                 // The end time was changed.
                 endTime.hour = hourOfDay;
@@ -1717,10 +1765,11 @@ public class EditEventView
                 }
             }
 
-            endMillis = endTime.normalize(true);
-            fixEndTimeZone(endMillis, endTime.timezone);
-
+            fixEndTimeZone(
+                endTime.normalize(true), endTime.timezone);
+            
             updateTimes();
+            somethingChanged();
         }
     }
 
@@ -1770,20 +1819,27 @@ public class EditEventView
             long startMillis;
             long endMillis;
             if (mView == mStartDateButton) {
-                // The start date was changed.
-                int yearDuration = endTime.year - startTime.year;
-                int monthDuration = endTime.month - startTime.month;
-                int monthDayDuration = endTime.monthDay - startTime.monthDay;
+                int startDay =
+                    Time.getJulianDay(startTime.normalize(false),
+                        startTime.gmtoff);
+                int endDay =
+                    Time.getJulianDay(endTime.normalize(false),
+                        endTime.gmtoff);
 
                 startTime.year = year;
                 startTime.month = month;
                 startTime.monthDay = monthDay;
                 startMillis = startTime.normalize(true);
+                int newstart =
+                    Time.getJulianDay(startTime.normalize(false),
+                        startTime.gmtoff);
 
-                // Also update the end date to keep the duration constant.
-                endTime.year = year + yearDuration;
-                endTime.month = month + monthDuration;
-                endTime.monthDay = monthDay + monthDayDuration;
+                // Update the end date to keep the duration constant.
+                Time t = new Time(endTime);
+                t.setJulianDay(newstart + endDay - startDay);
+                endTime.year = t.year;
+                endTime.month = t.month;
+                endTime.monthDay = t.monthDay;
                 endMillis = endTime.normalize(true);
 
                 // If the start date has changed then update the repeats.
@@ -1796,16 +1852,31 @@ public class EditEventView
                 endTime.monthDay = monthDay;
                 endMillis = endTime.normalize(true);
 
-                // Do not allow an event to have an end time before the start
-                // time.
+                // Do not allow an event to have an end time
+                // before the start time.
                 if (endTime.before(startTime)) {
-                    endTime.set(startTime);
-                    endMillis = startMillis;
+                    // force start time back to one day event
+                    if (mAllDayCheckBox.isChecked()) {
+                        startTime.set(endTime);
+                    } else {
+                        int endDay =
+                            Time.getJulianDay(endTime.normalize(false),
+                                endTime.gmtoff);
+                        Time t = new Time(endTime);
+                        t.setJulianDay(endDay - 1);
+                        endTime.year = t.year;
+                        endTime.month = t.month;
+                        endTime.monthDay = t.monthDay;
+                        endMillis = endTime.normalize(true);
+                    }
+                    // If the start date has changed then update the repeats.
+                    populateRepeats();
                 }
             }
             fixStartTimeZone(startMillis, startTime.timezone);
             fixEndTimeZone(endMillis, endTime.timezone);
             updateTimes();
+            somethingChanged();
         }
     }
 
@@ -1841,6 +1912,11 @@ public class EditEventView
     // This gets called when anything changes,
     // because the options menu may need to be updated.
     private void somethingChanged() {
+        //FIXME
+        /* Do we need to show somehting down the edge for events
+         * which overlpa more than a single day? At present they are only
+         * shown at the top of the day column.
+         */
         fillModelFromUI();
         mActivity.invalidateOptionsMenu();
     }

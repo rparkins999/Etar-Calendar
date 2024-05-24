@@ -80,7 +80,9 @@ public class CalendarEventModel implements Serializable {
     // The event ID of the event in the db.
     // This should only be -1 when creating a new event.
     public long mId = -1;
-    public long mOriginalId = -1;
+    // This is zero unless this event is an exception,
+    // in which case it is the mId of the event to which it is an exception.
+    public long mOriginalId = 0;
     // This is the UID field for the VEVENT entry in the iCal file.
     // If we're writing to a file and we don't already have a UID,
     // we create a random one.
@@ -634,7 +636,7 @@ public class CalendarEventModel implements Serializable {
             return (   (!TextUtils.isEmpty(originalModel.mRrule))
                     && (   ((mOriginalSyncId == null)
                         || !mOriginalSyncId.equals(originalModel.mSyncId))
-                    && (   (mOriginalId == -1)
+                    && (   (mOriginalId == 0)
                         || !(mOriginalId == originalModel.mId))));
         } else return !mRrule.equals(originalModel.mRrule);
     }

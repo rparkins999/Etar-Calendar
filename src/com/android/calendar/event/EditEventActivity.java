@@ -1047,14 +1047,10 @@ public class EditEventActivity extends AbstractCalendarActivity
                         }
                         EditEventHelper.setModelFromCursor(mModel, cursor);
                         cursor.close();
-                        mOriginalModel = new CalendarEventModel(mModel);
-                        // We probably shouldn't set mModel.mOriginalStart
-                        // or mModel.mOriginalStart here.
-                        mModel.mIsFirstEventInSeries =
-                            mModel.mId == mModel.mOriginalId;
                         if (mEventColorInitialized) {
                             mModel.setEventColor(mEventColor);
                         }
+                        mOriginalModel = new CalendarEventModel(mModel);
                         eventId = mModel.mId;
 
                         // TOKEN_ATTENDEES
