@@ -110,7 +110,7 @@ public class DayView extends View implements View.OnCreateContextMenuListener,
     /* package */ static final int MINUTES_PER_DAY = MINUTES_PER_HOUR * 24;
     //* package */ static final int MILLIS_PER_MINUTE = 60 * 1000;
     /* package */ static final int MILLIS_PER_HOUR = (3600 * 1000);
-    /* package */ static final int MILLIS_PER_DAY = MILLIS_PER_HOUR * 24;
+    public static final int MILLIS_PER_DAY = MILLIS_PER_HOUR * 24;
     private static final String PERIOD_SPACE = ". ";
     private static final long INVALID_EVENT_ID = -1; //This is used for remembering a null event
     // Duration of the allday expansion

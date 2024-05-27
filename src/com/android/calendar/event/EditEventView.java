@@ -204,7 +204,7 @@ public class EditEventView
     private final Time mStartTime;
     /* This is the end time as displayed.
      * If this isn't an all day event, this is the end time of
-     * the instnce in the event's end timezone, from the database
+     * the instance in the event's end timezone, from the database
      * or from the intent. If the event's end timezone isn't the
      * same as the user's current timezone, the end time in
      * the user's current timezone will be shown as well.
@@ -1742,7 +1742,7 @@ public class EditEventView
 
             if (mView == mStartTimeButton) {
                 // The start time was changed.
-                // Gat the actual duration of the event even if the
+                // Get the actual duration of the event even if the
                 // start and end times have different GMT offsets.
                 long duration =
                     endTime.normalize(false)
@@ -1913,8 +1913,8 @@ public class EditEventView
     // because the options menu may need to be updated.
     private void somethingChanged() {
         //FIXME
-        /* Do we need to show somehting down the edge for events
-         * which overlpa more than a single day? At present they are only
+        /* Do we need to show something down the edge for events
+         * which overlap more than a single day? At present they are only
          * shown at the top of the day column.
          */
         fillModelFromUI();

@@ -93,15 +93,25 @@ public class CalendarEventModel implements Serializable {
     public long mEventStart = -1;
     // Start time of instance, in UTC milliseconds since the epoch.
     // When editing an instance of a recurring event,
-    // it is the start time of the instance being edited.
-    // In all other cases it is the same as mEventStart.
+    // it is initially the start time of the instance being edited.
+    // In all other cases it is initially the same as mEventStart.
+    // It gets modified if the user edits the event start time.
     public long mInstanceStart = -1;
+    // This is used to save mInstanceStart when the ALL DAY box is touched
+    // to prevent it being lost if the ALL DAY box was touched by mistake.
+    public long mSaveInstanceStart = -1;
     // Displayed timezone for start
     public String mTimezoneStart;
+    // This is used to save mTimezoneStart when the ALL DAY box is touched
+    // to prevent it being lost if the ALL DAY box was touched by mistake.
+    public String mSaveTimezoneStart;
     // End time of event, in UTC milliseconds since the epoch.
     // Recurring events have a duration, not an end time, so this is -1.
     // When creating a new event, it is the requested end time.
     public long mEventEnd = -1;
+    // This is used to save mInstanceEnd when the ALL DAY box is touched
+    // to prevent it being lost if the ALL DAY box was touched by mistake.
+    public long mSaveInstanceEnd = -1;
     // End time of instance, in UTC milliseconds since the epoch
     // When editing an instance of a recurring event,
     // it is the end time of the instance being edited.
@@ -110,6 +120,9 @@ public class CalendarEventModel implements Serializable {
     // Displayed timezone for end, which can be different from mTimezoneStart,
     // for example for a flight between time zones.
     public String mTimezoneEnd;
+    // This is used to save mTimezoneEnd when the ALL DAY box is touched
+    // to prevent it being lost if the ALL DAY box was touched by mistake.
+    public String mSaveTimezoneEnd;
     // Recurring events have a duration rather than an end time
     // The format of the string is defined in RFC5545
     public String mDuration = null;
@@ -200,9 +213,11 @@ public class CalendarEventModel implements Serializable {
         mUid = other.mUid;
         mEventStart = other.mEventStart;
         mInstanceStart = other.mInstanceStart;
+        mSaveInstanceStart = other.mSaveInstanceStart;
         mTimezoneStart = other.mTimezoneStart;
         mEventEnd = other.mEventEnd;
         mInstanceEnd = other.mInstanceEnd;
+        mSaveInstanceEnd = other.mSaveInstanceEnd;
         mTimezoneEnd = other.mTimezoneEnd;
         mDuration = other.mDuration;
         mAllDay = other.mAllDay;
@@ -258,7 +273,8 @@ public class CalendarEventModel implements Serializable {
         mModelUpdatedWithEventCursor = other.mModelUpdatedWithEventCursor;
     }
 
-    // This doesn't set mInstanceStart and mInstanceEnd
+    // This is the common code for creating models.
+    // It doesn't set mInstanceStart and mInstanceEnd.
     public CalendarEventModel(Context context) {
         this();
 
@@ -278,7 +294,15 @@ public class CalendarEventModel implements Serializable {
         }
     }
 
-    // This sets mInstanceStart and mInstanceEnd
+    // This creates a model from an Intent sent by the controller.
+    // It gets called when the user touches a + button or an event.
+    // It tries to get mEventStart and mEventEnd from the Intent
+    // and uses defaults if it can't.
+    // It sets mInstanceStart and mInstanceEnd to be equal to
+    // mEvenStart and mEventEnd respectively.
+    // If the user touched an existing event, the model will be updated
+    // from the event's sntry in the database, which may overwrite
+    // mEventStart if the user touched an instance of a recurring event.
     public CalendarEventModel(Context context, Intent intent) {
         this(context);
         if (intent == null) {
@@ -294,9 +318,11 @@ public class CalendarEventModel implements Serializable {
         // If mId>=0 (this is an existing event) mEventStart will be overwritten
         // by the event start time from the database, which may be different
         // if this is an instance of a recurring event
-        if (value >= 0) { mInstanceStart = mEventStart = value; }
+        if (value >= 0) {
+            mInstanceStart = mSaveInstanceStart = mEventStart = value;
+        }
         value = intent.getLongExtra(EXTRA_EVENT_END_TIME, -1);
-        if (value >= 0) { mInstanceEnd = mEventEnd = value; }
+        if (value >= 0) { mInstanceEnd = mSaveInstanceEnd = mEventEnd = value; }
         mAllDay = intent.getBooleanExtra(
             EXTRA_EVENT_ALL_DAY, false);
         String title = intent.getStringExtra(Events.TITLE);
@@ -330,63 +356,6 @@ public class CalendarEventModel implements Serializable {
                     || (mLocation.trim().length() == 0))
                 && (   (mDescription == null)
                     || (mDescription.trim().length() == 0)));
-    }
-
-    // This is called to initialise everything except the Uri
-    // before filling the model with data from the CalendarProvider.
-    // The Uri must be valid because we used it to access the CalendarProvider.
-    public void clear() {
-        // Don't throw away the Uri
-        mId = -1;
-        mOriginalId = -1;
-        mUid = null;
-        mEventStart = -1;
-        mTimezoneStart = null;
-        mInstanceStart = -1;
-        mEventEnd = -1;
-        mTimezoneEnd = null;
-        mInstanceEnd = -1;
-        mDuration = null;
-        mAllDay = false;
-        mRrule = null;
-        mRdate = null;
-        mExdate = null;
-        mIsFirstEventInSeries = true;
-        mTitle = null;
-        mLocation = null;
-        mDescription = null;
-        mEventColor = -1;
-        mEventColorInitialized = false;
-        mEventColorCache = null;
-        mAccessLevel = Events.ACCESS_DEFAULT;
-        mAvailability = Events.AVAILABILITY_BUSY;
-        mEventStatus = Events.STATUS_CONFIRMED;
-        mCalendarId = -1;
-        mCalendarDisplayName = "";
-        mCalendarColor = -1;
-        mCalendarColorInitialized = false;
-        mCalendarAllowedAttendeeTypes = null;
-        mCalendarAllowedAvailability = null;
-        mCalendarAccessLevel = Calendars.CAL_ACCESS_CONTRIBUTOR;
-        mOwnerAccount = null;
-        mGuestsCanInviteOthers = false;
-        mGuestsCanModify = false;
-        mGuestsCanSeeGuests = false;
-        mHasAlarm = false;
-        mReminders = new ArrayList<>();
-        mHasAttendeeData = true;
-        mAttendeesList.clear();
-        mIsOrganizer = true;
-        mOrganizer = null;
-        mOrganizerDisplayName = null;
-        mSelfAttendeeStatus = -1;
-        mOwnerAttendeeId = -1;
-        mOrganizerCanRespond = false;
-        mSyncId = null;
-        mOriginalSyncId = null;
-        mSyncAccountName = null;
-        mSyncAccountType = null;
-        mModelUpdatedWithEventCursor = false;
     }
 
     public void addAttendee(Attendee attendee) {
@@ -618,16 +587,17 @@ public class CalendarEventModel implements Serializable {
             return true;
         }
 
-        if (mEventEnd != mInstanceEnd) {
+        if (mEventEnd != originalModel.mInstanceEnd) {
             return true;
         }
-        if (mEventStart != mInstanceStart) {
+        if (mEventStart != originalModel.mInstanceStart) {
             return true;
         }
 
         // If this changed the original id and it's not just an exception to the
         // original event
-        if (mOriginalId != originalModel.mOriginalId && mOriginalId != originalModel.mId) {
+        if (   (mOriginalId != originalModel.mOriginalId)
+            && (mOriginalId != originalModel.mId)) {
             return true;
         }
 
