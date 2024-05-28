@@ -63,12 +63,22 @@ You can update/add your own language and all artwork files [here](metadata)
 
 ### Build instructions
 Install and extract Android SDK command line tools.
-```
-tools/bin/sdkmanager platform-tools
-export ANDROID_HOME=/path/to/android-sdk/
-git submodule update --init
-gradle build
-```
+
+Current Android versions will only install signed applications. A debug build is automatically signed, but if you want to make a release build, you have to sign it. I'm not giving you my signing key, but the build expects one. You need the following steps:-
+
+Create a signing key
+
+Create a file ```<project root>/../Keys/keystore.properties``` that looks like this:-<br><br>
+```keyAlias=<name of your key>```<br>
+```keyPassword=<key password>```<br>
+```storeFile==<location of signing key file>```<br>
+```storePassword=<key store password>```<br><br>
+If you want to keep your ```keystore.properties``` file somewhere else or give it some other name, edit the top level ```build.gradle```, where its location is specified. If you want to put your version on Google Play Store, the signing mechanism is different, refer to their documentation. If you want to put it on F-Droid, they will build and sign it.<br><br>
+If you build with Android Studio, you will need to create a ```local.properties``` file which points to the location of the SDK, and a build configuration. The following instructions are for a command line build, and may be out of date since I use Android Studio.<br><br>
+```tools/bin/sdkmanager platform-tools```<br>
+```export ANDROID_HOME=/path/to/android-sdk/```<br>
+```git submodule update --init```<br>
+```gradle :app:assembleDebug```<br><br>
 ## License
 
 Copyright (c) 2005-2013, The Android Open Source Project
