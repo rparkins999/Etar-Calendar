@@ -30,7 +30,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Directory;
-import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.text.util.Rfc822Token;
 import android.util.Log;
@@ -630,7 +629,6 @@ public class BaseRecipientAdapter extends BaseAdapter implements Filterable, Acc
         mPermissionsCheckListener = permissionsCheckListener;
     }
 
-    @Nullable
     public PermissionsCheckListener getPermissionsCheckListener() {
         return mPermissionsCheckListener;
     }

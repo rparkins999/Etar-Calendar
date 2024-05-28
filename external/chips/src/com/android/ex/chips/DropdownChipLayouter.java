@@ -12,7 +12,6 @@ import android.net.Uri;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.LayoutRes;
-import androidx.annotation.Nullable;
 import androidx.core.view.MarginLayoutParamsCompat;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -466,7 +465,7 @@ public class DropdownChipLayouter {
      * @return An array of CharSequences, the length determined by the length of results. Each
      *     CharSequence will either be a styled SpannableString or just the input String.
      */
-    protected CharSequence[] getStyledResults(@Nullable String constraint, RecipientEntry entry) {
+    protected CharSequence[] getStyledResults(String constraint, RecipientEntry entry) {
       return getStyledResults(constraint, entry.getDisplayName(), entry.getDestination());
     }
 
@@ -482,7 +481,7 @@ public class DropdownChipLayouter {
      * @return An array of CharSequences, the length determined by the length of results. Each
      *     CharSequence will either be a styled SpannableString or just the input String.
      */
-    protected CharSequence[] getStyledResults(@Nullable String constraint, String... results) {
+    protected CharSequence[] getStyledResults( String constraint, String... results) {
         if (isAllWhitespace(constraint)) {
             return results;
         }
@@ -514,7 +513,7 @@ public class DropdownChipLayouter {
         return styledResults;
     }
 
-    private static boolean isAllWhitespace(@Nullable String string) {
+    private static boolean isAllWhitespace(String string) {
         if (TextUtils.isEmpty(string)) {
             return true;
         }

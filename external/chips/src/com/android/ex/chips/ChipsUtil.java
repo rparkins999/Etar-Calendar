@@ -21,7 +21,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Process;
-import androidx.annotation.Nullable;
 
 public class ChipsUtil {
 
@@ -76,7 +75,7 @@ public class ChipsUtil {
      * {@link #checkPermission} call.
      */
     public static boolean hasPermissions(Context context,
-            @Nullable PermissionsCheckListener permissionsCheckListener) {
+            PermissionsCheckListener permissionsCheckListener) {
         for (String permission : REQUIRED_PERMISSIONS) {
             final boolean granted =
                     checkPermission(context, permission) == PackageManager.PERMISSION_GRANTED;
