@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020 Dominik Schürmann <dominik@schuermann.eu>
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2022
+ * Modifications from the original version Copyright (C) Richard Parkins 2024
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -193,6 +193,7 @@ class CalendarPreferences : PreferenceFragmentCompat() {
                     override fun onColorSelected(color: Int) {
                         val colorPref = findPreference<Preference>(COLOR_KEY)!!
                         colorPref.icon = getColorIcon(color)
+                        calendarDialogPicker.colorSelected(color)
                     }
                 })
         calendarDialogPicker.show()

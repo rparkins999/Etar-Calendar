@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2022
+ * Modifications from the original version Copyright (C) Richard Parkins 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.calendar.colorpicker.ColorPickerDialog;
-import com.android.calendar.colorpicker.ColorPickerSwatch.OnColorSelectedListener;
 import com.android.calendar.colorpicker.HsvColorComparator;
 
 import java.util.ArrayList;
@@ -91,6 +90,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog
         @NonNull Context context)
     {
         super(context);
+        setOwnerActivity((Activity) context);
     }
 
     public static CalendarColorPickerDialog newInstance(
@@ -105,6 +105,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog
         return ret;
     }
 
+    @NonNull
     @Override
     public Bundle onSaveInstanceState() {
         Bundle b = super.onSaveInstanceState();
@@ -129,7 +130,7 @@ public class CalendarColorPickerDialog extends ColorPickerDialog
             retrieveColorKeys(savedInstanceState);
         }
         mService = CalendarApplication.getAsyncQueryService();
-        setOnColorSelectedListener(new OnCalendarColorSelectedListener());
+        startQuery();
     }
 
     private void retrieveColorKeys(Bundle savedInstanceState) {
@@ -168,23 +169,19 @@ public class CalendarColorPickerDialog extends ColorPickerDialog
         }
     }
 
+    public void colorSelected(int color) {
+        if (color == mSelectedColor || mService == null) {
+            return;
+        }
 
-    private class OnCalendarColorSelectedListener implements OnColorSelectedListener {
-
-        @Override
-        public void onColorSelected(int color) {
-            if (color == mSelectedColor || mService == null) {
-                return;
-            }
-
-            ContentValues values = new ContentValues();
-            values.put(Calendars.CALENDAR_COLOR_KEY, mColorKeyMap.get(color));
-            mService.startUpdate(
+        ContentValues values = new ContentValues();
+        values.put(Calendars.CALENDAR_COLOR_KEY, mColorKeyMap.get(color));
+        mService.startUpdate(
                 null, null /* no callback wanted */,
                 ContentUris.withAppendedId(Calendars.CONTENT_URI, mCalendarId),
                 values, null, null);
-        }
     }
+
 
     /**
      * Called when an asynchronous query is completed.

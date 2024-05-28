@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
- * Modifications from the original version Copyright (C) Richard Parkins 2023
+ * Modifications from the original version Copyright (C) Richard Parkins 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -480,6 +480,7 @@ public class EditEventActivity extends AbstractCalendarActivity
             || (mModel.getEventColor() != color)) {
             mModel.setEventColor(color);
             mView.updateHeadlineColor(mModel, color);
+            invalidateOptionsMenu();
         }
     }
 
