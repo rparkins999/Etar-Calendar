@@ -189,6 +189,7 @@ android {
             resValue("string", 'build_git3',
                "${" on branch " + gitdata3.toString()}")
             applicationIdSuffix ".debug"
+            renderscriptDebuggable true
         }
     }
 
